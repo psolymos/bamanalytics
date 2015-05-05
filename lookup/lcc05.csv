@@ -1,0 +1,40 @@
+lcc05v1_2,BAMLCC05V1,lccdet,lccsamp,BAMLCC05V2,BAMLCC05V2_label1,BAMLCC05V2_label2,qpad_num,qpad_text,lcc05_edr_auk,Type,Modifier
+1,1,1,1,1,ConifDense,Conif,1,DenseConifer,1,Conif,Dense
+2,2,1,2,2,DecidDense,Decid,2,DenseDeciduous,2,Decid,Dense
+3,3,1,3,3,MixedDense,Mixed,1,DenseConifer,1,Mixed,"Dense, mature"
+4,4,1,3,4,MixedYoung,Mixed,1,DenseConifer,1,Mixed,"Dense, young"
+5,5,1,2,3,MixedDense,Mixed,2,DenseDeciduous,2,Mixed,Dense
+6,6,2,1,6,ConifSparse,Conif,3,SparseConifer,3,Conif,"Sparse, moss-shrub"
+7,6,2,1,6,ConifSparse,Conif,3,SparseConifer,3,Conif,"Sparse, lichen-shrub"
+8,8,2,1,6,ConifSparse,Conif,3,SparseConifer,3,Conif,"Sparse, shrub-moss"
+9,9,2,1,6,ConifSparse,Conif,3,SparseConifer,3,Conif,"Sparse, lichen-rock"
+10,10,3,4,10,Wet,Wet,3,SparseConifer,3,Conif,"Sparse, poorly drained"
+11,11,2,2,11,DecidSparse,Decid,4,SparseDeciduous,4,Decid,Sparse
+12,12,2,2,12,DecidYoung,Decid,4,SparseDeciduous,4,Decid,"Sparse, regenerating"
+13,8,2,1,13,MixedSparse,Mixed,3,SparseConifer,3,Mixed,Sparse
+14,14,2,3,13,MixedSparse,Mixed,4,SparseDeciduous,4,Mixed,Sparse
+15,15,2,3,15,MixedYoung,Mixed,3,SparseConifer,3,Mixed,"Sparse, regenerating"
+16,12,2,2,12,DecidYoung,Decid,5,OpenHabitat,5,Shrub,
+17,17,4,5,17,Grass,Grass,5,OpenHabitat,5,Grass,Prairie
+18,17,4,5,17,Grass,Grass,5,OpenHabitat,5,Grass,Herb-shrub-bare
+19,10,3,4,10,Wet,Wet,5,OpenHabitat,5,Wet,
+20,8,2,1,6,ConifSparse,Conif,5,OpenHabitat,5,Grass,sparse conif
+21,21,4,5,21,Barren,Barren,5,OpenHabitat,5,Grass,Herb-shrub
+22,21,4,5,21,Barren,Barren,5,OpenHabitat,5,Grass,Herb-shrub-bare
+23,21,4,5,21,Barren,Barren,5,OpenHabitat,5,Grass,Poorly drained
+24,21,4,5,21,Barren,Barren,5,OpenHabitat,5,Grass,
+25,21,4,5,21,Barren,Barren,5,OpenHabitat,5,Grass,
+26,26,5,7,26,Agr,Agr,5,OpenHabitat,5,Crop,
+27,26,5,7,26,Agr,Agr,5,OpenHabitat,5,Crop,
+28,26,5,7,26,Agr,Agr,5,OpenHabitat,5,Crop,
+29,26,5,7,26,Agr,Agr,5,OpenHabitat,5,Crop,
+30,21,4,5,21,Barren,Barren,5,OpenHabitat,5,Lichen/barren,
+31,21,4,5,21,Barren,Barren,5,OpenHabitat,5,Lichen/barren,shrub
+32,21,4,5,10,Wet,Wet,5,OpenHabitat,5,Lichen/barren,spruce-bog
+33,21,6,5,21,Barren,Barren,5,OpenHabitat,5,Rock,
+34,33,6,6,33,Burn,Burn,5,OpenHabitat,5,Recent Burn,
+35,33,6,6,33,Burn,Burn,5,OpenHabitat,5,Old Burn,
+36,55,7,99,55,Devel,Devel,5,OpenHabitat,5,Urban,
+37,55,3,4,55,NA,NA,5,OpenHabitat,5,Water,
+38,55,3,4,10,NA,NA,5,OpenHabitat,5,Water/Land,
+39,55,7,99,55,NA,NA,5,OpenHabitat,5,Snow/Ice,

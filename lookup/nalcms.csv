@@ -1,0 +1,21 @@
+Value,Class_name,Label
+0,No data,NA
+1,Temperate or sub-polar needleleaf forest,Conif
+2,Sub-polar taiga needleleaf forest,Conif
+3,Tropical or sub-tropical broadleaf evergreen,NA
+4,Tropical or sub-tropical broadleaf deciduous,NA
+5,Temperate or sub-polar broadleaf deciduous,Decid
+6, Mixed Forest,Mixed
+7,Tropical or sub-tropical shrubland,NA
+8,Temperate or sub-polar shrubland,Shrub
+9,Tropical or sub-tropical grassland,NA
+10,Temperate or sub-polar grassland,Grass
+11,Sub-polar or polar shrubland-lichen-moss,Shrub
+12,Sub-polar or polar grassland-lichen-moss,Grass
+13,Sub-polar or polar barren-lichen-moss,Barren
+14,Wetland,Wet
+15,Cropland,Agr
+16,Barren Lands,Barren
+17,Urban and Built-up,Devel
+18,Water,NA
+19,Snow and Ice,NA

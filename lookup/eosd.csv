@@ -1,0 +1,38 @@
+Value,Description,Bands,Reclass_label1,Reclass_label2
+0,No data,0;0;0,NA,NA
+11,Cloud,255;255;254,NA,NA
+12,Shadow,51;51;51,NA,NA
+20,Water,51;51;255,NA,NA
+22,Canada Text,35;31;32,NA,NA
+30,Non-Vegetated Land,153;102;102,Barren,Barren
+31,Snow/Ice,204;255;255,Barren,Barren
+32,Rock/Rubble,204;204;204,Barren,Barren
+33,Exposed/Barren Land,153;102;51,Barren,Barren
+40,Bryoids,255;204;255,Barren,Barren
+44,Canada Flag,237;28;36,NA,NA
+34,Developed,204;102;153,Devel,Devel
+50,Shrubland,255;255;0,Shrub,Shrub
+51,Shrub Tall,255;255;51,Shrub,Shrub
+52,Shrub Low,255;255;153,Shrub,Shrub
+80,Wetland,153;51;153,Wet,Wet
+81,Wetland-treed,153;51;204,Wet,Wet
+82,Wetland-shrub,204;102;255,Wet,Wet
+83,Wetland-herb,204;153;255,Wet,Wet
+100,Herbs,204;255;51,Grass,Grass
+110,Grassland,204;204;0,Grass,Grass
+120,Agriculture,204;102;0,Agr,Agr
+121,Agr-Cropland,255;153;51,Agr,Agr
+122,Agr-Pasture/Forage,255;204;51,Agr,Agr
+200,Forest/Trees,0;153;0,NA,NA
+210,Coniferous,0;102;0,NA,Conif
+211,Coniferous-dense,0;102;0,ConifDense,Conif
+212,Coniferous-open,0;153;0,ConifOpen,Conif
+213,Coniferous-sparse,0;204;102,ConifSparse,Conif
+220,Broadleaf,0;204;0,NA,Decid
+221,Broadleaf-dense,0;204;0,DecidDense,Decid
+222,Broadleaf-open,153;255;153,DecidOpen,Decid
+223,Broadleaf-sparse,204;255;153,DecidSparse,Decid
+230,Mixedwood,204;153;0,NA,Mixed
+231,Mixedwood-dense,204;153;0,MixedDense,Mixed
+232,Mixedwood-open,204;204;102,MixedOpen,Mixed
+233,Mixedwood-sparse,204;204;153,MixedSparse,Mixed
