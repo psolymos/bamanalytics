@@ -153,8 +153,8 @@ pkbbs$SITE <- as.factor(pkbbs$SITE)
 pkbbs <- pkbbs[,PKCOLS]
 
 PKEY <- rbind(pkbam, pkbbs)
-rm(pkbam, pkbbs)
-gc()
+#rm(pkbam, pkbbs)
+#gc()
 
 ## Map `METHOD` field from project summary table onto `PKEY$METHOD`
 ## so that duration and distance method can be carried forward to 
@@ -165,6 +165,11 @@ setdiff(PKEY$METHOD, PCODE$Method)
 setdiff(PCODE$Method, PKEY$METHOD)
 PKEY$DURMETH <- PCODE$DURMETH[match(PKEY$METHOD, PCODE$Method)]
 PKEY$DISMETH <- PCODE$DISTMETH[match(PKEY$METHOD, PCODE$Method)]
+
+## Identifying roadside surveys
+PKEY$ROAD <- 0L
+treat.as.bbs <- c("HOBBS","CF","MNBBA", levels(pkbbs$PCODE))
+PKEY$ROAD[PKEY$PCODE %in% treat.as.bbs] <- 1L
 
 #### Offset specific variables
 
@@ -280,10 +285,6 @@ PCTBL <- rbind(pcbam[,pccols], pcbbs[,pccols])
 ## Mapping duration and distance intervals 
 PCTBL$dur <- as.factor(DURINT$dur[match(PCTBL$DURATION, rownames(DURINT))])
 PCTBL$dis <- as.factor(DISINT$dis[match(PCTBL$DISTANCE, rownames(DISINT))])
-## Identifying roadside surveys
-PCTBL$ROAD <- 0L
-treat.as.bbs <- c("BBS", "HOBBS","CF","MNBBA")
-PCTBL$ROAD[PCTBL$PCODE %in% treat.as.bbs] <- 1L
 ## Filtering behaviour
 #sort(100 * table(PCTBL$BEH) / sum(table(PCTBL$BEH)))
 ## 1=Heard
@@ -330,14 +331,17 @@ compare.sets(PKEY$PKEY, PCTBL$PKEY)
 
 ## Save a data backage for new offsets
 dat <- data.frame(PKEY[,c("PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","METHOD",
-    "DURMETH","DISMETH")],
+    "DURMETH","DISMETH","ROAD")],
     SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2")])
-dat <- droplevels(dat)
+dat <- dat[dat$ROAD == 0,]
 rownames(dat) <- dat$PKEY
 ii <- intersect(dat$PKEY, levels(PCTBL$PKEY))
 dat <- droplevels(dat[ii,])
 summary(dat)
 colSums(is.na(dat))
+## sra and edr might have different NA patterns -- it is OK to exclude them later
+#dat <- dat[rowSums(is.na(dat)) == 0,]
+dat <- droplevels(dat)
 ## besides `dat` we also need specific aoutput from `PCTBL`
 ## and also the methodology x interval lookup
 
@@ -369,40 +373,17 @@ PCTBL$dis[with(PCTBL, DISMETH=="W" & dis=="100-125")] <- "100-Inf"
 PCTBL$dis <- droplevels(PCTBL$dis)
 PCTBL$dur <- droplevels(PCTBL$dur)
 
+pc <- droplevels(PCTBL[PCTBL$PKEY %in% levels(dat$PKEY),])
+levels(pc$PKEY) <- c(levels(pc$PKEY), setdiff(levels(dat$PKEY), levels(pc$PKEY)))
+
 durmat <- as.matrix(Xtab(~ DURMETH + dur, PCTBL))
 durmat[durmat > 0] <- 1
 dismat <- as.matrix(Xtab(~ DISMETH + dis, PCTBL))
 dismat[dismat > 0] <- 1
-
-arrange.intervals <-
-function(x, sep="-")
-{
-    x <- ifelse(x > 0, 1L, 0L)
-    ## start/stop
-    ss <- strsplit(colnames(x), sep)
-    names(ss) <- colnames(x)
-    ss <- lapply(ss, as.numeric)
-    ss <- do.call(rbind, ss)
-    nr <- nrow(x)
-    nc <- ncol(x)
-    End <- Id <- array(NA, dim(x))
-    rownames(End) <- rownames(Id) <- rownames(x)
-    for (i in seq_len(nr)) {
-        id <- which(x[i,] > 0)
-        #cn <- colnames(x)[id]
-        endv <- ss[id,2]
-        id <- id[order(endv)]
-        endv <- endv[order(endv)]
-        End[i, seq_len(length(endv))] <- endv
-        Id[i, seq_len(length(endv))] <- id
-    }
-    lc <- which(rev(cumsum(rev(nr - colSums(is.na(Id))))) < 1)[1L] - 1L
-    list(x=x, end=End[,seq_len(lc)], id=Id[,seq_len(lc)])
-}
 ltdur <- arrange.intervals(durmat)
 ltdis <- arrange.intervals(dismat)
 
-save(dat, PCTBL, ltdur, ltdis, 
+save(dat, pc, ltdur, ltdis, 
     file=file.path(ROOT, "out",
     paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
 

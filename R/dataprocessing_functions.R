@@ -99,3 +99,29 @@ compare.sets <- function(x, y) {
         ybutnotx=length(setdiff(ya, xa)))
     rbind(labels=lab, unique=act)
 }
+
+arrange.intervals <-
+function(x, sep="-")
+{
+    x <- ifelse(x > 0, 1L, 0L)
+    ## start/stop
+    ss <- strsplit(colnames(x), sep)
+    names(ss) <- colnames(x)
+    ss <- lapply(ss, as.numeric)
+    ss <- do.call(rbind, ss)
+    nr <- nrow(x)
+    nc <- ncol(x)
+    End <- Id <- array(NA, dim(x))
+    rownames(End) <- rownames(Id) <- rownames(x)
+    for (i in seq_len(nr)) {
+        id <- which(x[i,] > 0)
+        #cn <- colnames(x)[id]
+        endv <- ss[id,2]
+        id <- id[order(endv)]
+        endv <- endv[order(endv)]
+        End[i, seq_len(length(endv))] <- endv
+        Id[i, seq_len(length(endv))] <- id
+    }
+    lc <- which(rev(cumsum(rev(nr - colSums(is.na(Id))))) < 1)[1L] - 1L
+    list(x=x, end=End[,seq_len(lc)], id=Id[,seq_len(lc)])
+}
