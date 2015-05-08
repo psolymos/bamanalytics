@@ -268,6 +268,9 @@ save(resDis, resDisData,
 
 ### Putting things together
 
+## need to check length of NAMES and length of COEF --> correct factor level
+## designation is possible, if != bump up AIC/BIC
+
 USE_ROAD <- FALSE
 n.min <- 75
 
@@ -427,37 +430,6 @@ for (i in spp) {
     }
 }
 
-if (USE_ROAD) {
-    ## constrain TREE (-) and ROAD (+) estimates
-    for (i in spp) {
-        ## ROAD
-        if (edr_models[i, "3"] == 1) {
-            if (edr_estimates[[i]][["3"]]$coef[2] < 0) {
-                edr_aic[i, "3"] <- Inf
-                edr_bic[i, "3"] <- Inf
-                cat(i, "road\n")
-            }
-        }
-        ## TREE + ROAD
-        if (edr_models[i, "4"] == 1) {
-            if (edr_estimates[[i]][["4"]]$coef[2] > 0 ||
-                edr_estimates[[i]][["4"]]$coef[3] < 0) {
-                edr_aic[i, "4"] <- Inf
-                edr_bic[i, "4"] <- Inf
-                cat(i, "tree+road\n")
-            }
-        }
-        ## LCC + ROAD
-        if (edr_models[i, "5"] == 1) {
-            if (edr_estimates[[i]][["5"]]$coef[6] < 0) {
-                edr_aic[i, "5"] <- Inf
-                edr_bic[i, "5"] <- Inf
-                cat(i, "lcc+road\n")
-            }
-        }
-    }
-}
-
 ## model ranking
 edr_aicrank <- t(apply(edr_aic, 1, rank))*edr_models
 edr_aicrank[edr_aicrank==0] <- NA
@@ -481,10 +453,7 @@ table(edr_bicbest, sra_bicbest)
 rowSums(table(edr_bicbest, sra_bicbest))
 colSums(table(edr_bicbest, sra_bicbest))
 
-if (!USE_ROAD)
-    version <- "2"
-if (USE_ROAD)
-    version <- "2"
+version <- "3"
 
 bamcoefs <- list(spp=spp, 
     spp_table=spp_table,
@@ -515,8 +484,4 @@ bamcoefs <- list(spp=spp,
     version=version)
 .BAMCOEFS <- list2env(bamcoefs)
 
-if (USE_ROAD)
-    save(.BAMCOEFS, file="BAMCOEFS_QPADpaper_withRoad.rda")
-
-if (!USE_ROAD)
-    save(.BAMCOEFS, file="BAMCOEFS_QPADpaper.rda")
+save(.BAMCOEFS, file="BAMCOEFS_QPAD_v3.rda")
