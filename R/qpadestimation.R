@@ -2,8 +2,8 @@
 ##title: "QPAD estimation"
 ##author: "Peter Solymos"
 ##date: "May 7, 2015"
-##output: 
-##  pdf_document: 
+##output:
+##  pdf_document:
 ##    toc: true
 ##    toc_depth: 2
 ##---
@@ -65,10 +65,10 @@ fitDurFun <- function(spp, fit=TRUE) {
     ## exclude 0 sum and <1 interval rows
     iob <- rowSums(Y0) > 0 & rowSums(!is.na(D)) > 1
     if (sum(iob)==0)
-        return(structure("0 observation with multiple duration (1)", 
+        return(structure("0 observation with multiple duration (1)",
             class="try-error"))
     if (sum(iob)==1)
-        return(structure("1 observation with multiple duration (2)", 
+        return(structure("1 observation with multiple duration (2)",
             class="try-error"))
     X <- droplevels(pkDur[iob,])
     Y0 <- Y0[iob,]
@@ -82,7 +82,7 @@ fitDurFun <- function(spp, fit=TRUE) {
         w <- w[!is.na(w)]
         Y[i,seq_len(length(w))] <- Y0[i,w]
     }
-    
+
     ## integer mode -- faster, but DO NOT use for intervals (<1)
     if (fit) {
         res <- list()
@@ -133,7 +133,7 @@ resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
 c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur))
 resDur <- resDurOK
 
-save(resDur, resDurData, 
+save(resDur, resDurData,
     file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
 
 ### Distance sampling
@@ -163,12 +163,12 @@ NAMES <- list(
     "3"=c("INTERCEPT", "NALCOpen", "NALCDecid", "NALCMixed"),
     "4"=c("INTERCEPT", "WNALCOpen", "WNALCDecid", "WNALCMixed", "WNALCWet"),
     "5"=c("INTERCEPT", "NALCOpen", "NALCDecid", "NALCMixed", "TREE"),
-    "6"=c("INTERCEPT", "WNALCOpen", "WNALCDecid", "WNALCMixed", "WNALCWet", 
+    "6"=c("INTERCEPT", "WNALCOpen", "WNALCDecid", "WNALCMixed", "WNALCWet",
         "TREE"),
-    "7"=c("INTERCEPT", "NALCTREEOpen", "NALCTREEConifSparse", "NALCTREEDecidDense", 
+    "7"=c("INTERCEPT", "NALCTREEOpen", "NALCTREEConifSparse", "NALCTREEDecidDense",
         "NALCTREEDecidSparse", "NALCTREEMixedDense", "NALCTREEMixedSparse"),
-    "8"=c("INTERCEPT", "WNALCTREEOpen", "WNALCTREEConifSparse", "WNALCTREEDecidDense", 
-        "WNALCTREEDecidSparse", "WNALCTREEMixedDense", "WNALCTREEMixedSparse", 
+    "8"=c("INTERCEPT", "WNALCTREEOpen", "WNALCTREEConifSparse", "WNALCTREEDecidDense",
+        "WNALCTREEDecidSparse", "WNALCTREEMixedDense", "WNALCTREEMixedSparse",
         "WNALCTREEWet"))
 ff <- list(
     ~ 1, # 0
@@ -195,10 +195,10 @@ fitDisFun <- function(spp, fit=TRUE) {
     ## exclude 0 sum and <1 interval rows
     iob <- rowSums(Y0) > 0 & rowSums(!is.na(D)) > 1
     if (sum(iob)==0)
-        return(structure("0 observation with multiple duration (1)", 
+        return(structure("0 observation with multiple duration (1)",
             class="try-error"))
     if (sum(iob)==1)
-        return(structure("1 observation with multiple duration (2)", 
+        return(structure("1 observation with multiple duration (2)",
             class="try-error"))
     X <- droplevels(pkDis[iob,])
     Y0 <- Y0[iob,]
@@ -212,7 +212,7 @@ fitDisFun <- function(spp, fit=TRUE) {
         w <- w[!is.na(w)]
         Y[i,seq_len(length(w))] <- Y0[i,w]
     }
-    
+
     ## integer mode -- faster, but DO NOT use for intervals (<1)
     if (fit) {
         res <- list()
@@ -263,7 +263,7 @@ resDisOK <- resDis[!sapply(resDis, inherits, "try-error")]
 c(OK=length(resDisOK), failed=length(resDis)-length(resDisOK), all=length(resDis))
 resDis <- resDisOK
 
-save(resDis, resDisData, 
+save(resDis, resDisData,
     file=file.path(ROOT, "out", "estimates_EDR_QPAD_v2015.Rdata"))
 
 
@@ -280,9 +280,9 @@ load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
 load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2015.Rdata"))
 
 ## 0/1 table for successful model fit
-edr_mod <- t(sapply(resDis, function(z) 
+edr_mod <- t(sapply(resDis, function(z)
     ifelse(sapply(z, inherits, what="try-error"), 0L, 1L)))
-sra_mod <- t(sapply(resDur, function(z) 
+sra_mod <- t(sapply(resDur, function(z)
     ifelse(sapply(z, inherits, what="try-error"), 0L, 1L)))
 tmp <- union(rownames(edr_mod), rownames(sra_mod))
 edr_models <- matrix(0L, length(tmp), ncol(edr_mod))
@@ -300,7 +300,7 @@ for (spp in tmp) {
             lcf <- length(resDur[[spp]][[mid]]$coefficients)
             lnm <- length(resDur[[spp]][[mid]]$names)
             if (lcf != lnm) {
-                cat("SRA conflict for", spp, "model", mid, 
+                cat("SRA conflict for", spp, "model", mid,
                 "( lcf =", lcf, ", lnm =", lnm, "\n")
                 sra_models[spp,mid] <- 0
             }
@@ -311,7 +311,7 @@ for (spp in tmp) {
             lcf <- length(resDis[[spp]][[mid]]$coefficients)
             lnm <- length(resDis[[spp]][[mid]]$names)
             if (lcf != lnm) {
-                cat("EDR conflict for", spp, "model", mid, 
+                cat("EDR conflict for", spp, "model", mid,
                 "( lcf =", lcf, ", lnm =", lnm, "\n")
                 edr_models[spp,mid] <- 0
             }
@@ -330,10 +330,10 @@ sra_nmod <- ncol(sra_mod)
 ## sample sizes
 edr_n <- sra_n <- numeric(length(tmp))
 names(edr_n) <- names(sra_n) <- tmp
-edr_nn <- sapply(resDis, function(z) ifelse(inherits(z[["0"]], "try-error"), 
+edr_nn <- sapply(resDis, function(z) ifelse(inherits(z[["0"]], "try-error"),
     NA, z[["0"]]$nobs))
 edr_n[names(edr_nn)] <- edr_nn
-sra_nn <- sapply(resDur, function(z) ifelse(inherits(z[["0"]], "try-error"), 
+sra_nn <- sapply(resDur, function(z) ifelse(inherits(z[["0"]], "try-error"),
     NA, z[["0"]]$nobs))
 sra_n[names(sra_nn)] <- sra_nn
 
@@ -365,14 +365,14 @@ edr_estimates <- resDis[spp]
 sra_estimates <- resDur[spp]
 
 ## this needs to be updated !!! ---------------------------------------- FIXME
-spp_table <- data.frame(spp=spp, 
+spp_table <- data.frame(spp=spp,
     scientific_name=NA,
     common_name=NA)
 rownames(spp_table) <- spp
 if (FALSE) {
 load("lifehist_final.Rdata")
 rownames(taxo2) <- taxo2$SPECIES
-spp_table <- data.frame(spp=spp, 
+spp_table <- data.frame(spp=spp,
     scientific_name=taxo2[spp, "SCIENTIFIC NAME"],
     common_name=taxo2[spp, "ENGLISH NAME"])
 rownames(spp_table) <- spp
@@ -454,33 +454,203 @@ colSums(table(edr_bicbest, sra_bicbest))
 
 version <- "3"
 
-bamcoefs <- list(spp=spp, 
+bamcoefs <- list(spp=spp,
     spp_table=spp_table,
     edr_list=edr_list,
     sra_list=sra_list,
-    edr_models=edr_models, 
+    edr_models=edr_models,
     sra_models=sra_models,
-    edr_n=edr_n, 
-    sra_n=sra_n, 
-    edr_df=edr_df, 
+    edr_n=edr_n,
+    sra_n=sra_n,
+    edr_df=edr_df,
     sra_df=sra_df,
-    edr_loglik=edr_loglik, 
+    edr_loglik=edr_loglik,
     sra_loglik=sra_loglik,
-    edr_aic=edr_aic, 
-    sra_aic=sra_aic, 
-    edr_bic=edr_bic, 
+    edr_aic=edr_aic,
+    sra_aic=sra_aic,
+    edr_bic=edr_bic,
     sra_bic=sra_bic,
-    edr_aicrank=edr_aicrank, 
-    sra_aicrank=sra_aicrank, 
-    edr_bicrank=edr_bicrank, 
+    edr_aicrank=edr_aicrank,
+    sra_aicrank=sra_aicrank,
+    edr_bicrank=edr_bicrank,
     sra_bicrank=sra_bicrank,
-    edr_aicbest=edr_aicbest, 
-    sra_aicbest=sra_aicbest, 
-    edr_bicbest=edr_bicbest, 
+    edr_aicbest=edr_aicbest,
+    sra_aicbest=sra_aicbest,
+    edr_bicbest=edr_bicbest,
     sra_bicbest=sra_bicbest,
-    edr_estimates=edr_estimates, 
+    edr_estimates=edr_estimates,
     sra_estimates=sra_estimates,
     version=version)
 .BAMCOEFS <- list2env(bamcoefs)
 
 save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+
+### Plot species spacific results
+
+library(detect)
+load_BAM_QPAD(1)
+.BAMCOEFS$version
+load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
+.BAMCOEFS$version
+
+R <- 1000
+#spp <- "OVEN"
+level <- 0.9
+prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
+library(MASS)
+
+pdf(paste0("~/Dropbox/bam/qpad_v3/QPAD_res_v",
+    getBAMversion(),".pdf"), onefile=TRUE, width=8, height=12)
+for (spp in getBAMspecieslist()) {
+
+cat(spp, "\n");flush.console()
+
+## model weights
+wp <- selectmodelBAMspecies(spp)$sra$weights
+wq <- selectmodelBAMspecies(spp)$edr$weights
+names(wp) <- names(wq) <- rownames(selectmodelBAMspecies(spp)$edr)
+nsra <- selectmodelBAMspecies(spp)$sra$nobs[1]
+nedr <- selectmodelBAMspecies(spp)$edr$nobs[1]
+
+## constant model
+lphi0 <- coefBAMspecies(spp, 0, 0)$sra
+#lphise0 <- sqrt(vcovBAMspecies(spp, 0, 0)$sra[1])
+#lphipi0 <- quantile(rnorm(R, lphi0, lphise0), prob)
+t <- seq(0, 10, 0.1)
+p <- cbind(est=sra_fun(t, exp(lphi0)))#,
+#           pi1=sra_fun(t, exp(lphipi0[1])),
+#           pi2=sra_fun(t, exp(lphipi0[2])))
+ltau0 <- coefBAMspecies(spp, 0, 0)$edr
+#ltause0 <- sqrt(vcovBAMspecies(spp, 0, 0)$edr[1])
+#ltaupi0 <- quantile(rnorm(R, ltau0, ltause0), prob)
+r <- seq(0, 4, 0.05)
+q <- cbind(est=edr_fun(r, exp(ltau0)))#,
+#           pi1=edr_fun(r, exp(ltaupi0[1])),
+#           pi2=edr_fun(r, exp(ltaupi0[2])))
+
+## covariate effects
+mi <- bestmodelBAMspecies(spp)
+cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
+vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
+
+jd <- seq(0.3, 0.7, 0.01)
+ts <- seq(-0.2, 0.4, 0.01)
+xp <- expand.grid(JDAY=jd, # ---------- CHECK !!!
+    TSSR=ts)
+xp$JDAY2 <- xp$JDAY^2
+xp$TSSR2 <- xp$TSSR^2
+xp$Jday <- xp$JDAY * 365
+xp$Tssr <- xp$TSSR * 24
+
+Xp <- model.matrix(~., xp)
+colnames(Xp)[1] <- "INTERCEPT"
+Xp <- Xp[,names(cfi$sra),drop=FALSE]
+lphi1 <- drop(Xp %*% cfi$sra)
+#pcf1 <- mvrnorm(R, cfi$sra, vci$sra)
+#lphipi1 <- t(apply(apply(pcf1, 1, function(z) drop(Xp %*% z)),
+#    1, quantile, prob))
+#px <- cbind(est=exp(lphi1), exp(lphipi1))
+pmat <- matrix(exp(lphi1), length(jd), length(ts))
+pmax <- sra_fun(10, max(exp(lphi1)))
+
+if (getBAMversion() < 3) {
+    lc <- seq(1, 5, 1)
+    tr <- seq(0, 1, 0.01)
+    xq <- expand.grid(LCC=as.factor(lc),
+        TREE=tr)
+} else {
+    lc <- seq(1, 5, 1) # WNALC
+    tr <- seq(0, 1, 0.1)
+    xq <- expand.grid(WNALC=as.factor(lc),
+        TREE=tr)
+    xq$CTREE <- factor("Open", c("Open","Sparse","Dense"))
+    xq$CTREE[xq$TREE > 0.25] <- "Sparse"
+    xq$CTREE[xq$TREE > 0.60] <- "Dense"
+    levels(xq$WNALC) <- c("Conif",
+                          "Open",
+                          "Decid",
+                          "Mixed",
+                          "Wet")
+    xq$NALC <- xq$WNALC
+    levels(xq$NALC)[levels(xq$NALC) == "Wet"] <- "Open"
+    xq$WNALCTREE <- factor(NA, c("ConifDense",
+                                 "Open",
+                                 "ConifSparse",
+                                 "DecidDense",
+                                 "DecidSparse",
+                                 "MixedDense",
+                                 "MixedSparse",
+                                 "Wet"))
+    xq$WNALCTREE[xq$WNALC == "Open"] <- "Open"
+    xq$WNALCTREE[xq$WNALC == "Wet"] <- "Wet"
+    xq$WNALCTREE[xq$WNALC != "Wet" & xq$TREE <= 0.25] <- "Open"
+    xq$WNALCTREE[xq$WNALC == "Conif" & xq$TREE > 0.25] <- "ConifSparse"
+    xq$WNALCTREE[xq$WNALC == "Decid" & xq$TREE > 0.25] <- "DecidSparse"
+    xq$WNALCTREE[xq$WNALC == "Mixed" & xq$TREE > 0.25] <- "MixedSparse"
+    xq$WNALCTREE[xq$WNALC == "Conif" & xq$TREE > 0.60] <- "ConifDense"
+    xq$WNALCTREE[xq$WNALC == "Decid" & xq$TREE > 0.60] <- "DecidDense"
+    xq$WNALCTREE[xq$WNALC == "Mixed" & xq$TREE > 0.60] <- "MixedDense"
+    xq$NALCTREE <- xq$WNALCTREE
+    levels(xq$NALCTREE)[levels(xq$NALCTREE) == "Wet"] <- "Open"
+
+}
+Xq <- model.matrix(~., xq)
+colnames(Xq)[1] <- "INTERCEPT"
+Xq <- Xq[,names(cfi$edr),drop=FALSE]
+ltau1 <- drop(Xq %*% cfi$edr)
+#pcf1 <- mvrnorm(R, cfi$edr, vci$edr)
+#ltaupi1 <- t(apply(apply(pcf1, 1, function(z) drop(Xq %*% z)),
+#    1, quantile, prob))
+#qx <- cbind(est=exp(ltau1), exp(ltaupi1))
+qmat <- matrix(exp(ltau1), length(lc), length(tr))
+qmax <- edr_fun(0.5, max(exp(ltau1)))
+
+
+
+#library(lattice)
+#levelplot(px[,1] ~ Jday * Tssr, xp)
+
+op <- par(las=1, mfrow=c(3,2))
+
+barplot(wp, space=0, col=grey(1-wp), border="grey", ylim=c(0,1),
+    main=paste0(spp, " (n=", nsra, ") v", getBAMversion()),
+    ylab="Model weight", xlab="Model ID")
+barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
+    main=paste0(spp, " (n=", nedr, ") v", getBAMversion()),
+    ylab="Model weight", xlab="Model ID")
+
+plot(t, p[,1], type="n", ylim=c(0,1),
+     xlab="Point count duration (min)",
+     ylab="Probability of singing")
+#polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
+#        col="grey", border="grey")
+lines(t, p[,1], col=1, lwd=2)
+
+plot(r*100, q[,1], type="n", ylim=c(0,1),
+     xlab="Point count radius (m)",
+     ylab="Probability of singing")
+abline(v=exp(ltau0)*100, lty=2)
+#polygon(100*c(r, rev(r)), c(q[,2], rev(q[,3])),
+#        col="grey", border="grey")
+lines(r*100, q[,1], col=1, lwd=2)
+
+image(jd*365, ts*24, pmat,
+    col = rev(grey(seq(0, pmax, len=12))),
+    xlab="Julian days", ylab="Hours since sunrise",
+    main=paste("Best model:", mi$sra))
+image(lc, tr*100, qmat,
+      col = rev(grey(seq(0, qmax, len=12))), axes=FALSE,
+      xlab="Land cover types", ylab="Percent tree cover",
+      main=paste("Best model:", mi$edr))
+axis(1, 1:5, levels(xq$WNALC))
+axis(2)
+box()
+
+par(op)
+}
+dev.off()
+
+### Todo
+## * check ranges
+## * show EDR on distance figure as abline v=edr
+
