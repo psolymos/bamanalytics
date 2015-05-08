@@ -191,6 +191,7 @@ fitDisFun <- function(spp, fit=TRUE) {
     stopifnot(all(colnames(Y0) == colnames(ltdis$x)))
     ## interval end matrix
     D <- ltdis$end[match(pkDis$DISMETH, rownames(ltdis$end)),]
+    D <- D / 100 # 100 m units
     ## exclude 0 sum and <1 interval rows
     iob <- rowSums(Y0) > 0 & rowSums(!is.na(D)) > 1
     if (sum(iob)==0)
@@ -268,37 +269,58 @@ save(resDis, resDisData,
 
 ### Putting things together
 
-## need to check length of NAMES and length of COEF --> correct factor level
-## designation is possible, if != bump up AIC/BIC
+ROOT <- "c:/bam/May2015"
 
-USE_ROAD <- FALSE
+## n.min is threshold above which all models are considered
+## n.con is threshold above which the 0 constant model is considered
+n.con <- 25
 n.min <- 75
 
-setwd("c:/Dropbox/bam/DApq3")
-if (USE_ROAD) {
-    load("estimates_SRA_QPADpaper_withRoad.Rdata")
-    load("estimates_EDR_QPADpaper_withRoad.Rdata")
-} else {
-    load("estimates_SRA_QPADpaper.Rdata")
-    load("estimates_EDR_QPADpaper.Rdata")
-}
+load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
+load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2015.Rdata"))
 
 ## 0/1 table for successful model fit
-edr_mod <- t(sapply(resDist, function(z) 
-    ifelse(sapply(z, inherits, what="try-error"), 0, 1)))
-edr_mod <- edr_mod[,-ncol(edr_mod)]
+edr_mod <- t(sapply(resDis, function(z) 
+    ifelse(sapply(z, inherits, what="try-error"), 0L, 1L)))
 sra_mod <- t(sapply(resDur, function(z) 
-    ifelse(sapply(z, inherits, what="try-error"), 0, 1)))
-sra_mod <- sra_mod[,-ncol(sra_mod)]
+    ifelse(sapply(z, inherits, what="try-error"), 0L, 1L)))
 tmp <- union(rownames(edr_mod), rownames(sra_mod))
-edr_models <- matrix(0, length(tmp), ncol(edr_mod))
+edr_models <- matrix(0L, length(tmp), ncol(edr_mod))
 dimnames(edr_models) <- list(tmp, colnames(edr_mod))
 edr_models[rownames(edr_mod),] <- edr_mod
-sra_models <- matrix(0, length(tmp), ncol(sra_mod))
+sra_models <- matrix(0L, length(tmp), ncol(sra_mod))
 dimnames(sra_models) <- list(tmp, colnames(sra_mod))
 sra_models[rownames(sra_mod),] <- sra_mod
-edr_models[edr_models[,1]==0,] <- 0
-sra_models[sra_models[,1]==0,] <- 0
+## data deficient cases: dropped factor levels
+## need to check length of NAMES and length of COEF --> correct factor level
+## designation is possible, if != bump up AIC/BIC
+for (spp in tmp) {
+    for (mid in colnames(sra_models)) {
+        if (!inherits(resDur[[spp]][[mid]], "try-error")) {
+            lcf <- length(resDur[[spp]][[mid]]$coefficients)
+            lnm <- length(resDur[[spp]][[mid]]$names)
+            if (lcf != lnm) {
+                cat("SRA conflict for", spp, "model", mid, 
+                "( lcf =", lcf, ", lnm =", lnm, "\n")
+                sra_models[spp,mid] <- 0
+            }
+        }
+    }
+    for (mid in colnames(edr_models)) {
+        if (!inherits(resDis[[spp]][[mid]], "try-error")) {
+            lcf <- length(resDis[[spp]][[mid]]$coefficients)
+            lnm <- length(resDis[[spp]][[mid]]$names)
+            if (lcf != lnm) {
+                cat("EDR conflict for", spp, "model", mid, 
+                "( lcf =", lcf, ", lnm =", lnm, "\n")
+                edr_models[spp,mid] <- 0
+            }
+        }
+    }
+}
+## no constant model means exclude that species
+edr_models[edr_models[,1]==0,] <- 0L
+sra_models[sra_models[,1]==0,] <- 0L
 colSums(edr_models)
 colSums(sra_models)
 
@@ -308,53 +330,25 @@ sra_nmod <- ncol(sra_mod)
 ## sample sizes
 edr_n <- sra_n <- numeric(length(tmp))
 names(edr_n) <- names(sra_n) <- tmp
-edr_nn <- sapply(resDist, function(z) sum(z$n))
+edr_nn <- sapply(resDis, function(z) ifelse(inherits(z[["0"]], "try-error"), 
+    NA, z[["0"]]$nobs))
 edr_n[names(edr_nn)] <- edr_nn
-sra_nn <- sapply(resDur, function(z) sum(z$n))
+sra_nn <- sapply(resDur, function(z) ifelse(inherits(z[["0"]], "try-error"), 
+    NA, z[["0"]]$nobs))
 sra_n[names(sra_nn)] <- sra_nn
 
+## exclude all models for species with < n.con observations
+sra_models[sra_n < n.con, ] <- 0L
+edr_models[edr_n < n.con, ] <- 0L
+## exclude non-constant model for species with n.con < observations < n.min
+sra_models[sra_n < n.min & sra_n >= n.con, 2:ncol(sra_models)] <- 0L
+edr_models[edr_n < n.min & edr_n >= n.con, 2:ncol(edr_models)] <- 0L
+table(rowSums(sra_models))
+table(rowSums(edr_models))
+table(rowSums(sra_models), rowSums(edr_models))
+
 ## spp to keep
-#spp <- edr_n >= n.min & sra_n >= n.min &
-#    rowSums(edr_models) > 0 & rowSums(sra_models) > 0
-spp <- edr_n >= n.min & sra_n >= n.min &
-    rowSums(edr_models) > 0 & rowSums(sra_models) > 0
-spp <- tmp[spp]
-
-## add in EDR+ species
-if (FALSE) {
-spp1 <- edr_n >= n.min & rowSums(edr_models)
-spp1 <- tmp[spp1]
-
-spp2 <- sra_n >= n.min & rowSums(sra_models) > 0
-spp2 <- tmp[spp2]
-
-spp3 <- edr_n >= n.min
-spp3 <- tmp[spp3]
-
-spp4 <- sra_n >= n.min
-spp4 <- tmp[spp4]
-
-spp5 <- edr_n >= 25
-spp5 <- tmp[spp5]
-
-spp6 <- sra_n >= 25
-spp6 <- tmp[spp6]
-
-spp7 <- edr_n >= n.min & sra_n >= n.min
-spp7 <- tmp[spp7]
-
-spp8 <- edr_n >= 25 & sra_n >= 25
-spp8 <- tmp[spp8]
-
-setdiff(spp1,spp)
-setdiff(spp2,spp)
-setdiff(spp3,spp)
-setdiff(spp4,spp)
-setdiff(spp5,spp)
-setdiff(spp6,spp)
-setdiff(spp7,spp)
-setdiff(spp8,spp)
-}
+spp <- tmp[rowSums(edr_models) > 0 & rowSums(sra_models) > 0]
 
 edr_models <- edr_models[spp,]
 sra_models <- sra_models[spp,]
@@ -363,37 +357,32 @@ sra_n <- sra_n[spp]
 
 ## no. of parameters
 
-edr_df <- sapply(resDist[["OVEN"]][1:edr_nmod], "[[", "p")
+edr_df <- sapply(resDis[["OVEN"]][1:edr_nmod], "[[", "p")
 sra_df <- sapply(resDur[["OVEN"]][1:sra_nmod], "[[", "p")
 
 ## estimates
-edr_estimates <- resDist[spp]
-for (i in spp)
-    edr_estimates[[i]]$n <- NULL
+edr_estimates <- resDis[spp]
 sra_estimates <- resDur[spp]
-for (i in spp)
-    sra_estimates[[i]]$n <- NULL
 
+## this needs to be updated !!! ---------------------------------------- FIXME
+spp_table <- data.frame(spp=spp, 
+    scientific_name=NA,
+    common_name=NA)
+rownames(spp_table) <- spp
+if (FALSE) {
 load("lifehist_final.Rdata")
 rownames(taxo2) <- taxo2$SPECIES
 spp_table <- data.frame(spp=spp, 
     scientific_name=taxo2[spp, "SCIENTIFIC NAME"],
     common_name=taxo2[spp, "ENGLISH NAME"])
 rownames(spp_table) <- spp
+}
 
 ## get variable names for different models
 sra_list <- sapply(sra_estimates[["OVEN"]], function(z) paste(z$names, collapse=" + "))
 edr_list <- sapply(edr_estimates[["OVEN"]], function(z) paste(z$names, collapse=" + "))
 
 ## loglik values
-edr_loglik <- edr_models
-edr_loglik[] <- -Inf
-for (i in spp) { # species
-    for (j in 1:edr_nmod) { # models
-        if (edr_models[i,j] > 0)
-            edr_loglik[i,j] <- resDist[[i]][[j]]$loglik
-    }
-}
 sra_loglik <- sra_models
 sra_loglik[] <- -Inf
 for (i in spp) { # species
@@ -402,22 +391,31 @@ for (i in spp) { # species
             sra_loglik[i,j] <- resDur[[i]][[j]]$loglik
     }
 }
+edr_loglik <- edr_models
+edr_loglik[] <- -Inf
+for (i in spp) { # species
+    for (j in 1:edr_nmod) { # models
+        if (edr_models[i,j] > 0)
+            edr_loglik[i,j] <- resDis[[i]][[j]]$loglik
+    }
+}
 
 
 ## AIC/BIC
-edr_aic <- edr_bic <- edr_loglik
-edr_aic[] <- Inf
-edr_bic[] <- Inf
 sra_aic <- sra_bic <- sra_loglik
 sra_aic[] <- Inf
 sra_bic[] <- Inf
+edr_aic <- edr_bic <- edr_loglik
+edr_aic[] <- Inf
+edr_bic[] <- Inf
 for (i in spp) {
-    edr_aic[i,] <- -2*edr_loglik[i,] + 2*edr_df
-    edr_bic[i,] <- -2*edr_loglik[i,] + log(edr_n[i])*edr_df
     sra_aic[i,] <- -2*sra_loglik[i,] + 2*sra_df
     sra_bic[i,] <- -2*sra_loglik[i,] + log(sra_n[i])*sra_df
+    edr_aic[i,] <- -2*edr_loglik[i,] + 2*edr_df
+    edr_bic[i,] <- -2*edr_loglik[i,] + log(edr_n[i])*edr_df
 }
 
+if (FALSE) { ## --------------------------------------------------- CHECK !!!
 ## constrain TREE (-) estimates
 for (i in spp) {
     ## TREE
@@ -429,21 +427,22 @@ for (i in spp) {
         }
     }
 }
+}
 
 ## model ranking
-edr_aicrank <- t(apply(edr_aic, 1, rank))*edr_models
-edr_aicrank[edr_aicrank==0] <- NA
 sra_aicrank <- t(apply(sra_aic, 1, rank))*sra_models
 sra_aicrank[sra_aicrank==0] <- NA
-edr_bicrank <- t(apply(edr_bic, 1, rank))*edr_models
-edr_bicrank[edr_bicrank==0] <- NA
+edr_aicrank <- t(apply(edr_aic, 1, rank))*edr_models
+edr_aicrank[edr_aicrank==0] <- NA
 sra_bicrank <- t(apply(sra_bic, 1, rank))*sra_models
 sra_bicrank[sra_bicrank==0] <- NA
+edr_bicrank <- t(apply(edr_bic, 1, rank))*edr_models
+edr_bicrank[edr_bicrank==0] <- NA
 
-edr_aicbest <- apply(edr_aicrank, 1, function(z) colnames(edr_models)[which.min(z)])
-edr_bicbest <- apply(edr_bicrank, 1, function(z) colnames(edr_models)[which.min(z)])
 sra_aicbest <- apply(sra_aicrank, 1, function(z) colnames(sra_models)[which.min(z)])
 sra_bicbest <- apply(sra_bicrank, 1, function(z) colnames(sra_models)[which.min(z)])
+edr_aicbest <- apply(edr_aicrank, 1, function(z) colnames(edr_models)[which.min(z)])
+edr_bicbest <- apply(edr_bicrank, 1, function(z) colnames(edr_models)[which.min(z)])
 
 table(edr_aicbest, sra_aicbest)
 rowSums(table(edr_aicbest, sra_aicbest))
@@ -484,4 +483,4 @@ bamcoefs <- list(spp=spp,
     version=version)
 .BAMCOEFS <- list2env(bamcoefs)
 
-save(.BAMCOEFS, file="BAMCOEFS_QPAD_v3.rda")
+save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
