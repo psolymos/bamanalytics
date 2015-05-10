@@ -653,4 +653,11 @@ dev.off()
 ### Todo
 ## * check ranges
 ## * show EDR on distance figure as abline v=edr
-
+##      TSSR             JDAY      
+## Min.   :-0.315   Min.   :0.351  
+## 1st Qu.: 0.071   1st Qu.:0.433  
+## Median : 0.159   Median :0.458  
+## Mean   : 0.148   Mean   :0.456  
+## 3rd Qu.: 0.241   3rd Qu.:0.479  
+## Max.   : 0.520   Max.   :0.548  
+## NA's   :13971    NA's   :10679  
