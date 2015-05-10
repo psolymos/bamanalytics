@@ -487,17 +487,19 @@ save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 
 ### Plot species spacific results
 
-library(detect)
-load_BAM_QPAD(1)
-.BAMCOEFS$version
-load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
-.BAMCOEFS$version
-
 R <- 1000
 #spp <- "OVEN"
 level <- 0.9
+version <- 3
+
 prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
 library(MASS)
+library(detect)
+load_BAM_QPAD(1)
+.BAMCOEFS$version
+if (version > 2)
+    load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
+.BAMCOEFS$version
 
 pdf(paste0("~/Dropbox/bam/qpad_v3/QPAD_res_v",
     getBAMversion(),".pdf"), onefile=TRUE, width=8, height=12)
