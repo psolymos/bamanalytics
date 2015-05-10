@@ -490,7 +490,7 @@ save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 R <- 1000
 #spp <- "OVEN"
 level <- 0.9
-version <- 3
+version <- 2
 
 prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
 library(MASS)
@@ -501,9 +501,17 @@ if (version > 2)
     load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
 .BAMCOEFS$version
 
+SPP <- getBAMspecieslist()
+cfall <- exp(t(sapply(SPP, function(spp)
+    unlist(coefBAMspecies(spp, 0, 0)))))
+t <- seq(0, 10, 0.1)
+r <- seq(0, 4, 0.05)
+pp <- sapply(SPP, function(spp) sra_fun(t, cfall[spp,1]))
+qq <- sapply(SPP, function(spp) edr_fun(r, cfall[spp,2]))
+
 pdf(paste0("~/Dropbox/bam/qpad_v3/QPAD_res_v",
     getBAMversion(),".pdf"), onefile=TRUE, width=8, height=12)
-for (spp in getBAMspecieslist()) {
+for (spp in SPP) {
 
 cat(spp, "\n");flush.console()
 
@@ -515,18 +523,16 @@ nsra <- selectmodelBAMspecies(spp)$sra$nobs[1]
 nedr <- selectmodelBAMspecies(spp)$edr$nobs[1]
 
 ## constant model
-lphi0 <- coefBAMspecies(spp, 0, 0)$sra
+#lphi0 <- coefBAMspecies(spp, 0, 0)$sra
 #lphise0 <- sqrt(vcovBAMspecies(spp, 0, 0)$sra[1])
 #lphipi0 <- quantile(rnorm(R, lphi0, lphise0), prob)
-t <- seq(0, 10, 0.1)
-p <- cbind(est=sra_fun(t, exp(lphi0)))#,
+#p <- cbind(est=sra_fun(t, exp(lphi0)))#,
 #           pi1=sra_fun(t, exp(lphipi0[1])),
 #           pi2=sra_fun(t, exp(lphipi0[2])))
-ltau0 <- coefBAMspecies(spp, 0, 0)$edr
+#ltau0 <- coefBAMspecies(spp, 0, 0)$edr
 #ltause0 <- sqrt(vcovBAMspecies(spp, 0, 0)$edr[1])
 #ltaupi0 <- quantile(rnorm(R, ltau0, ltause0), prob)
-r <- seq(0, 4, 0.05)
-q <- cbind(est=edr_fun(r, exp(ltau0)))#,
+#q <- cbind(est=edr_fun(r, exp(ltau0)))#,
 #           pi1=edr_fun(r, exp(ltaupi0[1])),
 #           pi2=edr_fun(r, exp(ltaupi0[2])))
 
@@ -535,8 +541,16 @@ mi <- bestmodelBAMspecies(spp)
 cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
 vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
 
-jd <- seq(0.3, 0.7, 0.01)
-ts <- seq(-0.2, 0.4, 0.01)
+##      TSSR             JDAY
+## Min.   :-0.315   Min.   :0.351
+## 1st Qu.: 0.071   1st Qu.:0.433
+## Median : 0.159   Median :0.458
+## Mean   : 0.148   Mean   :0.456
+## 3rd Qu.: 0.241   3rd Qu.:0.479
+## Max.   : 0.520   Max.   :0.548
+## NA's   :13971    NA's   :10679
+jd <- seq(0.35, 0.55, 0.01)
+ts <- seq(-0.3, 0.5, 0.01)
 xp <- expand.grid(JDAY=jd, # ---------- CHECK !!!
     TSSR=ts)
 xp$JDAY2 <- xp$JDAY^2
@@ -554,6 +568,8 @@ lphi1 <- drop(Xp %*% cfi$sra)
 #px <- cbind(est=exp(lphi1), exp(lphipi1))
 pmat <- matrix(exp(lphi1), length(jd), length(ts))
 pmax <- sra_fun(10, max(exp(lphi1)))
+pmat <- sra_fun(3, pmat)
+pmax <- 1
 
 if (getBAMversion() < 3) {
     lc <- seq(1, 5, 1)
@@ -606,6 +622,8 @@ ltau1 <- drop(Xq %*% cfi$edr)
 #qx <- cbind(est=exp(ltau1), exp(ltaupi1))
 qmat <- matrix(exp(ltau1), length(lc), length(tr))
 qmax <- edr_fun(0.5, max(exp(ltau1)))
+qmat <- edr_fun(1, qmat)
+qmax <- 1
 
 
 
@@ -621,20 +639,22 @@ barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
     main=paste0(spp, " (n=", nedr, ") v", getBAMversion()),
     ylab="Model weight", xlab="Model ID")
 
-plot(t, p[,1], type="n", ylim=c(0,1),
+plot(t, pp[,spp], type="n", ylim=c(0,1),
      xlab="Point count duration (min)",
      ylab="Probability of singing")
 #polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
 #        col="grey", border="grey")
-lines(t, p[,1], col=1, lwd=2)
+matlines(t, pp, col="grey", lwd=1, lty=1)
+lines(t, pp[,spp], col=1, lwd=2)
 
-plot(r*100, q[,1], type="n", ylim=c(0,1),
+plot(r*100, qq[,spp], type="n", ylim=c(0,1),
      xlab="Point count radius (m)",
      ylab="Probability of singing")
-abline(v=exp(ltau0)*100, lty=2)
 #polygon(100*c(r, rev(r)), c(q[,2], rev(q[,3])),
 #        col="grey", border="grey")
-lines(r*100, q[,1], col=1, lwd=2)
+matlines(r*100, qq, col="grey", lwd=1, lty=1)
+lines(r*100, qq[,spp], col=1, lwd=2)
+abline(v=cfall[spp,2]*100, lty=2)
 
 image(jd*365, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
@@ -652,14 +672,3 @@ par(op)
 }
 dev.off()
 
-### Todo
-## * check ranges
-## * show EDR on distance figure as abline v=edr
-##      TSSR             JDAY      
-## Min.   :-0.315   Min.   :0.351  
-## 1st Qu.: 0.071   1st Qu.:0.433  
-## Median : 0.159   Median :0.458  
-## Mean   : 0.148   Mean   :0.456  
-## 3rd Qu.: 0.241   3rd Qu.:0.479  
-## Max.   : 0.520   Max.   :0.548  
-## NA's   :13971    NA's   :10679  
