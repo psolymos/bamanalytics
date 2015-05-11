@@ -42,5 +42,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-## Rdata files
+## R related files
 *.Rdata
+*.Rhistory

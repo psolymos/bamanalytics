@@ -387,5 +387,119 @@ save(dat, pc, ltdur, ltdis,
     file=file.path(ROOT, "out",
     paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
 
+## ABMI data processing
+
+setwd("c:/Dropbox/bam/DApq3")
+
+library(RODBC) # for Access DB connection
+library(mefa4) # for crosstabs etc
+library(maptools) # for sunrise
+
+## Load data from Access connection (mirroring Oracle views)
+con <- odbcConnectAccess2007("y:/Oracle_access/DatabaseCombined_Clean_2012-10-03.accdb")
+res <- sqlQuery(con, paste("SELECT * FROM CSVDOWNLOAD_A_RT_BIRD_COUNT_V"))
+taxo <- sqlQuery(con, paste("SELECT * FROM PUBLIC_ACCESS_PUBLIC_DETAIL_TAXONOMYS"))
+xy <- sqlQuery(con, paste("SELECT * FROM METADATA_GIS_SITE_SUMMARY"))
+
+#lookup <- sqlQuery(con, paste("SELECT * FROM PUBLIC_ACCESS_OG_SITE_LABEL_LOOKUPS"))
+#xyog <- sqlQuery(con, paste("SELECT * FROM OFFGRID_RAWDATA_OG_SITE_LABEL_LOOKUPS"))
+#disturb <- sqlQuery(con, paste("SELECT * FROM CSVDOWNLOAD_A_RT_SITE_DISTURBANCE"))
+close(con)
+
+## Labels etc
+tmp <- do.call(rbind, sapply(levels(res$SITE_LABEL), strsplit, "_"))
+colnames(tmp) <- c("Protocol", "OnOffGrid", "DataProvider", "SiteLabel", "YYYY", "Visit", "SubType", "BPC")
+tmp2 <- sapply(tmp[,"SiteLabel"], strsplit, "-")
+tmp3 <- sapply(tmp2, function(z) if (length(z)==1) "ABMI" else z[2])
+tmp4 <- sapply(tmp2, function(z) if (length(z)==1) z[1] else z[3])
+tmp <- data.frame(tmp, ClosestABMISite=tmp4)
+tmp$DataProvider <- as.factor(tmp3)
+levels(tmp$OnOffGrid) <- c("RT", "OG")
+tmp$Label <- with(tmp, paste(OnOffGrid, DataProvider, SiteLabel, YYYY, Visit, "PC", BPC, sep="_"))
+tmp$Label2 <- with(tmp, paste(OnOffGrid, DataProvider, SiteLabel, YYYY, Visit, sep="_"))
+tmp$ClosestABMISite <- as.integer(as.character(tmp$ClosestABMISite))
+tmp$lat <- xy$PUBLIC_LATTITUDE[match(tmp$ClosestABMISite, xy$SITE_ID)]
+tmp$long <- xy$PUBLIC_LONGITUDE[match(tmp$ClosestABMISite, xy$SITE_ID)]
+tmp$NatReg <- xy$NATURAL_REGIONS[match(tmp$ClosestABMISite, xy$SITE_ID)]
+tmp$boreal <- tmp$NatReg %in% c(c("Boreal", "Canadian Shield", "Foothills", "Rocky Mountain"))
+
+#tmp <- substr(as.character(res$SITE), 1, 2)
+#res$OnOffGrid <- ifelse(tmp == "OG", "OG", "RT")
+#res$OGLabel <- res$SITE
+#res$SiteLabel <- toupper(res$SITE)
+#tmp <- lapply(res$SiteLabel, function(z) strsplit(z, split="-")[[1]])
+#res$DataProvider <- sapply(tmp, function(z) ifelse(length(z) == 1, "ABMI", z[2]))
+#res$Visit <- sapply(tmp, function(z) ifelse(length(z) == 1, 1L, as.integer(z[4])))
+#res$Visit <- 1
+#res$ClosestABMISite <- sapply(1:length(tmp), function(i) ifelse(length(tmp[[i]]) == 1, as.integer(res$SITE[i]),# as.integer(tmp[[i]][3])))
+#res$Label <- with(res, paste(OnOffGrid, DataProvider, SiteLabel, YEAR, Visit, "PC", TBB_POINT_COUNT, sep="_"))
+#res$Label2 <- with(res, paste(OnOffGrid, DataProvider, SiteLabel, YEAR, Visit, sep="_"))
+#rm(tmp)
+
+## lat/long for on/off grid sites
+#xy2 <- data.frame(SITE_ID=c(xy$SITE_ID, xyog$SITE_ID),
+#    lat=c(xy$PUBLIC_LATTITUDE, xyog$PUBLIC_LATITUDE),
+#    long=c(xy$PUBLIC_LONGITUDE, xyog$PUBLIC_LONGITUDE))
+
+#res$lat <- xy$PUBLIC_LATTITUDE[match(res$ClosestABMISite,xy$SITE_ID)]
+#res$long <- xy$PUBLIC_LONGITUDE[match(res$ClosestABMISite,xy$SITE_ID)]
+#res$boreal <- xy$NATURAL_REGIONS[match(res$ClosestABMISite,xy$SITE_ID)] == "Boreal"
+res <- data.frame(res, tmp[match(res$SITE_LABEL, rownames(tmp)),])
+
+## PKEY table and proper date format
+PKEY_abmi <- nonDuplicated(res, res$Label, TRUE)
+tmp <- PKEY_abmi$ADATE
+tmp <- sapply(as.character(tmp), strsplit, split="-")
+for (i in 1:length(tmp))
+    if (length(tmp[[i]])==3) {
+        tmp[[i]][2] <- switch(tmp[[i]][2],
+            "May"=5, "Jun"=6, "Jul"=7)
+    } else {
+        tmp[[i]] <- c(99,99,99)
+    }
+tmp <- sapply(tmp, function(z) paste("20",z[3],"-",z[2],"-",z[1], sep=""))
+tmp[tmp=="2099-99-99"] <- NA
+PKEY_abmi$Date <- as.POSIXct(tmp, tz="America/Edmonton")
+
+## TSSR
+Coor <- as.matrix(cbind(as.numeric(PKEY_abmi$long),as.numeric(PKEY_abmi$lat)))
+JL <- as.POSIXct(PKEY_abmi$Date, tz="America/Edmonton")
+subset <- rowSums(is.na(Coor))==0 & !is.na(JL)
+sr <- sunriset(Coor[subset,], JL[subset], direction="sunrise", POSIXct.out=FALSE) * 24
+PKEY_abmi$srise_MDT <- NA
+PKEY_abmi$srise_MDT[subset] <- sr
+
+tmp <- strsplit(as.character(PKEY_abmi$TBB_START_TIME), ":")
+id <- sapply(tmp,length)==2
+tmp <- tmp[id]
+tmp <- as.integer(sapply(tmp,"[[",1)) + as.integer(sapply(tmp,"[[",2))/60
+PKEY_abmi$start_time <- NA
+PKEY_abmi$start_time[id] <- tmp
+PKEY_abmi$srise <- PKEY_abmi$srise_MDT
+PKEY_abmi$TSSR <- (PKEY_abmi$start_time - PKEY_abmi$srise) / 24 # MDT offset is 0
+
+## Julian day
+PKEY_abmi$jan1 <- as.Date(paste(PKEY_abmi$YEAR, "-01-01", sep=""))
+PKEY_abmi$JULIAN <- as.numeric(as.Date(PKEY_abmi$Date)) - as.numeric(PKEY_abmi$jan1) + 1
+PKEY_abmi$JULIAN[PKEY_abmi$JULIAN > 365] <- NA
+PKEY_abmi$JDAY <- PKEY_abmi$JULIAN / 365
+
+## load local spring date data
+spring <- read.csv("c:/bam/Dec2011/ABMI_pub_int_julst_spring.csv")
+spring <- nonDuplicated(spring[,-c(1,2,4,5,6)], Label)
+PKEY_abmi$spring <- spring$JulSt_Spring[match(PKEY_abmi$Label, spring$Label)]
+PKEY_abmi$TSLS <- (PKEY_abmi$JULIAN - PKEY_abmi$spring) / 365
+
+PKEY_abmi <- PKEY_abmi[,c("ROTATION", "SITE", "YEAR", 
+    "TBB_POINT_COUNT", "WIND_CONDITION", "PRECIPTATION", "OnOffGrid", 
+    "SiteLabel", "DataProvider", "Visit", "ClosestABMISite", # "OGLabel", 
+    "Label", "Label2", "lat", "long", "boreal", "Date", "srise", 
+    "start_time", "TSSR", "JDAY", "TSLS")]
+PCTBL_abmi <- res
+taxo <- taxo[taxo$CLASS_NAME=="Aves",]
+
+save(PCTBL_abmi,PKEY_abmi,taxo,file="ABMI_V2011.Rdata")
+
+
 
 
