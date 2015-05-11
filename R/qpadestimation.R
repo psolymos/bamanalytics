@@ -56,7 +56,6 @@ ff <- list(
 xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
 
 fitDurFun <- function(spp, fit=TRUE) {
-    ## get nonzero PCs
     Y0 <- as.matrix(xtDur[[spp]][rownames(pkDur),])
     ## make sure that columns (intervals) match up
     stopifnot(all(colnames(Y0) == colnames(ltdur$x)))
@@ -82,8 +81,6 @@ fitDurFun <- function(spp, fit=TRUE) {
         w <- w[!is.na(w)]
         Y[i,seq_len(length(w))] <- Y0[i,w]
     }
-
-    ## integer mode -- faster, but DO NOT use for intervals (<1)
     if (fit) {
         res <- list()
         for (i in seq_len(length(ff))) {
@@ -170,6 +167,7 @@ NAMES <- list(
     "8"=c("INTERCEPT", "WNALCTREEOpen", "WNALCTREEConifSparse", "WNALCTREEDecidDense",
         "WNALCTREEDecidSparse", "WNALCTREEMixedDense", "WNALCTREEMixedSparse",
         "WNALCTREEWet"))
+## keep: 0, 1, 3, 4, 5, 6
 ff <- list(
     ~ 1, # 0
     ~ TREE, # 1
