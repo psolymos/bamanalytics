@@ -189,7 +189,7 @@ fitDisFun <- function(spp, fit=TRUE) {
     stopifnot(all(colnames(Y0) == colnames(ltdis$x)))
     ## interval end matrix
     D <- ltdis$end[match(pkDis$DISMETH, rownames(ltdis$end)),]
-    D <- D / 100 # 100 m units
+#    D <- D / 100 # 100 m units
     ## exclude 0 sum and <1 interval rows
     iob <- rowSums(Y0) > 0 & rowSums(!is.na(D)) > 1
     if (sum(iob)==0)
