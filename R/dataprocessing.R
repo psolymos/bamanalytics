@@ -28,6 +28,11 @@ source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 ## Define MS Access database connection
 con <- odbcConnectAccess2007(file.path(ROOT, "BAM_BayneAccess_BAMBBScore.accdb"))
 
+#### Species lookup table
+
+TAX <- sqlFetch(con, "dbo_DD_BAM_AOU52_SPECIES_TBL")
+TAX$SSMA_TimeStamp <- NULL
+
 #### SS level stuff for BAM+BBS combined
 
 ## This table has time zone, BCR, jurisdiction, XY
@@ -308,16 +313,26 @@ keep[is.na(PCTBL$dis)] <- FALSE
 keep[is.na(PCTBL$ABUND)] <- FALSE
 ## Actual filtering
 PCTBL <- PCTBL[keep,]
+
 ## Excluding/dropping species
+
 PCTBL$SPECIES <- droplevels(PCTBL$SPECIES)
 levels(PCTBL$SPECIES) <- toupper(levels(PCTBL$SPECIES))
+compare.sets(PCTBL$SPECIES, TAX$Species_ID)
+setdiff(PCTBL$SPECIES, TAX$Species_ID)
+levels(TAX$Species_ID)[levels(TAX$Species_ID) == "YWAR"] <- "YEWA"
+
 sp <- levels(PCTBL$SPECIES)
 spp.to.exclude <- rep(FALSE, length(sp))
+spp.to.exclude[sp %in% setdiff(PCTBL$SPECIES, TAX$Species_ID)] <- TRUE
 spp.to.exclude[sp == "NONE"] <- TRUE
+spp.to.exclude[sp == "RESQ"] <- TRUE
 spp.to.exclude[sp == "DUCK"] <- TRUE
 spp.to.exclude[nchar(sp) > 4] <- TRUE
 spp.to.exclude[substr(sp, 1, 2) == "UN"] <- TRUE
 levels(PCTBL$SPECIES)[spp.to.exclude] <- "NONE"
+compare.sets(PCTBL$SPECIES, TAX$Species_ID)
+setdiff(PCTBL$SPECIES, TAX$Species_ID)
 ## Excluding columns
 PCTBL$DURATION <- NULL
 PCTBL$DISTANCE <- NULL
@@ -328,6 +343,107 @@ PCTBL$dis <- droplevels(PCTBL$dis)
 compare.sets(SS$SS, PKEY$SS)
 compare.sets(SS$SS, PCTBL$SS)
 compare.sets(PKEY$PKEY, PCTBL$PKEY)
+
+### ABMI data processing
+
+pcabmi <- read.csv(file.path(ROOT, "abmi", "birds.csv"))
+ssabmi <- read.csv(file.path(ROOT, "abmi", "sitemetadata.csv"))
+
+## Labels etc
+## SK alpac sites to exclude (xy is hard to track down)
+pcabmi <- droplevels(pcabmi[!grepl("ALPAC-SK", pcabmi$SITE_LABEL),])
+
+tmp <- do.call(rbind, sapply(levels(pcabmi$SITE_LABEL), strsplit, "_"))
+colnames(tmp) <- c("Protocol", "OnOffGrid", "DataProvider", "SiteLabel", "YYYY", "Visit", "SubType", "BPC")
+tmp2 <- sapply(tmp[,"SiteLabel"], strsplit, "-")
+tmp3 <- sapply(tmp2, function(z) if (length(z)==1) "ABMI" else z[2])
+tmp4 <- sapply(tmp2, function(z) if (length(z)==1) z[1] else z[3])
+tmp <- data.frame(tmp, ClosestABMISite=tmp4)
+tmp$DataProvider <- as.factor(tmp3)
+tmp$Label <- with(tmp, paste(OnOffGrid, DataProvider, SiteLabel, YYYY, Visit, "PC", BPC, sep="_"))
+tmp$Label2 <- with(tmp, paste(OnOffGrid, DataProvider, SiteLabel, YYYY, Visit, sep="_"))
+tmp$ClosestABMISite <- as.integer(as.character(tmp$ClosestABMISite))
+tmp$lat <- ssabmi$PUBLIC_LATTITUDE[match(tmp$ClosestABMISite, ssabmi$SITE_ID)]
+tmp$long <- ssabmi$PUBLIC_LONGITUDE[match(tmp$ClosestABMISite, ssabmi$SITE_ID)]
+#tmp$NatReg <- ssabmi$NATURAL_REGIONS[match(tmp$ClosestABMISite, ssabmi$SITE_ID)]
+#tmp$boreal <- tmp$NatReg %in% c(c("Boreal", "Canadian Shield", "Foothills", "Rocky Mountain"))
+
+pcabmi <- data.frame(pcabmi, tmp[match(pcabmi$SITE_LABEL, rownames(tmp)),])
+
+## PKEY table and proper date format
+PKEY_abmi <- nonDuplicated(pcabmi, pcabmi$Label, TRUE)
+tmp <- PKEY_abmi$ADATE
+tmp <- sapply(as.character(tmp), strsplit, split="-")
+for (i in 1:length(tmp)) {
+    if (length(tmp[[i]])<3) {
+        tmp[[i]] <- rep("99", 3)
+    }
+}
+table(sapply(tmp, "[[", 2))
+for (i in 1:length(tmp)) {
+    tmp[[i]][2] <- switch(tmp[[i]][2],
+        "May"=5, "Jun"=6, "Jul"=7, "Aug"=8, "99"=99)
+}
+tmp <- sapply(tmp, function(z) paste("20",z[3],"-",z[2],"-",z[1], sep=""))
+tmp[tmp=="2099-99-99"] <- NA
+PKEY_abmi$Date <- as.POSIXct(tmp, tz="America/Edmonton")
+
+## TSSR
+Coor <- as.matrix(cbind(as.numeric(PKEY_abmi$long),as.numeric(PKEY_abmi$lat)))
+JL <- as.POSIXct(PKEY_abmi$Date, tz="America/Edmonton")
+subset <- rowSums(is.na(Coor))==0 & !is.na(JL)
+sr <- sunriset(Coor[subset,], JL[subset], direction="sunrise", POSIXct.out=FALSE) * 24
+PKEY_abmi$srise_MDT <- NA
+PKEY_abmi$srise_MDT[subset] <- sr
+
+tmp <- strsplit(as.character(PKEY_abmi$TBB_START_TIME), ":")
+id <- sapply(tmp,length)==2
+tmp <- tmp[id]
+tmp <- as.integer(sapply(tmp,"[[",1)) + as.integer(sapply(tmp,"[[",2))/60
+PKEY_abmi$start_time <- NA
+PKEY_abmi$start_time[id] <- tmp
+PKEY_abmi$srise <- PKEY_abmi$srise_MDT
+PKEY_abmi$TSSR <- (PKEY_abmi$start_time - PKEY_abmi$srise) / 24 # MDT offset is 0
+
+## Julian day
+PKEY_abmi$jan1 <- as.Date(paste(PKEY_abmi$YEAR, "-01-01", sep=""))
+PKEY_abmi$JULIAN <- as.numeric(as.Date(PKEY_abmi$Date)) - as.numeric(PKEY_abmi$jan1) + 1
+PKEY_abmi$JULIAN[PKEY_abmi$JULIAN > 365] <- NA
+PKEY_abmi$JDAY <- PKEY_abmi$JULIAN / 365
+
+## counts
+
+PCTBL_abmi <- pcabmi
+levels(PCTBL_abmi$COMMON_NAME)[levels(PCTBL_abmi$COMMON_NAME) == "Black and White Warbler"] <- "Black-and-white Warbler"
+compare.sets(TAX$English_Name, PCTBL_abmi$COMMON_NAME)
+compare.sets(TAX$Scientific_Name, PCTBL_abmi$SCIENTIFIC_NAME)
+setdiff(PCTBL_abmi$COMMON_NAME, TAX$English_Name)
+setdiff(PCTBL_abmi$SCIENTIFIC_NAME, TAX$Scientific_Name)
+
+PCTBL_abmi$SPECIES <- TAX$Species_ID[match(PCTBL_abmi$COMMON_NAME, TAX$English_Name)]
+
+PCTBL_abmi$TBB_TIME_1ST_DETECTED[PCTBL_abmi$TBB_TIME_1ST_DETECTED %in% 
+    c("DNC", "NONE", "VNA")] <- NA
+PCTBL_abmi$TBB_TIME_1ST_DETECTED <- as.numeric(as.character(PCTBL_abmi$TBB_TIME_1ST_DETECTED))
+PCTBL_abmi$period1st <- as.numeric(cut(PCTBL_abmi$TBB_TIME_1ST_DETECTED, c(-1, 200, 400, 600)))
+
+PCTBL_abmi <- PCTBL_abmi[PCTBL_abmi$TBB_INTERVAL_1 %in% c("0","1"),]
+PCTBL_abmi <- PCTBL_abmi[PCTBL_abmi$TBB_INTERVAL_2 %in% c("0","1"),]
+PCTBL_abmi <- PCTBL_abmi[PCTBL_abmi$TBB_INTERVAL_3 %in% c("0","1"),]
+PCTBL_abmi$TBB_INTERVAL_1 <- as.integer(PCTBL_abmi$TBB_INTERVAL_1) - 1L
+PCTBL_abmi$TBB_INTERVAL_2 <- as.integer(PCTBL_abmi$TBB_INTERVAL_2) - 1L
+PCTBL_abmi$TBB_INTERVAL_3 <- as.integer(PCTBL_abmi$TBB_INTERVAL_3) - 1L
+
+tmp <- col(matrix(0,nrow(PCTBL_abmi),3)) * 
+    PCTBL_abmi[,c("TBB_INTERVAL_1","TBB_INTERVAL_2","TBB_INTERVAL_3")]
+tmp[tmp==0] <- NA
+tmp <- cbind(999,tmp)
+PCTBL_abmi$period123 <- apply(tmp, 1, min, na.rm=TRUE)
+with(PCTBL_abmi, table(period1st, period123))
+PCTBL_abmi$period1 <- pmin(PCTBL_abmi$period1st, PCTBL_abmi$period123)
+with(PCTBL_abmi, table(period1st, period1))
+with(PCTBL_abmi, table(period123, period1))
+
 
 ## Save a data backage for new offsets
 dat <- data.frame(PKEY[,c("PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","METHOD",
@@ -342,6 +458,25 @@ colSums(is.na(dat))
 ## sra and edr might have different NA patterns -- it is OK to exclude them later
 #dat <- dat[rowSums(is.na(dat)) == 0,]
 dat <- droplevels(dat)
+
+dat2 <- with(PKEY_abmi, data.frame(
+    PKEY=as.factor(Label),
+    SS=as.factor(Label2),
+    TSSR=TSSR,
+    JDAY=JDAY,
+    MAXDIS=Inf,
+    MAXDUR=10,
+    METHOD="ABMI",
+    DURMETH="ABMI",
+    DISMETH="D",
+    ROAD=0,
+    TREE=NA,
+    TREE3=NA,
+    LCC_combo=NA,
+    HAB_NALC1=NA,
+    HAB_NALC2=NA))
+
+
 ## besides `dat` we also need specific aoutput from `PCTBL`
 ## and also the methodology x interval lookup
 
@@ -376,129 +511,36 @@ PCTBL$dur <- droplevels(PCTBL$dur)
 pc <- droplevels(PCTBL[PCTBL$PKEY %in% levels(dat$PKEY),])
 levels(pc$PKEY) <- c(levels(pc$PKEY), setdiff(levels(dat$PKEY), levels(pc$PKEY)))
 
-durmat <- as.matrix(Xtab(~ DURMETH + dur, PCTBL))
+pc2 <- with(PCTBL_abmi, data.frame(
+    PCODE="ABMI",
+    PKEY=as.factor(Label),
+    SS=as.factor(Label2),
+    SPECIES=SPECIES,
+    ABUND=1,
+    dur=factor(period1),
+    dis="0-Inf",
+    DISMETH="D",
+    DURMETH="ABMI"))
+levels(pc2$dur) <- c("3.33","6.66","10")
+
+
+## combine dat, dat2 and pc pc2
+dat <- rbind(dat, dat2)
+pc <- rbind(pc, pc2)
+
+durmat <- as.matrix(Xtab(~ DURMETH + dur, pc))
 durmat[durmat > 0] <- 1
-dismat <- as.matrix(Xtab(~ DISMETH + dis, PCTBL))
+dismat <- as.matrix(Xtab(~ DISMETH + dis, pc))
 dismat[dismat > 0] <- 1
 ltdur <- arrange.intervals(durmat)
 ltdis <- arrange.intervals(dismat)
+## divide by 100
+ltdis$end <- ltdis$end / 100
 
-save(dat, pc, ltdur, ltdis, 
+save(dat, pc, ltdur, ltdis, TAX,
     file=file.path(ROOT, "out",
     paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
 
-## ABMI data processing
-
-setwd("c:/Dropbox/bam/DApq3")
-
-library(RODBC) # for Access DB connection
-library(mefa4) # for crosstabs etc
-library(maptools) # for sunrise
-
-## Load data from Access connection (mirroring Oracle views)
-con <- odbcConnectAccess2007("y:/Oracle_access/DatabaseCombined_Clean_2012-10-03.accdb")
-res <- sqlQuery(con, paste("SELECT * FROM CSVDOWNLOAD_A_RT_BIRD_COUNT_V"))
-taxo <- sqlQuery(con, paste("SELECT * FROM PUBLIC_ACCESS_PUBLIC_DETAIL_TAXONOMYS"))
-xy <- sqlQuery(con, paste("SELECT * FROM METADATA_GIS_SITE_SUMMARY"))
-
-#lookup <- sqlQuery(con, paste("SELECT * FROM PUBLIC_ACCESS_OG_SITE_LABEL_LOOKUPS"))
-#xyog <- sqlQuery(con, paste("SELECT * FROM OFFGRID_RAWDATA_OG_SITE_LABEL_LOOKUPS"))
-#disturb <- sqlQuery(con, paste("SELECT * FROM CSVDOWNLOAD_A_RT_SITE_DISTURBANCE"))
-close(con)
-
-## Labels etc
-tmp <- do.call(rbind, sapply(levels(res$SITE_LABEL), strsplit, "_"))
-colnames(tmp) <- c("Protocol", "OnOffGrid", "DataProvider", "SiteLabel", "YYYY", "Visit", "SubType", "BPC")
-tmp2 <- sapply(tmp[,"SiteLabel"], strsplit, "-")
-tmp3 <- sapply(tmp2, function(z) if (length(z)==1) "ABMI" else z[2])
-tmp4 <- sapply(tmp2, function(z) if (length(z)==1) z[1] else z[3])
-tmp <- data.frame(tmp, ClosestABMISite=tmp4)
-tmp$DataProvider <- as.factor(tmp3)
-levels(tmp$OnOffGrid) <- c("RT", "OG")
-tmp$Label <- with(tmp, paste(OnOffGrid, DataProvider, SiteLabel, YYYY, Visit, "PC", BPC, sep="_"))
-tmp$Label2 <- with(tmp, paste(OnOffGrid, DataProvider, SiteLabel, YYYY, Visit, sep="_"))
-tmp$ClosestABMISite <- as.integer(as.character(tmp$ClosestABMISite))
-tmp$lat <- xy$PUBLIC_LATTITUDE[match(tmp$ClosestABMISite, xy$SITE_ID)]
-tmp$long <- xy$PUBLIC_LONGITUDE[match(tmp$ClosestABMISite, xy$SITE_ID)]
-tmp$NatReg <- xy$NATURAL_REGIONS[match(tmp$ClosestABMISite, xy$SITE_ID)]
-tmp$boreal <- tmp$NatReg %in% c(c("Boreal", "Canadian Shield", "Foothills", "Rocky Mountain"))
-
-#tmp <- substr(as.character(res$SITE), 1, 2)
-#res$OnOffGrid <- ifelse(tmp == "OG", "OG", "RT")
-#res$OGLabel <- res$SITE
-#res$SiteLabel <- toupper(res$SITE)
-#tmp <- lapply(res$SiteLabel, function(z) strsplit(z, split="-")[[1]])
-#res$DataProvider <- sapply(tmp, function(z) ifelse(length(z) == 1, "ABMI", z[2]))
-#res$Visit <- sapply(tmp, function(z) ifelse(length(z) == 1, 1L, as.integer(z[4])))
-#res$Visit <- 1
-#res$ClosestABMISite <- sapply(1:length(tmp), function(i) ifelse(length(tmp[[i]]) == 1, as.integer(res$SITE[i]),# as.integer(tmp[[i]][3])))
-#res$Label <- with(res, paste(OnOffGrid, DataProvider, SiteLabel, YEAR, Visit, "PC", TBB_POINT_COUNT, sep="_"))
-#res$Label2 <- with(res, paste(OnOffGrid, DataProvider, SiteLabel, YEAR, Visit, sep="_"))
-#rm(tmp)
-
-## lat/long for on/off grid sites
-#xy2 <- data.frame(SITE_ID=c(xy$SITE_ID, xyog$SITE_ID),
-#    lat=c(xy$PUBLIC_LATTITUDE, xyog$PUBLIC_LATITUDE),
-#    long=c(xy$PUBLIC_LONGITUDE, xyog$PUBLIC_LONGITUDE))
-
-#res$lat <- xy$PUBLIC_LATTITUDE[match(res$ClosestABMISite,xy$SITE_ID)]
-#res$long <- xy$PUBLIC_LONGITUDE[match(res$ClosestABMISite,xy$SITE_ID)]
-#res$boreal <- xy$NATURAL_REGIONS[match(res$ClosestABMISite,xy$SITE_ID)] == "Boreal"
-res <- data.frame(res, tmp[match(res$SITE_LABEL, rownames(tmp)),])
-
-## PKEY table and proper date format
-PKEY_abmi <- nonDuplicated(res, res$Label, TRUE)
-tmp <- PKEY_abmi$ADATE
-tmp <- sapply(as.character(tmp), strsplit, split="-")
-for (i in 1:length(tmp))
-    if (length(tmp[[i]])==3) {
-        tmp[[i]][2] <- switch(tmp[[i]][2],
-            "May"=5, "Jun"=6, "Jul"=7)
-    } else {
-        tmp[[i]] <- c(99,99,99)
-    }
-tmp <- sapply(tmp, function(z) paste("20",z[3],"-",z[2],"-",z[1], sep=""))
-tmp[tmp=="2099-99-99"] <- NA
-PKEY_abmi$Date <- as.POSIXct(tmp, tz="America/Edmonton")
-
-## TSSR
-Coor <- as.matrix(cbind(as.numeric(PKEY_abmi$long),as.numeric(PKEY_abmi$lat)))
-JL <- as.POSIXct(PKEY_abmi$Date, tz="America/Edmonton")
-subset <- rowSums(is.na(Coor))==0 & !is.na(JL)
-sr <- sunriset(Coor[subset,], JL[subset], direction="sunrise", POSIXct.out=FALSE) * 24
-PKEY_abmi$srise_MDT <- NA
-PKEY_abmi$srise_MDT[subset] <- sr
-
-tmp <- strsplit(as.character(PKEY_abmi$TBB_START_TIME), ":")
-id <- sapply(tmp,length)==2
-tmp <- tmp[id]
-tmp <- as.integer(sapply(tmp,"[[",1)) + as.integer(sapply(tmp,"[[",2))/60
-PKEY_abmi$start_time <- NA
-PKEY_abmi$start_time[id] <- tmp
-PKEY_abmi$srise <- PKEY_abmi$srise_MDT
-PKEY_abmi$TSSR <- (PKEY_abmi$start_time - PKEY_abmi$srise) / 24 # MDT offset is 0
-
-## Julian day
-PKEY_abmi$jan1 <- as.Date(paste(PKEY_abmi$YEAR, "-01-01", sep=""))
-PKEY_abmi$JULIAN <- as.numeric(as.Date(PKEY_abmi$Date)) - as.numeric(PKEY_abmi$jan1) + 1
-PKEY_abmi$JULIAN[PKEY_abmi$JULIAN > 365] <- NA
-PKEY_abmi$JDAY <- PKEY_abmi$JULIAN / 365
-
-## load local spring date data
-spring <- read.csv("c:/bam/Dec2011/ABMI_pub_int_julst_spring.csv")
-spring <- nonDuplicated(spring[,-c(1,2,4,5,6)], Label)
-PKEY_abmi$spring <- spring$JulSt_Spring[match(PKEY_abmi$Label, spring$Label)]
-PKEY_abmi$TSLS <- (PKEY_abmi$JULIAN - PKEY_abmi$spring) / 365
-
-PKEY_abmi <- PKEY_abmi[,c("ROTATION", "SITE", "YEAR", 
-    "TBB_POINT_COUNT", "WIND_CONDITION", "PRECIPTATION", "OnOffGrid", 
-    "SiteLabel", "DataProvider", "Visit", "ClosestABMISite", # "OGLabel", 
-    "Label", "Label2", "lat", "long", "boreal", "Date", "srise", 
-    "start_time", "TSSR", "JDAY", "TSLS")]
-PCTBL_abmi <- res
-taxo <- taxo[taxo$CLASS_NAME=="Aves",]
-
-save(PCTBL_abmi,PKEY_abmi,taxo,file="ABMI_V2011.Rdata")
 
 
 
