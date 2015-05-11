@@ -421,6 +421,9 @@ setdiff(PCTBL_abmi$COMMON_NAME, TAX$English_Name)
 setdiff(PCTBL_abmi$SCIENTIFIC_NAME, TAX$Scientific_Name)
 
 PCTBL_abmi$SPECIES <- TAX$Species_ID[match(PCTBL_abmi$COMMON_NAME, TAX$English_Name)]
+levels(PCTBL_abmi$SPECIES) <- c(levels(PCTBL_abmi$SPECIES), "NONE")
+PCTBL_abmi$SPECIES[PCTBL_abmi$SPECIES == "TERN_UNI"] <- "NONE"
+PCTBL_abmi$SPECIES <- droplevels(PCTBL_abmi$SPECIES)
 
 PCTBL_abmi$TBB_TIME_1ST_DETECTED[PCTBL_abmi$TBB_TIME_1ST_DETECTED %in% 
     c("DNC", "NONE", "VNA")] <- NA
