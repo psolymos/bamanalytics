@@ -671,11 +671,15 @@ image(jd*365, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
     xlab="Julian days", ylab="Hours since sunrise",
     main=paste("Best model:", mi$sra))
+box()
 image(lc, tr*100, qmat,
       col = rev(grey(seq(0, qmax, len=12))), axes=FALSE,
       xlab="Land cover types", ylab="Percent tree cover",
       main=paste("Best model:", mi$edr))
-axis(1, 1:5, levels(xq$WNALC))
+if (version < 3)
+    axis(1, 1:5, c("DConif","DDecid","SConif","SDecid","Open"))
+if (version > 2)
+    axis(1, 1:nlevels(xq$WNALC), levels(xq$WNALC))
 axis(2)
 box()
 
