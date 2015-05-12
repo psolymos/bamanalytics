@@ -488,7 +488,7 @@ save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 R <- 1000
 #spp <- "OVEN"
 level <- 0.9
-version <- 2
+version <- 3
 
 prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
 library(MASS)
@@ -669,4 +669,9 @@ box()
 par(op)
 }
 dev.off()
+
+### Todo
+## * incorporate ABMI data for singing rate stuff
+## * need AOU code vs common/scientific name mapping
+
 
