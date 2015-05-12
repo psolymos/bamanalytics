@@ -305,6 +305,10 @@ for (spp in tmp) {
                 "( lcf =", lcf, ", lnm =", lnm, "\n")
                 sra_models[spp,mid] <- 0
             }
+        } else {
+            resDur[[spp]][[mid]] <- structure("Error", class = "try-error")
+            #attributes(resDur[[spp]][[mid]]) <- NULL
+            #class(resDur[[spp]][[mid]]) <- "try-error"
         }
     }
     for (mid in colnames(edr_models)) {
@@ -316,6 +320,10 @@ for (spp in tmp) {
                 "( lcf =", lcf, ", lnm =", lnm, "\n")
                 edr_models[spp,mid] <- 0
             }
+        } else {
+            resDis[[spp]][[mid]] <- structure("Error", class = "try-error")
+            attributes(resDis[[spp]][[mid]]) <- NULL
+            class(resDis[[spp]][[mid]]) <- "try-error"
         }
     }
 }
@@ -482,13 +490,16 @@ bamcoefs <- list(spp=spp,
 .BAMCOEFS <- list2env(bamcoefs)
 
 save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+toDump <- as.list(.BAMCOEFS)
+dump("toDump", "v3.R")
+
 
 ### Plot species spacific results
 
 R <- 1000
 #spp <- "OVEN"
 level <- 0.9
-version <- 2
+version <- 3
 
 prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
 library(MASS)
@@ -516,7 +527,8 @@ cat(spp, "\n");flush.console()
 ## model weights
 wp <- selectmodelBAMspecies(spp)$sra$weights
 wq <- selectmodelBAMspecies(spp)$edr$weights
-names(wp) <- names(wq) <- rownames(selectmodelBAMspecies(spp)$edr)
+names(wp) <- rownames(selectmodelBAMspecies(spp)$sra)
+names(wq) <- rownames(selectmodelBAMspecies(spp)$edr)
 nsra <- selectmodelBAMspecies(spp)$sra$nobs[1]
 nedr <- selectmodelBAMspecies(spp)$edr$nobs[1]
 
