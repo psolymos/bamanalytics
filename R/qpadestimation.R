@@ -54,13 +54,16 @@ ff <- list(
 
 ## crosstab for species
 xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
+xtDur[["NONE"]] <- NULL
 
 fitDurFun <- function(spp, fit=TRUE) {
-    Y0 <- as.matrix(xtDur[[spp]][rownames(pkDur),])
+    rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
+    X0 <- pkDur[rn,]
+    Y0 <- as.matrix(xtDur[[spp]][rn,])
     ## make sure that columns (intervals) match up
     stopifnot(all(colnames(Y0) == colnames(ltdur$x)))
     ## interval end matrix
-    D <- ltdur$end[match(pkDur$DURMETH, rownames(ltdur$end)),]
+    D <- ltdur$end[match(X0$DURMETH, rownames(ltdur$end)),]
     ## exclude 0 sum and <1 interval rows
     iob <- rowSums(Y0) > 0 & rowSums(!is.na(D)) > 1
     if (sum(iob)==0)
@@ -69,7 +72,7 @@ fitDurFun <- function(spp, fit=TRUE) {
     if (sum(iob)==1)
         return(structure("1 observation with multiple duration (2)",
             class="try-error"))
-    X <- droplevels(pkDur[iob,])
+    X <- droplevels(X0[iob,])
     Y0 <- Y0[iob,]
     D <- D[iob,]
     n <- nrow(D)
@@ -156,39 +159,41 @@ levels(pkDis$NALCTREE)[levels(pkDis$NALCTREE) %in% c("Wet")] <- "Open"
 NAMES <- list(
     "0"="INTERCEPT",
     "1"=c("INTERCEPT", "TREE"),
-    "2"=c("INTERCEPT", "CTREESparse", "CTREEDense"),
-    "3"=c("INTERCEPT", "NALCOpen", "NALCDecid", "NALCMixed"),
-    "4"=c("INTERCEPT", "WNALCOpen", "WNALCDecid", "WNALCMixed", "WNALCWet"),
-    "5"=c("INTERCEPT", "NALCOpen", "NALCDecid", "NALCMixed", "TREE"),
-    "6"=c("INTERCEPT", "WNALCOpen", "WNALCDecid", "WNALCMixed", "WNALCWet",
-        "TREE"),
-    "7"=c("INTERCEPT", "NALCTREEOpen", "NALCTREEConifSparse", "NALCTREEDecidDense",
-        "NALCTREEDecidSparse", "NALCTREEMixedDense", "NALCTREEMixedSparse"),
-    "8"=c("INTERCEPT", "WNALCTREEOpen", "WNALCTREEConifSparse", "WNALCTREEDecidDense",
-        "WNALCTREEDecidSparse", "WNALCTREEMixedDense", "WNALCTREEMixedSparse",
-        "WNALCTREEWet"))
+    "2"=c("INTERCEPT", "NALCOpen", "NALCDecid", "NALCMixed"),
+    "3"=c("INTERCEPT", "WNALCOpen", "WNALCDecid", "WNALCMixed", "WNALCWet"),
+    "4"=c("INTERCEPT", "NALCOpen", "NALCDecid", "NALCMixed", "TREE"),
+    "5"=c("INTERCEPT", "WNALCOpen", "WNALCDecid", "WNALCMixed", "WNALCWet",
+        "TREE"))
+#    "2"=c("INTERCEPT", "CTREESparse", "CTREEDense"),
+#    "7"=c("INTERCEPT", "NALCTREEOpen", "NALCTREEConifSparse", "NALCTREEDecidDense",
+#        "NALCTREEDecidSparse", "NALCTREEMixedDense", "NALCTREEMixedSparse"),
+#    "8"=c("INTERCEPT", "WNALCTREEOpen", "WNALCTREEConifSparse", "WNALCTREEDecidDense",
+#        "WNALCTREEDecidSparse", "WNALCTREEMixedDense", "WNALCTREEMixedSparse",
+#        "WNALCTREEWet"))
 ## keep: 0, 1, 3, 4, 5, 6
 ff <- list(
     ~ 1, # 0
     ~ TREE, # 1
-    ~ CTREE, # 2
-    ~ NALC, # 3
-    ~ WNALC, # 4
-    ~ NALC + TREE, # 5
-    ~ WNALC + TREE, # 6
-    ~ NALCTREE, # 7
-    ~ WNALCTREE) # 8
+    ~ NALC, # 2
+    ~ WNALC, # 3
+    ~ NALC + TREE, # 4
+    ~ WNALC + TREE) # 5
+#    ~ CTREE, # 2
+#    ~ NALCTREE, # 7
+#    ~ WNALCTREE) # 8
 
 ## crosstab for species
 xtDis <- Xtab(ABUND ~ PKEY + dis + SPECIES, pc)
+xtDis[["NONE"]] <- NULL
 
 fitDisFun <- function(spp, fit=TRUE) {
-    ## get nonzero PCs
-    Y0 <- as.matrix(xtDis[[spp]][rownames(pkDis),])
+    rn <- intersect(rownames(pkDis), rownames(xtDis[[spp]]))
+    X0 <- pkDis[rn,]
+    Y0 <- as.matrix(xtDis[[spp]][rn,])
     ## make sure that columns (intervals) match up
     stopifnot(all(colnames(Y0) == colnames(ltdis$x)))
     ## interval end matrix
-    D <- ltdis$end[match(pkDis$DISMETH, rownames(ltdis$end)),]
+    D <- ltdis$end[match(X0$DISMETH, rownames(ltdis$end)),]
 #    D <- D / 100 # 100 m units
     ## exclude 0 sum and <1 interval rows
     iob <- rowSums(Y0) > 0 & rowSums(!is.na(D)) > 1
@@ -198,7 +203,7 @@ fitDisFun <- function(spp, fit=TRUE) {
     if (sum(iob)==1)
         return(structure("1 observation with multiple duration (2)",
             class="try-error"))
-    X <- droplevels(pkDis[iob,])
+    X <- droplevels(X0[iob,])
     Y0 <- Y0[iob,]
     D <- D[iob,]
     n <- nrow(D)
@@ -210,8 +215,6 @@ fitDisFun <- function(spp, fit=TRUE) {
         w <- w[!is.na(w)]
         Y[i,seq_len(length(w))] <- Y0[i,w]
     }
-
-    ## integer mode -- faster, but DO NOT use for intervals (<1)
     if (fit) {
         res <- list()
         for (i in seq_len(length(ff))) {

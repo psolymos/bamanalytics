@@ -448,8 +448,8 @@ with(PCTBL_abmi, table(period1st, period1))
 with(PCTBL_abmi, table(period123, period1))
 
 
-## Save a data backage for new offsets
-dat <- data.frame(PKEY[,c("PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","METHOD",
+## Save a data package for new offsets
+dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","METHOD",
     "DURMETH","DISMETH","ROAD")],
     SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2")])
 dat <- dat[dat$ROAD == 0,]
@@ -463,6 +463,7 @@ colSums(is.na(dat))
 dat <- droplevels(dat)
 
 dat2 <- with(PKEY_abmi, data.frame(
+    PCODE="ABMI",
     PKEY=as.factor(Label),
     SS=as.factor(Label2),
     TSSR=TSSR,
@@ -478,7 +479,7 @@ dat2 <- with(PKEY_abmi, data.frame(
     LCC_combo=NA,
     HAB_NALC1=NA,
     HAB_NALC2=NA))
-
+rownames(dat2) <- dat2$PKEY
 
 ## besides `dat` we also need specific aoutput from `PCTBL`
 ## and also the methodology x interval lookup
@@ -543,8 +544,4 @@ ltdis$end <- ltdis$end / 100
 save(dat, pc, ltdur, ltdis, TAX,
     file=file.path(ROOT, "out",
     paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
-
-
-
-
 
