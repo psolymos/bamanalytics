@@ -673,8 +673,3 @@ par(op)
 }
 dev.off()
 
-### Todo
-## * incorporate ABMI data for singing rate stuff
-## * need AOU code vs common/scientific name mapping
-
-
