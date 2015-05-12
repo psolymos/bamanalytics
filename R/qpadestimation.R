@@ -366,18 +366,15 @@ edr_estimates <- resDis[spp]
 sra_estimates <- resDur[spp]
 
 ## this needs to be updated !!! ---------------------------------------- FIXME
+e <- new.env()
+load(file.path(ROOT, "out", "new_offset_data_package_2015-05-11.Rdata"), envir=e)
+tax <- e$TAX
+rownames(tax) <- tax$Species_ID
 spp_table <- data.frame(spp=spp,
-    scientific_name=NA,
-    common_name=NA)
+    scientific_name=tax[spp, "Scientific_Name"],
+    common_name=tax[spp, "English_Name"])
 rownames(spp_table) <- spp
-if (FALSE) {
-load("lifehist_final.Rdata")
-rownames(taxo2) <- taxo2$SPECIES
-spp_table <- data.frame(spp=spp,
-    scientific_name=taxo2[spp, "SCIENTIFIC NAME"],
-    common_name=taxo2[spp, "ENGLISH NAME"])
-rownames(spp_table) <- spp
-}
+spp_table <- droplevels(spp_table)
 
 ## get variable names for different models
 sra_list <- sapply(sra_estimates[["OVEN"]], function(z) paste(z$names, collapse=" + "))
@@ -491,7 +488,7 @@ save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 R <- 1000
 #spp <- "OVEN"
 level <- 0.9
-version <- 3
+version <- 2
 
 prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
 library(MASS)
@@ -656,6 +653,7 @@ plot(r*100, qq[,spp], type="n", ylim=c(0,1),
 matlines(r*100, qq, col="grey", lwd=1, lty=1)
 lines(r*100, qq[,spp], col=1, lwd=2)
 abline(v=cfall[spp,2]*100, lty=2)
+rug(cfall[,2]*100, side=1, col="grey")
 
 image(jd*365, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
