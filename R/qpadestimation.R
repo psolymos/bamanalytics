@@ -22,13 +22,16 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2015-05-11.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2015-05-14.Rdata"))
 
 ### Removal sampling
 
 ## non NA subset for duration related estimates
 pkDur <- dat[,c("PKEY","JDAY","TSSR","DURMETH")]
 pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
+## strange methodology where all counts have been filtered
+## thus this only leads to 0 total count and exclusion
+pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
 
 ## models to consider
 NAMES <- list(
@@ -62,6 +65,7 @@ fitDurFun <- function(spp, fit=TRUE) {
     Y0 <- as.matrix(xtDur[[spp]][rn,])
     ## make sure that columns (intervals) match up
     stopifnot(all(colnames(Y0) == colnames(ltdur$x)))
+    stopifnot(length(setdiff(levels(X0$DURMETH), rownames(ltdur$end))) == 0)
     ## interval end matrix
     D <- ltdur$end[match(X0$DURMETH, rownames(ltdur$end)),]
     ## exclude 0 sum and <1 interval rows
@@ -141,6 +145,9 @@ save(resDur, resDurData,
 ## non NA subset for distance related estimates
 pkDis <- dat[,c("PKEY","TREE","TREE3","HAB_NALC1","HAB_NALC2","DISMETH")]
 pkDis <- droplevels(pkDis[rowSums(is.na(pkDis)) == 0,])
+## strange methodology where all counts have been filtered
+## thus this only leads to 0 total count and exclusion
+pkDis <- droplevels(pkDis[pkDis$DISMETH != "W",])
 pkDis$CTREE <- pkDis$TREE3
 
 pkDis$WNALC <- pkDis$HAB_NALC2
@@ -192,6 +199,7 @@ fitDisFun <- function(spp, fit=TRUE) {
     Y0 <- as.matrix(xtDis[[spp]][rn,])
     ## make sure that columns (intervals) match up
     stopifnot(all(colnames(Y0) == colnames(ltdis$x)))
+    stopifnot(length(setdiff(levels(X0$DISMETH), rownames(ltdis$end))) == 0)
     ## interval end matrix
     D <- ltdis$end[match(X0$DISMETH, rownames(ltdis$end)),]
 #    D <- D / 100 # 100 m units

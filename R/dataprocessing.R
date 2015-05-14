@@ -290,6 +290,18 @@ PCTBL <- rbind(pcbam[,pccols], pcbbs[,pccols])
 ## Mapping duration and distance intervals 
 PCTBL$dur <- as.factor(DURINT$dur[match(PCTBL$DURATION, rownames(DURINT))])
 PCTBL$dis <- as.factor(DISINT$dis[match(PCTBL$DISTANCE, rownames(DISINT))])
+
+## Filtering surveys (need to exclude PKEY)
+keeppkey <- rep(TRUE, nrow(PCTBL))
+## 11=0-20
+## 8=unk
+keeppkey[PCTBL$DURATION %in% c(11,8)] <- FALSE
+## Excluding unknown distance bands
+keeppkey[PCTBL$DISTANCE %in% c(4,5,9)] <- FALSE
+## Actual filtering -- but dropping PKEYs
+PCTBL <- droplevels(PCTBL[keeppkey,])
+
+## Filtering within survey (do not exclude PKEY)
 ## Filtering behaviour
 #sort(100 * table(PCTBL$BEH) / sum(table(PCTBL$BEH)))
 ## 1=Heard
@@ -300,18 +312,14 @@ keep <- rep(TRUE, nrow(PCTBL))
 keep[!(PCTBL$BEH %in% c("1","6","11"))] <- FALSE
 ## Excluding >10 min intervals
 ## 10=10-20
-## 11=0-20
 ## 3=before or after
-## 8=unk
 ## 9=10-15
-keep[PCTBL$DURATION %in% c(10,11,3,8,9)] <- FALSE
-## Excluding unknown distance bands
-keep[PCTBL$DISTANCE %in% c(4,5,9)] <- FALSE
+keep[PCTBL$DURATION %in% c(10,3,9)] <- FALSE
 ## Excluding NA values
 keep[is.na(PCTBL$dur)] <- FALSE
 keep[is.na(PCTBL$dis)] <- FALSE
 keep[is.na(PCTBL$ABUND)] <- FALSE
-## Actual filtering
+## Actual filtering -- but keeping PKEYs (do not drop levels)
 #PCTBL$keep <- keep
 PCTBL <- PCTBL[keep,]
 
@@ -525,7 +533,7 @@ pc2 <- with(PCTBL_abmi, data.frame(
     dur=factor(period1),
     dis="0-Inf",
     DISMETH="D",
-    DURMETH="ABMI"))
+    DURMETH="X"))
 levels(pc2$dur) <- c("3.33","6.66","10")
 
 
@@ -537,10 +545,22 @@ durmat <- as.matrix(Xtab(~ DURMETH + dur, pc))
 durmat[durmat > 0] <- 1
 dismat <- as.matrix(Xtab(~ DISMETH + dis, pc))
 dismat[dismat > 0] <- 1
+
 ltdur <- arrange.intervals(durmat)
 ltdis <- arrange.intervals(dismat)
 ## divide by 100
 ltdis$end <- ltdis$end / 100
+
+if (FALSE) {
+pcc <- nonDuplicated(pc, PKEY, TRUE)
+ii <- intersect(rownames(pcc), rownames(dat))
+pkk <- dat[ii,]
+pcc <- pcc[ii,]
+table(pcc=droplevels(pcc$DISMET), pkk=droplevels(pkk$DISMET), useNA="a")
+table(pcc=droplevels(pcc$DURMET), pkk=droplevels(pkk$DURMET), useNA="a")
+
+}
+
 
 save(dat, pc, ltdur, ltdis, TAX,
     file=file.path(ROOT, "out",
