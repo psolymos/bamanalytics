@@ -344,6 +344,10 @@ compare.sets(SS$SS, PKEY$SS)
 compare.sets(SS$SS, PCTBL$SS)
 compare.sets(PKEY$PKEY, PCTBL$PKEY)
 
+save(SS, PKEY, PCTBL, TAX,
+    file=file.path(ROOT, "out",
+    paste0("data_package_", Sys.Date(), ".Rdata")))
+
 ### ABMI data processing
 
 pcabmi <- read.csv(file.path(ROOT, "abmi", "birds.csv"))
