@@ -297,7 +297,7 @@ PCTBL$dis <- as.factor(DISINT$dis[match(PCTBL$DISTANCE, rownames(DISINT))])
 ## 6=seen and heard
 ## Excluding non-aerial detections
 keep <- rep(TRUE, nrow(PCTBL))
-keep[PCTBL$BEH %in% c("1","6","Flock")] <- FALSE
+keep[!(PCTBL$BEH %in% c("1","6","11"))] <- FALSE
 ## Excluding >10 min intervals
 ## 10=10-20
 ## 11=0-20
@@ -312,6 +312,7 @@ keep[is.na(PCTBL$dur)] <- FALSE
 keep[is.na(PCTBL$dis)] <- FALSE
 keep[is.na(PCTBL$ABUND)] <- FALSE
 ## Actual filtering
+#PCTBL$keep <- keep
 PCTBL <- PCTBL[keep,]
 
 ## Excluding/dropping species
@@ -343,10 +344,6 @@ PCTBL$dis <- droplevels(PCTBL$dis)
 compare.sets(SS$SS, PKEY$SS)
 compare.sets(SS$SS, PCTBL$SS)
 compare.sets(PKEY$PKEY, PCTBL$PKEY)
-
-save(SS, PKEY, PCTBL, TAX,
-    file=file.path(ROOT, "out",
-    paste0("data_package_", Sys.Date(), ".Rdata")))
 
 ### ABMI data processing
 
@@ -452,7 +449,7 @@ with(PCTBL_abmi, table(period1st, period1))
 with(PCTBL_abmi, table(period123, period1))
 
 
-## Save a data package for new offsets
+## Data package for new offsets
 dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","METHOD",
     "DURMETH","DISMETH","ROAD")],
     SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2")])
@@ -474,8 +471,8 @@ dat2 <- with(PKEY_abmi, data.frame(
     JDAY=JDAY,
     MAXDIS=Inf,
     MAXDUR=10,
-    METHOD="ABMI",
-    DURMETH="ABMI",
+    METHOD="ABMI:1",
+    DURMETH="X",
     DISMETH="D",
     ROAD=0,
     TREE=NA,
@@ -549,3 +546,6 @@ save(dat, pc, ltdur, ltdis, TAX,
     file=file.path(ROOT, "out",
     paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
 
+save(SS, PKEY, PCTBL, TAX,
+    file=file.path(ROOT, "out",
+    paste0("data_package_", Sys.Date(), ".Rdata")))

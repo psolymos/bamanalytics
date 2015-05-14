@@ -116,11 +116,26 @@ xx100 <- data.frame(x100, x250[,!(colnames(x250) %in% asis)])
 
 ## Pull in BAM counts and PKEY table
 e <- new.env()
-load(file.path(ROOT, "out", "data_package_2015-05-13.Rdata"),
+load(file.path(ROOT, "out", "data_package_2015-05-14.Rdata"),
     envir=e)
 names(as.list(e))
-xt <- as.matrix(Xtab(ABUND ~ PKEY + SPECIES, e$PCTBL)[,c("CAWA","RUBL","OSFL")])
+pc <- e$PCTBL
+pc <- pc[pc$keep,]
+xt <- as.matrix(Xtab(ABUND ~ PKEY + SPECIES, pc)[,c("CAWA","RUBL","OSFL")])
 pk <- e$PKEY
+
+## data checks
+if (FALSE) {
+pp <- data.frame(e$PKEY, e$SS[match(e$PKEY$SS, e$SS$SS),])
+rownames(pp) <- pp$PKEY
+ii <- intersect(rownames(xt),rownames(pp))
+xt <- xt[ii,]
+pp <- pp[ii,]
+
+table(pp$JURS, xt[,"CAWA"]>0)
+with(pp, plot(X, Y, pch="."))
+}
+
 rm(e)
 ## Load pre-calculated offsets (QPAD v2)
 e <- new.env()
