@@ -81,7 +81,8 @@ lt <- lt[tree_250,]
 xp2 <- groupSums(xp, 2, lt$spp3)
 xp2 <- xp2[,colnames(xp2) != "XXX"]
 data.frame(tree=sort(table(as.factor(colnames(xp2)[apply(xp2, 1, which.max)]))))
-x250$ltree <- factor(colnames(xp2)[apply(xp2, 1, which.max)], colnames(xp2))
+x250$ltree <- factor(colnames(xp2)[apply(xp2, 1, which.max)], c(colnames(xp2), "NOCAS"))
+x250$ltree[!x250$keep] <- "NOCAS" # no tree data
 ## Reclass at 50 m scale
 xp <- as.matrix(x50[,colnames(x50) %in% tree_250])
 xp <- xp / (50^2*pi)
@@ -89,6 +90,7 @@ xp <- xp / ifelse(rowSums(xp) > 1, rowSums(xp), 1)
 xp2 <- groupSums(xp, 2, lt[colnames(xp), "spp3"])
 xp2 <- xp2[,colnames(xp2) != "XXX"]
 x50$ltree <- factor(colnames(xp2)[apply(xp2, 1, which.max)], levels(x250$ltree))
+x50$ltree[!x250$keep] <- "NOCAS" # no tree data
 ## Reclass at 100 m scale
 xp <- as.matrix(x100[,colnames(x100) %in% tree_250])
 xp <- xp / (100^2*pi)
@@ -96,6 +98,7 @@ xp <- xp / ifelse(rowSums(xp) > 1, rowSums(xp), 1)
 xp2 <- groupSums(xp, 2, lt[colnames(xp), "spp3"])
 xp2 <- xp2[,colnames(xp2) != "XXX"]
 x100$ltree <- factor(colnames(xp2)[apply(xp2, 1, which.max)], levels(x250$ltree))
+x100$ltree[!x250$keep] <- "NOCAS" # no tree data
 ## Compare scales
 table(x50$ltree, x250$ltree)
 table(x100$ltree, x250$ltree)
