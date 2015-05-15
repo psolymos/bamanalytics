@@ -381,9 +381,9 @@ sra_df <- sapply(resDur[["OVEN"]][1:sra_nmod], "[[", "p")
 edr_estimates <- resDis[spp]
 sra_estimates <- resDur[spp]
 
-## this needs to be updated !!! ---------------------------------------- FIXME
+## species table
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2015-05-11.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2015-05-14.Rdata"), envir=e)
 tax <- e$TAX
 rownames(tax) <- tax$Species_ID
 spp_table <- data.frame(spp=spp,
@@ -499,10 +499,10 @@ bamcoefs <- list(spp=spp,
 
 save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 toDump <- as.list(.BAMCOEFS)
-dump("toDump", "v3.R")
+dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.Rdump"))
 
 
-### Plot species spacific results
+### Plot species specific results
 
 R <- 1000
 #spp <- "OVEN"
