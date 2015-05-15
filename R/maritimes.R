@@ -241,7 +241,8 @@ save(dcawa, drubl, dosfl, BB,
 
 ROOT <- "c:/bam/May2015"
 library(mefa4)
-load(file.path(ROOT, "out", "maritimes_3spp.Rdata"))
+#load(file.path(ROOT, "out", "maritimes_3spp.Rdata"))
+load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/maritimes_mods.R")
 
@@ -369,12 +370,12 @@ CAICalpha=0.5, nmax=NULL)
 }
 
 
-system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsA, 
-    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
-system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsB, 
-    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
-system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsC, 
-    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
+#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsA, 
+#    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
+#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsB, 
+#    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
+#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsC, 
+#    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
 
 wg_fun_mar <- function(i, mods, B, 
     output=c("return","rdata","dump"), 
