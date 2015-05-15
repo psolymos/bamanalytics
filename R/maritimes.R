@@ -120,8 +120,7 @@ load(file.path(ROOT, "out", "data_package_2015-05-14.Rdata"),
     envir=e)
 names(as.list(e))
 pc <- e$PCTBL
-pc <- pc[pc$keep,]
-xt <- as.matrix(Xtab(ABUND ~ PKEY + SPECIES, pc)[,c("CAWA","RUBL","OSFL")])
+xt <- as.matrix(Xtab(ABUND ~ PKEY + SPECIES, e$PCTBL)[,c("CAWA","RUBL","OSFL")])
 pk <- e$PKEY
 
 ## data checks

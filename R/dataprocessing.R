@@ -207,6 +207,10 @@ PKEY$TSSR[PKEY$start_time > 12] <- NA ## after noon
 summary(PKEY$TSSR)
 summary(PKEY$start_time)
 
+PKEY <- PKEY[PKEY$DURMETH != "J",] # unknown duration
+PKEY <- PKEY[PKEY$DISMETH != "O",] # unknown distance
+PKEY <- droplevels(PKEY)
+
 #### Calculate the offsets (optional)
 if (FALSE) { # BEGIN offset calculations
 
@@ -290,6 +294,9 @@ PCTBL <- rbind(pcbam[,pccols], pcbbs[,pccols])
 ## Mapping duration and distance intervals 
 PCTBL$dur <- as.factor(DURINT$dur[match(PCTBL$DURATION, rownames(DURINT))])
 PCTBL$dis <- as.factor(DISINT$dis[match(PCTBL$DISTANCE, rownames(DISINT))])
+## Methodology
+PCTBL$DISMETH <- droplevels(PKEY$DISMETH[match(PCTBL$PKEY, PKEY$PKEY)])
+PCTBL$DURMETH <- droplevels(PKEY$DURMETH[match(PCTBL$PKEY, PKEY$PKEY)])
 
 ## Filtering surveys (need to exclude PKEY)
 keeppkey <- rep(TRUE, nrow(PCTBL))
@@ -298,6 +305,10 @@ keeppkey <- rep(TRUE, nrow(PCTBL))
 keeppkey[PCTBL$DURATION %in% c(11,8)] <- FALSE
 ## Excluding unknown distance bands
 keeppkey[PCTBL$DISTANCE %in% c(4,5,9)] <- FALSE
+## Excluding unknown duration methodology
+keeppkey[PCTBL$DISMETH == "J"] <- FALSE
+## Excluding unknown distance methodology
+keeppkey[PCTBL$DURMETH == "O"] <- FALSE
 ## Actual filtering -- but dropping PKEYs
 PCTBL <- droplevels(PCTBL[keeppkey,])
 
@@ -496,30 +507,34 @@ rownames(dat2) <- dat2$PKEY
 compare.sets(DISMET$DISTANCECODE, PKEY$DISMETH)
 compare.sets(DURMET$DURATIONCODE, PKEY$DURMETH)
 
-PCTBL$DISMETH <- droplevels(PKEY$DISMETH[match(PCTBL$PKEY, PKEY$PKEY)])
-PCTBL$DURMETH <- droplevels(PKEY$DURMETH[match(PCTBL$PKEY, PKEY$PKEY)])
-
 
 ## Oddities that should not happen:
+PCTBL$dur <- as.character(PCTBL$dur)
 PCTBL$dur[with(PCTBL, DURMETH=="A" & dur=="0-3")] <- "0-10"
 PCTBL$dur[with(PCTBL, DURMETH=="B" & dur=="5-8")] <- "0-5"
+PCTBL$dur[with(PCTBL, DURMETH=="X" & dur=="10-10")] <- "6.66-10"
+PCTBL$dur <- as.factor(PCTBL$dur)
 
+PCTBL$dis <- as.character(PCTBL$dis)
 PCTBL$dis[with(PCTBL, DISMETH=="B" & dis=="0-Inf")] <- "0-50" # best guess
 PCTBL$dis[with(PCTBL, DISMETH=="C" & dis=="0-Inf")] <- "0-50" # best guess
 PCTBL$dis[with(PCTBL, DISMETH=="F")] <- "0-100" # all kinds of weird stuff
 PCTBL$dis[with(PCTBL, DISMETH=="I" & dis=="100-125")] <- "0-25"
 PCTBL$dis[with(PCTBL, DISMETH=="I" & dis=="100-Inf")] <- "0-25" # best guess
 #PCTBL$dis[with(PCTBL, DISMETH=="L" & dis=="150-Inf")] <- "100-150" # no >150
+PCTBL$dis[with(PCTBL, DISMETH=="M" & dis=="0-Inf")] <- "150-Inf"
 #PCTBL$dis[with(PCTBL, DISMETH=="T" & dis=="100-Inf")] <- "-" # no >100
 PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="0-50")] <- "40-50"
 PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="100-150")] <- "125-150"
 PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="100-Inf")] <- "150-Inf"
+PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="50-100")] <- "90-100"
 PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="50-Inf")] <- "150-Inf"
 PCTBL$dis[with(PCTBL, DISMETH=="W" & dis=="150-Inf")] <- "100-Inf"
 PCTBL$dis[with(PCTBL, DISMETH=="W" & dis=="100-125")] <- "100-Inf"
+PCTBL$dis <- as.factor(PCTBL$dis)
 
-PCTBL$dis <- droplevels(PCTBL$dis)
-PCTBL$dur <- droplevels(PCTBL$dur)
+#PCTBL$dis <- droplevels(PCTBL$dis)
+#PCTBL$dur <- droplevels(PCTBL$dur)
 
 pc <- droplevels(PCTBL[PCTBL$PKEY %in% levels(dat$PKEY),])
 levels(pc$PKEY) <- c(levels(pc$PKEY), setdiff(levels(dat$PKEY), levels(pc$PKEY)))
@@ -534,7 +549,7 @@ pc2 <- with(PCTBL_abmi, data.frame(
     dis="0-Inf",
     DISMETH="D",
     DURMETH="X"))
-levels(pc2$dur) <- c("3.33","6.66","10")
+levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
 
 
 ## combine dat, dat2 and pc pc2
