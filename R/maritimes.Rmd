@@ -1,41 +1,60 @@
-##---
-##title: "Maritimes data analysis"
-##author: "Peter Solymos"
-##date: "May 13, 2015"
-##output: pdf_document
-##---
+---
+title: "Maritimes data analysis"
+author: "Peter Solymos"
+date: "May 13, 2015"
+output: pdf_document
+---
 
-### Data processing
+# Data processing
 
-#### Processing geospatial data for sampling locations
+## Processing geospatial data for sampling locations
 
-## Define root folder where data are stored
+ Define root folder where data are stored
+```{r CHUNK_1}
 ROOT <- "c:/bam/May2015"
 library(mefa4)
-## Load data files
+```
+
+ Load data files
+```{r CHUNK_2}
 x50 <- read.csv(file.path(ROOT, "maritimes", "Avian_50.csv"))
 x100 <- read.csv(file.path(ROOT, "maritimes", "Avian_100.csv"))
 x250 <- read.csv(file.path(ROOT, "maritimes", "Avian_250.csv"))
-## Checking duplicates
+```
+
+ Checking duplicates
+```{r CHUNK_3}
 x50[duplicated(x50$SS),1:6]
 x100[duplicated(x100$SS),1:6]
 x250[duplicated(x250$SS),1:6]
-## Dropping duplicates and using SS as row name
+```
+
+ Dropping duplicates and using SS as row name
+```{r CHUNK_4}
 x50 <- nonDuplicated(x50, SS, TRUE)
 x100 <- nonDuplicated(x100, SS, TRUE)
 x250 <- nonDuplicated(x250, SS, TRUE)
-## Checking if set of SS values are the same
+```
+
+ Checking if set of SS values are the same
+```{r CHUNK_5}
 stopifnot(length(union(rownames(x50), rownames(x100))) == 
     length(intersect(rownames(x50), rownames(x100))))
 stopifnot(length(union(rownames(x50), rownames(x250))) == 
     length(intersect(rownames(x50), rownames(x250))))
 stopifnot(length(union(rownames(x100), rownames(x250))) == 
     length(intersect(rownames(x100), rownames(x250))))
-## Sort the tables by SS
+```
+
+ Sort the tables by SS
+```{r CHUNK_6}
 x50 <- x50[rownames(x250),]
 x100 <- x100[rownames(x250),]
+```
 
-## CAS based tree species
+
+ CAS based tree species
+```{r CHUNK_7}
 tree_250 <- c("Abie_bals", "Abie_pice", "Abie_spp", "Acer_rubr", 
     "Acer_sacc", "Acer_spp", "Alnu_spp", "Betu_alle", "Betu_papy", 
     "Betu_popu", "Betu_spp", "Fagu_gran", "Frax_spp", "Hard_into", 
@@ -45,38 +64,68 @@ tree_250 <- c("Abie_bals", "Abie_pice", "Abie_spp", "Acer_rubr",
     "Pinu_stro", "Pinu_sylv", "Popu_balb", "Popu_spp", "Popu_trem", 
     "Prun_sero", "Quer_rubr", "Soft_unkn", "Thuj_occi", "Tsug_cana", 
     "Ulmu_amer", "Uncl_spp")
-## Checking if 50 and 100 m buffer has no tree species
-## that that is unique for a <250 m scale (this should not happen, and seems OK)
+```
+
+ Checking if 50 and 100 m buffer has no tree species
+ that that is unique for a <250 m scale (this should not happen, and seems OK)
+```{r CHUNK_8}
 setdiff(colnames(x50), tree_250)
 setdiff(colnames(x100), tree_250)
-## CAS related fields from the 250 m buffer
+```
+
+ CAS related fields from the 250 m buffer
+```{r CHUNK_9}
 cas_250 <- c(tree_250, "CRCL_AV", "CRCL_STD", "HT_AV", "HT_STD")
-## Rows with 0 values for all CAS fields should be excluded
-## but only after checking the species data
-## (we do not want to throw it away if this is where species live)
+```
+
+ Rows with 0 values for all CAS fields should be excluded
+ but only after checking the species data
+ (we do not want to throw it away if this is where species live)
+```{r CHUNK_10}
 x250$keep <- rowSums(x250[,cas_250]) > 0 # drop 1260 rows
-## Checking 250 m based percentages for leading tree species
+```
+
+ Checking 250 m based percentages for leading tree species
+```{r CHUNK_11}
 xp <- as.matrix(x250[,tree_250])
 range(xp)
-## Divide areas (m^2) by buffer size (250^2*pi = 196349.5)
+```
+
+ Divide areas (m^2) by buffer size (250^2*pi = 196349.5)
+```{r CHUNK_12}
 xp <- xp / (250^2*pi)
 stopifnot(all(xp <= 1))
-## Percentages sometimes add up to >1, but this should not affect
-## finding the dominant species (maximum do not change by standardization,
-## but we might want to know percentage for comparisons)
+```
+
+ Percentages sometimes add up to >1, but this should not affect
+ finding the dominant species (maximum do not change by standardization,
+ but we might want to know percentage for comparisons)
+```{r CHUNK_13}
 hist(rowSums(xp))
 summary(rowSums(xp))
 sum(rowSums(xp) > 1)
-## Standardize with row sums where it is >1
+```
+
+ Standardize with row sums where it is >1
+```{r CHUNK_14}
 xp <- xp / ifelse(rowSums(xp) > 1, rowSums(xp), 1)
 summary(rowSums(xp))
-## Leading species
+```
+
+ Leading species
+```{r CHUNK_15}
 tlead <- as.factor(tree_250[apply(xp, 1, which.max)])
 data.frame(sort(table(tlead)))
-## Percent cover of leading species
-plead <- apply(xp, 1, function(z) z[which.max(z)])
+```
 
-## Leading human footprint type in 250 m buffer
+ Percent cover of leading species
+```{r CHUNK_16}
+plead <- apply(xp, 1, function(z) z[which.max(z)])
+```
+
+
+ Leading human footprint type in 250 m buffer
+```{r CHUNK_17}
 hflab <- c("BU","CO","OT","PC","SI","WF")
 h <- as.matrix(x250[,colnames(x250) %in% hflab])
 hist(rowSums(h))
@@ -84,8 +133,11 @@ h <- cbind(Undist=1-rowSums(h),
     groupSums(h, 2, c("Burn","Cut","Other","Cut","Other","Other")))
 x250$ldist <- factor(colnames(h)[apply(h, 1, which.max)], colnames(h))
 table(x250$ldist)
+```
 
-## Standardization
+
+ Standardization
+```{r CHUNK_18}
 levels(x250$COMPLEXITY)[levels(x250$COMPLEXITY) == "No Data"] <- "Average" # 4 cases
 levels(x250$COMPLEXITY)[levels(x250$COMPLEXITY) == "Below Average"] <- "-1" # 4 cases
 levels(x250$COMPLEXITY)[levels(x250$COMPLEXITY) == "Average"] <- "0" # 4 cases
@@ -119,8 +171,11 @@ levels(x50$WET_VEG)[levels(x50$WET_VEG) %in%
 levels(x100$WET_VEG)[levels(x100$WET_VEG) == "WATER/EXPOSED"] <- "AQUATIC"
 levels(x100$WET_VEG)[levels(x100$WET_VEG) %in% 
     c("GRAMINOI","GRAMINOID","GRAMNINOID")] <- "GRAMINOID"
+```
 
-## Reclass leading tree species
+
+ Reclass leading tree species
+```{r CHUNK_19}
 lt <- read.csv(file.path(ROOT, "maritimes", "cas-tree-lookup.csv"))
 rownames(lt) <- lt$spp
 lt <- lt[tree_250,]
@@ -129,7 +184,10 @@ xp2 <- xp2[,colnames(xp2) != "XXX"]
 data.frame(tree=sort(table(as.factor(colnames(xp2)[apply(xp2, 1, which.max)]))))
 x250$ltree <- factor(colnames(xp2)[apply(xp2, 1, which.max)], c(colnames(xp2), "NOCAS"))
 x250$ltree[!x250$keep] <- "NOCAS" # no tree data
-## Reclass at 50 m scale
+```
+
+ Reclass at 50 m scale
+```{r CHUNK_20}
 xp <- as.matrix(x50[,colnames(x50) %in% tree_250])
 xp <- xp / (50^2*pi)
 xp <- xp / ifelse(rowSums(xp) > 1, rowSums(xp), 1)
@@ -137,7 +195,10 @@ xp2 <- groupSums(xp, 2, lt[colnames(xp), "spp3"])
 xp2 <- xp2[,colnames(xp2) != "XXX"]
 x50$ltree <- factor(colnames(xp2)[apply(xp2, 1, which.max)], levels(x250$ltree))
 x50$ltree[!x250$keep] <- "NOCAS" # no tree data
-## Reclass at 100 m scale
+```
+
+ Reclass at 100 m scale
+```{r CHUNK_21}
 xp <- as.matrix(x100[,colnames(x100) %in% tree_250])
 xp <- xp / (100^2*pi)
 xp <- xp / ifelse(rowSums(xp) > 1, rowSums(xp), 1)
@@ -145,27 +206,42 @@ xp2 <- groupSums(xp, 2, lt[colnames(xp), "spp3"])
 xp2 <- xp2[,colnames(xp2) != "XXX"]
 x100$ltree <- factor(colnames(xp2)[apply(xp2, 1, which.max)], levels(x250$ltree))
 x100$ltree[!x250$keep] <- "NOCAS" # no tree data
-## Compare scales
+```
+
+ Compare scales
+```{r CHUNK_22}
 table(x50$ltree, x250$ltree)
 table(x100$ltree, x250$ltree)
-## Get rid of tree cover info
+```
+
+ Get rid of tree cover info
+```{r CHUNK_23}
 x50 <- x50[,!(colnames(x50) %in% tree_250)]
 x100 <- x100[,!(colnames(x100) %in% tree_250)]
 x250 <- x250[,!(colnames(x250) %in% tree_250)]
-## Define fields that do not change with buffer
+```
+
+ Define fields that do not change with buffer
+```{r CHUNK_24}
 asis <- c("OBJECTID", "PCODE", "SS", "POINT_X", "POINT_Y")
-## Renaming columns in 50 and 100 m tables to reflect
-## 'local' scale (as opposed to 'territory' scale et 250 m)
+```
+
+ Renaming columns in 50 and 100 m tables to reflect
+ 'local' scale (as opposed to 'territory' scale et 250 m)
+```{r CHUNK_25}
 colnames(x50)[!(colnames(x50) %in% asis)] <- paste("LOC",
     colnames(x50)[!(colnames(x50) %in% asis)], sep="_")
 colnames(x100)[!(colnames(x100) %in% asis)] <- paste("LOC",
     colnames(x100)[!(colnames(x100) %in% asis)], sep="_")
 xx50 <- data.frame(x50, x250[,!(colnames(x250) %in% asis)])
 xx100 <- data.frame(x100, x250[,!(colnames(x250) %in% asis)])
+```
 
 
-#### Pull in BAM counts and PKEY table
 
+## Pull in BAM counts and PKEY table
+
+```{r CHUNK_26}
 e <- new.env()
 load(file.path(ROOT, "out", "data_package_2015-05-14.Rdata"),
     envir=e)
@@ -174,32 +250,50 @@ pc <- e$PCTBL
 xt <- as.matrix(Xtab(ABUND ~ PKEY + SPECIES, e$PCTBL)[,c("CAWA","RUBL","OSFL")])
 pk <- e$PKEY
 rm(e)
-## Load pre-calculated offsets (QPAD v2)
+```
+
+ Load pre-calculated offsets (QPAD v2)
+```{r CHUNK_27}
 e <- new.env()
 load(file.path(ROOT, "out", "offsets_allspp_BAMBBS_2015-05-05.Rdata"),
     envir=e)
 names(as.list(e))
 off <- e$OFF[,c("CAWA","RUBL","OSFL")]
 rm(e)
-## Match SS with buffered Maritimes data sets
+```
+
+ Match SS with buffered Maritimes data sets
+```{r CHUNK_28}
 dim(pk)
 pk <- droplevels(pk[pk$SS %in% rownames(xx50),])
 rownames(pk) <- pk$PKEY
 dim(pk)
-## Inner join for count and PKEY table
+```
+
+ Inner join for count and PKEY table
+```{r CHUNK_29}
 pk <- pk[rownames(pk) %in% rownames(xt),]
 dim(pk)
-## Before and after subsetting the counts
+```
+
+ Before and after subsetting the counts
+```{r CHUNK_30}
 colSums(xt)
 apply(xt, 2, table)
 xt <- xt[rownames(pk),]
 colSums(xt)
 apply(xt, 2, table)
-## Subsetting offsets
+```
+
+ Subsetting offsets
+```{r CHUNK_31}
 off <- off[rownames(pk),]
+```
 
-#### Packages for each species and save
 
+## Packages for each species and save
+
+```{r CHUNK_32}
 dcawa <- data.frame(
     spp=xt[,"CAWA"], 
     off=off[,"CAWA"],
@@ -215,29 +309,41 @@ dosfl <- data.frame(
     off=off[,"OSFL"],
     pk[,c("SITE","STN","ROUND","YEAR","ROAD")],
     xx50[match(pk$SS, xx50$SS),])
-## Bootstrap matrix
+```
+
+ Bootstrap matrix
+```{r CHUNK_33, eval=FALSE}
 source("~/repos/detect/R/hbootindex.R")
 set.seed(1234)
 BB <- hbootindex(groups=dcawa$STN, strata=dcawa$SITE, B=240-1)
-## Save the data to be used later
+```
+
+ Save the data to be used later
+```{r CHUNK_34, eval=FALSE}
 save(dcawa, drubl, dosfl, BB,
     file=file.path(ROOT, "out", "maritimes_3spp.Rdata"))
+```
 
 
-### Analysis
 
-#### Read in the data set
+# Analysis
 
+## Read in the data set
+
+```{r CHUNK_35}
 ROOT <- "c:/bam/May2015"
 library(mefa4)
 #load(file.path(ROOT, "out", "maritimes_3spp.Rdata"))
 load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/maritimes_mods.R")
+```
 
-## Check if all variables defined in the 
-## 3 sets of model lists can be found in data
 
+ Check if all variables defined in the 
+ 3 sets of model lists can be found in data
+
+```{r CHUNK_36}
 TermsA <- getTerms(modsA, "list")
 TermsA <- c("STN", TermsA)
 setdiff(TermsA, colnames(dcawa))
@@ -251,16 +357,25 @@ TermsC <- c("STN", TermsC)
 setdiff(TermsC, colnames(dcawa))
 
 Terms <- unique(c(TermsA, TermsB, TermsC))
+```
 
-## Summary of variables used in modeling
+
+ Summary of variables used in modeling
+```{r CHUNK_37}
 summary(dcawa[,sort(Terms)])
+```
 
-## Model lists
+
+ Model lists
+```{r CHUNK_38}
 modsA
 modsB
 modsC
+```
 
-## Settings to test the function below
+
+ Settings to test the function below
+```{r CHUNK_39}
 if (FALSE) {
 B <- ncol(BB) - 1
 j=1
@@ -270,8 +385,11 @@ CAICalpha=1
 silent=FALSE
 nmax=NULL
 }
-## This function is the workhorse.
-## Slightly adapted for the Maritimes analysis
+```
+
+ This function is the workhorse.
+ Slightly adapted for the Maritimes analysis
+```{r CHUNK_40}
 do_1spec1run_mar <- function(j, i, mods, 
 silent=FALSE, use_wt=TRUE, 
 CAICalpha=0.5, nmax=NULL) 
@@ -365,17 +483,23 @@ CAICalpha=0.5, nmax=NULL)
         ip_name=ip_name)
     out
 }
+```
 
-## This is used to estimate computing times
+
+ This is used to estimate computing times
+```{r CHUNK_41}
 #system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsA, 
 #    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
 #system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsB, 
 #    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
 #system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsC, 
 #    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
+```
 
-## This function runs all bootstrap iterations for a species,
-## results are returned and optionally saved
+
+ This function runs all bootstrap iterations for a species,
+ results are returned and optionally saved
+```{r CHUNK_42}
 wg_fun_mar <- function(i, mods, B, 
     output=c("return","rdata","dump"), 
     project="", path="", verbose=TRUE, ...)
@@ -409,7 +533,10 @@ wg_fun_mar <- function(i, mods, B,
     }
     res
 }
-## This is where estimation happens
+```
+
+ This is where estimation happens
+```{r CHUNK_43}
 if (FALSE) {
 #B <- 1
 B <- ncol(BB) - 1
@@ -446,18 +573,26 @@ res_osfl_C <- wg_fun_mar(i="OSFL", mods=modsC, B=B,
     output=Output, project="MaritimesC", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
 }
-
-### Making sense of the results
-
-## More stuff comes here.
+```
 
 
+# Making sense of the results
+
+More stuff comes here.
 
 
-### Session info
 
+# Session info
+
+```{r CHUNK_45}
 sessionInfo()
+```
 
-## This little utility is used to turn this plain text file into
-## a human readable documentation
+
+ This little utility is used to turn this plain text file into
+ a human readable documentation
+```{r CHUNK_46}
 #mefa4::r2rmd("~/repos/bamanalytics/R/maritimes.R")
+```
+
+
