@@ -25,25 +25,25 @@ x50 <- nonDuplicated(x50, SS, TRUE)
 x100 <- nonDuplicated(x100, SS, TRUE)
 x250 <- nonDuplicated(x250, SS, TRUE)
 ## Checking if set of SS values are the same
-stopifnot(length(union(rownames(x50), rownames(x100))) == 
+stopifnot(length(union(rownames(x50), rownames(x100))) ==
     length(intersect(rownames(x50), rownames(x100))))
-stopifnot(length(union(rownames(x50), rownames(x250))) == 
+stopifnot(length(union(rownames(x50), rownames(x250))) ==
     length(intersect(rownames(x50), rownames(x250))))
-stopifnot(length(union(rownames(x100), rownames(x250))) == 
+stopifnot(length(union(rownames(x100), rownames(x250))) ==
     length(intersect(rownames(x100), rownames(x250))))
 ## Sort the tables by SS
 x50 <- x50[rownames(x250),]
 x100 <- x100[rownames(x250),]
 
 ## CAS based tree species
-tree_250 <- c("Abie_bals", "Abie_pice", "Abie_spp", "Acer_rubr", 
-    "Acer_sacc", "Acer_spp", "Alnu_spp", "Betu_alle", "Betu_papy", 
-    "Betu_popu", "Betu_spp", "Fagu_gran", "Frax_spp", "Hard_into", 
-    "Hard_nonc", "Hard_tole", "Hard_unkn", "Lari_deci", "Lari_lari", 
-    "NOSC_HARD", "NOSC_SOFT", "Pice_abie", "Pice_glau", "Pice_mari", 
-    "Pice_rube", "Pice_spp", "Pinu_bank", "Pinu_resi", "Pinu_spp", 
-    "Pinu_stro", "Pinu_sylv", "Popu_balb", "Popu_spp", "Popu_trem", 
-    "Prun_sero", "Quer_rubr", "Soft_unkn", "Thuj_occi", "Tsug_cana", 
+tree_250 <- c("Abie_bals", "Abie_pice", "Abie_spp", "Acer_rubr",
+    "Acer_sacc", "Acer_spp", "Alnu_spp", "Betu_alle", "Betu_papy",
+    "Betu_popu", "Betu_spp", "Fagu_gran", "Frax_spp", "Hard_into",
+    "Hard_nonc", "Hard_tole", "Hard_unkn", "Lari_deci", "Lari_lari",
+    "NOSC_HARD", "NOSC_SOFT", "Pice_abie", "Pice_glau", "Pice_mari",
+    "Pice_rube", "Pice_spp", "Pinu_bank", "Pinu_resi", "Pinu_spp",
+    "Pinu_stro", "Pinu_sylv", "Popu_balb", "Popu_spp", "Popu_trem",
+    "Prun_sero", "Quer_rubr", "Soft_unkn", "Thuj_occi", "Tsug_cana",
     "Ulmu_amer", "Uncl_spp")
 ## Checking if 50 and 100 m buffer has no tree species
 ## that that is unique for a <250 m scale (this should not happen, and seems OK)
@@ -80,7 +80,7 @@ plead <- apply(xp, 1, function(z) z[which.max(z)])
 hflab <- c("BU","CO","OT","PC","SI","WF")
 h <- as.matrix(x250[,colnames(x250) %in% hflab])
 hist(rowSums(h))
-h <- cbind(Undist=1-rowSums(h), 
+h <- cbind(Undist=1-rowSums(h),
     groupSums(h, 2, c("Burn","Cut","Other","Cut","Other","Other")))
 x250$ldist <- factor(colnames(h)[apply(h, 1, which.max)], colnames(h))
 table(x250$ldist)
@@ -114,10 +114,10 @@ x100$ROAD01 <- ifelse(x100$ROAD <= 400, 1L, 0L)
 x250$WET_LENGTH <- x250$WET_LENGTH / 1000
 
 levels(x50$WET_VEG)[levels(x50$WET_VEG) == "WATER/EXPOSED"] <- "AQUATIC"
-levels(x50$WET_VEG)[levels(x50$WET_VEG) %in% 
+levels(x50$WET_VEG)[levels(x50$WET_VEG) %in%
     c("GRAMINOI","GRAMINOID","GRAMNINOID")] <- "GRAMINOID"
 levels(x100$WET_VEG)[levels(x100$WET_VEG) == "WATER/EXPOSED"] <- "AQUATIC"
-levels(x100$WET_VEG)[levels(x100$WET_VEG) %in% 
+levels(x100$WET_VEG)[levels(x100$WET_VEG) %in%
     c("GRAMINOI","GRAMINOID","GRAMNINOID")] <- "GRAMINOID"
 
 ## Reclass leading tree species
@@ -201,17 +201,17 @@ off <- off[rownames(pk),]
 #### Packages for each species and save
 
 dcawa <- data.frame(
-    spp=xt[,"CAWA"], 
+    spp=xt[,"CAWA"],
     off=off[,"CAWA"],
     pk[,c("SITE","STN","ROUND","YEAR","ROAD")],
     xx50[match(pk$SS, xx50$SS),])
 drubl <- data.frame(
-    spp=xt[,"RUBL"], 
+    spp=xt[,"RUBL"],
     off=off[,"RUBL"],
     pk[,c("SITE","STN","ROUND","YEAR","ROAD")],
     xx50[match(pk$SS, xx50$SS),])
 dosfl <- data.frame(
-    spp=xt[,"OSFL"], 
+    spp=xt[,"OSFL"],
     off=off[,"OSFL"],
     pk[,c("SITE","STN","ROUND","YEAR","ROAD")],
     xx50[match(pk$SS, xx50$SS),])
@@ -235,7 +235,7 @@ load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/maritimes_mods.R")
 
-## Check if all variables defined in the 
+## Check if all variables defined in the
 ## 3 sets of model lists can be found in data
 
 TermsA <- getTerms(modsA, "list")
@@ -270,11 +270,14 @@ CAICalpha=1
 silent=FALSE
 nmax=NULL
 }
+
+#### Defining the core functions
+
 ## This function is the workhorse.
 ## Slightly adapted for the Maritimes analysis
-do_1spec1run_mar <- function(j, i, mods, 
-silent=FALSE, use_wt=TRUE, 
-CAICalpha=0.5, nmax=NULL) 
+do_1spec1run_mar <- function(j, i, mods,
+silent=FALSE, use_wt=TRUE,
+CAICalpha=0.5, nmax=NULL)
 {
     x <- switch(i,
         "CAWA" = dcawa,
@@ -310,10 +313,10 @@ CAICalpha=0.5, nmax=NULL)
     bestList <- vector("list", nmods)
     caicList <- vector("list", nmods)
     ## Null
-    null <- glm_skeleton(glm(y ~ 1, 
-        x, 
-        family=poisson(), 
-        offset=off0, 
+    null <- glm_skeleton(glm(y ~ 1,
+        x,
+        family=poisson(),
+        offset=off0,
         weights=w0,
         x=FALSE, y=FALSE, model=FALSE), CAICalpha=CAICalpha)
     best <- null
@@ -329,7 +332,7 @@ CAICalpha=0.5, nmax=NULL)
             mlist <- vector("list", nnmods[l1])
             glist <- vector("list", nnmods[l1])
             for (l2 in 1:nnmods[l1]) {
-                mlist[[l2]] <- glm_skeleton(try(update(object=best, 
+                mlist[[l2]] <- glm_skeleton(try(update(object=best,
                     formula=mods[[l1]][[l2]]), silent=silent), CAICalpha=CAICalpha)
             }
             mcaic <- sapply(mlist, "[[", "caic")
@@ -367,17 +370,17 @@ CAICalpha=0.5, nmax=NULL)
 }
 
 ## This is used to estimate computing times
-#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsA, 
+#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsA,
 #    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
-#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsB, 
+#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsB,
 #    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
-#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsC, 
+#system.time(tmp <- do_1spec1run_mar(j=2, i=i, mods=modsC,
 #    silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL))
 
 ## This function runs all bootstrap iterations for a species,
 ## results are returned and optionally saved
-wg_fun_mar <- function(i, mods, B, 
-    output=c("return","rdata","dump"), 
+wg_fun_mar <- function(i, mods, B,
+    output=c("return","rdata","dump"),
     project="", path="", verbose=TRUE, ...)
 {
     output <- match.arg(output)
@@ -394,12 +397,12 @@ wg_fun_mar <- function(i, mods, B,
     t1 <- date()
     attr(res, "start_stop") <- c(start=t0, stop=t1)
     if (output != "return") {
-        ext <- switch(output, 
+        ext <- switch(output,
             "rdata"=".Rdata",
             "dump"=".Rdmp")
         if (project != "")
             project <- paste(project, "_", sep="")
-        file <- file.path(path, paste("BirdCoefs_", project, 
+        file <- file.path(path, paste("BirdCoefs_", project,
             i, "_Allrun", ext, sep=""))
         if (output == "rdata")
             save(res, file=file)
@@ -409,49 +412,166 @@ wg_fun_mar <- function(i, mods, B,
     }
     res
 }
-## This is where estimation happens
+
+#### Estimation
+
 if (FALSE) {
 #B <- 1
 B <- ncol(BB) - 1
 Output <- "rdata"
 Path <- "~/Dropbox/bam/maritimes2015"
 
-res_cawa_A <- wg_fun_mar(i="CAWA", mods=modsA, B=B, 
+res_cawa_A <- wg_fun_mar(i="CAWA", mods=modsA, B=B,
     output=Output, project="MaritimesA", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
-res_cawa_B <- wg_fun_mar(i="CAWA", mods=modsB, B=B, 
+res_cawa_B <- wg_fun_mar(i="CAWA", mods=modsB, B=B,
     output=Output, project="MaritimesB", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
-res_cawa_C <- wg_fun_mar(i="CAWA", mods=modsC, B=B, 
+res_cawa_C <- wg_fun_mar(i="CAWA", mods=modsC, B=B,
     output=Output, project="MaritimesC", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
 
-res_rubl_A <- wg_fun_mar(i="RUBL", mods=modsA, B=B, 
+res_rubl_A <- wg_fun_mar(i="RUBL", mods=modsA, B=B,
     output=Output, project="MaritimesA", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
-res_rubl_B <- wg_fun_mar(i="RUBL", mods=modsB, B=B, 
+res_rubl_B <- wg_fun_mar(i="RUBL", mods=modsB, B=B,
     output=Output, project="MaritimesB", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
-res_rubl_C <- wg_fun_mar(i="RUBL", mods=modsC, B=B, 
+res_rubl_C <- wg_fun_mar(i="RUBL", mods=modsC, B=B,
     output=Output, project="MaritimesC", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
 
-res_osfl_A <- wg_fun_mar(i="OSFL", mods=modsA, B=B, 
+res_osfl_A <- wg_fun_mar(i="OSFL", mods=modsA, B=B,
     output=Output, project="MaritimesA", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
-res_osfl_B <- wg_fun_mar(i="OSFL", mods=modsB, B=B, 
+res_osfl_B <- wg_fun_mar(i="OSFL", mods=modsB, B=B,
     output=Output, project="MaritimesB", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
-res_osfl_C <- wg_fun_mar(i="OSFL", mods=modsC, B=B, 
+res_osfl_C <- wg_fun_mar(i="OSFL", mods=modsC, B=B,
     output=Output, project="MaritimesC", path=Path,
     silent=FALSE, use_wt=TRUE, CAICalpha=1, nmax=NULL)
 }
 
 ### Making sense of the results
 
-## More stuff comes here.
+#### Loading the data and results
+
+load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
+source("~/repos/bragging/R/glm_skeleton.R")
+source("~/repos/bamanalytics/R/maritimes_mods.R")
+
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesA_CAWA_Allrun.Rdata"))
+cawa <- list(A=res)
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesB_CAWA_Allrun.Rdata"))
+cawa$B <- res
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesC_CAWA_Allrun.Rdata"))
+cawa$C <- res
+
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesA_RUBL_Allrun.Rdata"))
+rubl <- list(A=res)
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesB_RUBL_Allrun.Rdata"))
+rubl$B <- res
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesC_RUBL_Allrun.Rdata"))
+rubl$C <- res
+
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesA_OSFL_Allrun.Rdata"))
+osfl <- list(A=res)
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesB_OSFL_Allrun.Rdata"))
+osfl$B <- res
+load(file.path("~/Dropbox/bam/maritimes2015",
+    "BirdCoefs_MaritimesC_OSFL_Allrun.Rdata"))
+osfl$C <- res
+
+allres <- list(CAWA=cawa, RUBL=rubl, OSFL=osfl)
+
+#### Comparing A-B-C subsets based on AIC
+
+caic_trajectory <- function(res) {
+    f <- function(x) {
+        out <- numeric(length(x$mid)+1)
+        out[1] <- x$null_caic
+        for (i in 1:length(x$mid)) {
+            out[i+1] <- if (x$mid[i] > 0)
+                x$caic[[i]][x$mid[i]] else out[i]
+        }
+        out
+    }
+    t(sapply(res, f))
+}
 
 
+tmp <- lapply(allres$CAWA, caic_trajectory)
+tmp <- cbind(A=tmp$A[,9], B=tmp$B[,9], C=tmp$C[,8])
+table(colnames(tmp)[apply(tmp, 1, which.min)])
+
+tmp <- lapply(allres$RUBL, caic_trajectory)
+tmp <- cbind(A=tmp$A[,9], B=tmp$B[,9], C=tmp$C[,8])
+table(colnames(tmp)[apply(tmp, 1, which.min)])
+
+tmp <- lapply(allres$OSFL, caic_trajectory)
+tmp <- cbind(A=tmp$A[,9], B=tmp$B[,9], C=tmp$C[,8])
+table(colnames(tmp)[apply(tmp, 1, which.min)])
+
+
+## keep track if Bid, 0+mid vec, aic vec
+## adjust level 1&2 for ABC (8 lev for all)
+## selectively check sign of terms
+## work on design matrix and prediction
+## (once pred data comes in -- fast)
+
+fun1 <- function(res) {
+    f <- function(x) {
+        aic <- numeric(length(x$mid)+1)
+        aic[1] <- x$null_caic
+        for (i in 1:length(x$mid)) {
+            aic[i+1] <- if (x$mid[i] > 0)
+                x$caic[[i]][x$mid[i]] else aic[i]
+        }
+        aic
+    }
+    aicA <- t(sapply(res$A, f))[,-2]
+    aicB <- t(sapply(res$B, f))[,-2]
+    aicC <- t(sapply(res$C, f))
+    midA <- t(sapply(res$A, function(z) c(0, z$mid)))
+    midA[] <- as.character(midA)
+    midA[,3] <- paste(midA[,2], midA[,3], sep="&")
+    midA <- midA[,-2]
+    midB <- t(sapply(res$B, function(z) c(0, z$mid)))
+    midB[] <- as.character(midB)
+    midB[,3] <- paste(midB[,2], midB[,3], sep="&")
+    midB <- midB[,-2]
+    midC <- t(sapply(res$C, function(z) c(0, z$mid)))
+    midC[] <- as.character(midC)
+    aic <- cbind(A=aicA[,8], B=aicB[,8], C=aicC[,8])
+    i <- colnames(aic)[apply(aic, 1, which.min)]
+    mid <- t(sapply(1:length(i), function(j)
+        switch(i[j],
+               "A"=paste("A", midA[j,], sep="-"),
+               "B"=paste("B", midB[j,], sep="-"),
+               "C"=paste("C", midC[j,], sep="-"))))
+    colnames(mid) <- paste0("Stage_", c(0, 1.2, 3:8))
+    mid <- mid[,-1]
+    colnames(mid)[1] <- "Stage_1&2"
+    apply(mid, 2, function(z)
+        data.frame(Freq=rev(sort(table(z))),
+            Perc=round(100*rev(sort(table(z)))/nrow(mid), 1)))
+}
+
+frcawa <- do.call(rbind, fun1(allres$CAWA))
+frrubl <- do.call(rbind, fun1(allres$RUBL))
+frosfl <- do.call(rbind, fun1(allres$OSFL))
+
+write.csv(frcawa, file="~/Dropbox/bam/maritimes2015/res-cawa.csv")
+write.csv(frrubl, file="~/Dropbox/bam/maritimes2015/res-rubl.csv")
+write.csv(frosfl, file="~/Dropbox/bam/maritimes2015/res-osfl.csv")
 
 
 ### Session info
