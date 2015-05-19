@@ -431,6 +431,36 @@ PKEY_abmi$JULIAN <- as.numeric(as.Date(PKEY_abmi$Date)) - as.numeric(PKEY_abmi$j
 PKEY_abmi$JULIAN[PKEY_abmi$JULIAN > 365] <- NA
 PKEY_abmi$JDAY <- PKEY_abmi$JULIAN / 365
 
+if (FALSE) {
+
+aa <- PKEY_abmi
+CL <- rgb(210, 180, 140, alpha=0.25*255, max=255)
+
+op <- par(mfrow=c(3,1))
+boxplot(JULIAN~YEAR,aa, ylab="Julian day")
+abline(h=seq(0, 360, by=30), col="grey")
+text(rep(0.5, 12), seq(0, 360, by=30)+25, c("Jan","Feb","Mar","Apr","May","Jun",
+    "Jul", "Aug","Sep","Oct","Nov","Dec"))
+boxplot(JULIAN~YEAR,aa, add=TRUE, col=CL)
+abline(h=mean(aa$JULIAN, na.rm=TRUE), col=2, lty=2, lwd=2)
+
+boxplot(start_time~YEAR,aa, ylab="Start time (hours)")
+abline(h=seq(0, 24, by=2), col="grey")
+boxplot(start_time~YEAR,aa, add=TRUE, col=CL)
+abline(h=mean(aa$start_time, na.rm=TRUE), col=2, lty=2, lwd=2)
+
+plot(start_time ~ srise, aa, pch=19, col=CL,
+    xlab="Sunrise time (24 hour clock)", ylab="Start time (24 hour clock)")
+abline(0, 1)
+for (i in c(1:10*2))
+    abline(i, 1, col="grey")
+abline(lm(start_time ~ srise, aa), col=2, lwd=2, lty=2)
+box()
+par(op)
+
+
+}
+
 ## counts
 
 PCTBL_abmi <- pcabmi
