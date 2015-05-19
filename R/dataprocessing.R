@@ -211,13 +211,18 @@ PKEY <- PKEY[PKEY$DURMETH != "J",] # unknown duration
 PKEY <- PKEY[PKEY$DISMETH != "O",] # unknown distance
 PKEY <- droplevels(PKEY)
 
+## QC Atlas problem
+#with(PKEY, table(PCODE, is.na(MAXDUR)))
+#with(PKEY, table(PCODE, is.na(MAXDIS)))
+
 #### Calculate the offsets (optional)
 if (FALSE) { # BEGIN offset calculations
 
-offdat <- data.frame(PKEY[,c("PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
+offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
     SS[match(PKEY$SS, rownames(SS)),c("LCC_combo","TREE")])
 offdat$srise <- PKEY$srise + PKEY$MDT_offset
 summary(offdat)
+#summary(offdat[PKEY$PCODE=="QCATLAS",]) -- problem solved: QCAtlas vs QCATLAS
 
 load_BAM_QPAD(version=1)
 BAMspp <- getBAMspecieslist()
