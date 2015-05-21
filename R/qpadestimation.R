@@ -695,3 +695,63 @@ par(op)
 }
 dev.off()
 
+## comparing v2 and v3 results
+
+library(QPAD)
+
+load_BAM_QPAD(2)
+getBAMversion()
+spp2 <- getBAMspecieslist()
+n2 <- cbind(sra.n=.BAMCOEFS$sra_n, edr.n=.BAMCOEFS$edr_n)
+est2 <- exp(t(sapply(spp2, function(i) unlist(coefBAMspecies(i)))))
+
+load_BAM_QPAD(3)
+getBAMversion()
+spp3 <- getBAMspecieslist()
+n3 <- cbind(sra.n=.BAMCOEFS$sra_n, edr.n=.BAMCOEFS$edr_n)
+est3 <- exp(t(sapply(spp3, function(i) unlist(coefBAMspecies(i)))))
+
+## "YWAR" is "YEWA"
+setdiff(spp2,spp3)
+setdiff(spp3,spp2)
+
+spp2[spp2=="YWAR"] <- "YEWA"
+rownames(n2)[rownames(n2)=="YWAR"] <- "YEWA"
+rownames(est2)[rownames(est2)=="YWAR"] <- "YEWA"
+
+setdiff(spp2,spp3)
+
+n2 <- n2[spp2,]
+est2 <- est2[spp2,]
+n3v <- n3[spp2,]
+est3v <- est3[spp2,]
+
+par(mfrow=c(2,2))
+plot(n2[,1], n3v[,1], main="n sra", xlab="v2", ylab="v3");abline(0,1)
+abline(0,2,lty=2)
+abline(0,4,lty=2)
+abline(0,8,lty=2)
+plot(n2[,2], n3v[,2], main="n edr", xlab="v2", ylab="v3");abline(0,1)
+abline(0,2,lty=2)
+abline(0,4,lty=2)
+abline(0,8,lty=2)
+plot(est2[,1], est3v[,1], main="srate", xlab="v2", ylab="v3");abline(0,1)
+plot(est2[,2], est3v[,2], main="EDR", xlab="v2", ylab="v3");abline(0,1)
+
+e <- new.env()
+load(file.path(ROOT, "out", "new_offset_data_package_2015-05-14.Rdata"), envir=e)
+TAX <- e$TAX
+rownames(TAX) <- TAX$Species_ID
+TAX <- droplevels(TAX[spp3,])
+rm(e)
+
+tab <- data.frame(getBAMspeciestable(), 
+    v2=n2[match(spp3,spp2),], v2=est2[match(spp3,spp2),],
+    v3=n3, v3=est3,
+    Order=TAX$Order, Family=TAX$Family_Sci)
+write.csv(tab, file=file.path(ROOT, "out", "offsets-spp-list.csv"), row.names=FALSE)
+
+data.frame(x=sort(table(tab$Order)))
+data.frame(x=sort(table(tab$Family)))
+
+
