@@ -459,6 +459,7 @@ res_osfl_C <- wg_fun_mar(i="OSFL", mods=modsC, B=B,
 load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/maritimes_mods.R")
+source("~/repos/bamanalytics/R/makingsense_functions.R")
 
 load(file.path("~/Dropbox/bam/maritimes2015",
     "BirdCoefs_MaritimesA_CAWA_Allrun.Rdata"))
@@ -527,8 +528,7 @@ table(colnames(tmp)[apply(tmp, 1, which.min)])
 ## work on design matrix and prediction
 ## (once pred data comes in -- fast)
 
-fun1 <- function(res) {
-    f <- function(x) {
+f <- function(x) {
         aic <- numeric(length(x$mid)+1)
         aic[1] <- x$null_caic
         for (i in 1:length(x$mid)) {
@@ -536,7 +536,8 @@ fun1 <- function(res) {
                 x$caic[[i]][x$mid[i]] else aic[i]
         }
         aic
-    }
+}
+fun1 <- function(res) {
     aicA <- t(sapply(res$A, f))[,-2]
     aicB <- t(sapply(res$B, f))[,-2]
     aicC <- t(sapply(res$C, f))
@@ -565,14 +566,82 @@ fun1 <- function(res) {
             Perc=round(100*rev(sort(table(z)))/nrow(mid), 1)))
 }
 
+aiccawa <- do.call(cbind, lapply(allres$CAWA, function(z) {
+    tmp <- sapply(z, f)
+    tmp[nrow(tmp),]
+    }))
+aicrubl <- do.call(cbind, lapply(allres$RUBL, function(z) {
+    tmp <- sapply(z, f)
+    tmp[nrow(tmp),]
+    }))
+aicosfl <- do.call(cbind, lapply(allres$OSFL, function(z) {
+    tmp <- sapply(z, f)
+    tmp[nrow(tmp),]
+    }))
+rownames(aiccawa) <- rownames(aicrubl) <- rownames(aicosfl) <- paste0("run", 1:240)
+
 frcawa <- do.call(rbind, fun1(allres$CAWA))
 frrubl <- do.call(rbind, fun1(allres$RUBL))
 frosfl <- do.call(rbind, fun1(allres$OSFL))
+
+xnA <- model.frame(getTerms(modsA, "formula"), dcawa, 
+    na.action=na.pass)
+XnA <- model.matrix(getTerms(modsA, "formula"), xnA)
+colnames(XnA) <- fixNames(colnames(XnA))
+Xn <- XnA
+cfcawaA <- getEst(allres$CAWA$A)
+cfrublA <- getEst(allres$CAWA$A)
+cfosflA <- getEst(allres$CAWA$A)
+
+xnB <- model.frame(getTerms(modsB, "formula"), dcawa, 
+    na.action=na.pass)
+XnB <- model.matrix(getTerms(modsB, "formula"), xnB)
+colnames(XnB) <- fixNames(colnames(XnB))
+Xn <- XnB
+cfcawaB <- getEst(allres$CAWA$B)
+cfrublB <- getEst(allres$CAWA$B)
+cfosflB <- getEst(allres$CAWA$B)
+
+xnC <- model.frame(getTerms(modsC, "formula"), dcawa, 
+    na.action=na.pass)
+XnC <- model.matrix(getTerms(modsC, "formula"), xnC)
+colnames(XnC) <- fixNames(colnames(XnC))
+Xn <- XnC
+cfcawaC <- getEst(allres$CAWA$C)
+cfrublC <- getEst(allres$CAWA$C)
+cfosflC <- getEst(allres$CAWA$C)
+
+mid <- list(data.frame(spp="CAWA", subset="A", getFancyMidTab(allres$CAWA$A, modsA)),
+    data.frame(spp="CAWA", subset="B", getFancyMidTab(allres$CAWA$B, modsB)),
+    data.frame(spp="CAWA", subset="C", getFancyMidTab(allres$CAWA$C, modsC)),
+    data.frame(spp="RUBL", subset="A", getFancyMidTab(allres$RUBL$A, modsA)),
+    data.frame(spp="RUBL", subset="B", getFancyMidTab(allres$RUBL$B, modsB)),
+    data.frame(spp="RUBL", subset="C", getFancyMidTab(allres$RUBL$C, modsC)),
+    data.frame(spp="OSFL", subset="A", getFancyMidTab(allres$OSFL$A, modsA)),
+    data.frame(spp="OSFL", subset="B", getFancyMidTab(allres$OSFL$B, modsB)),
+    data.frame(spp="OSFL", subset="C", getFancyMidTab(allres$OSFL$C, modsC)))
+
+mid <- data.frame(do.call(rbind, mid))
 
 write.csv(frcawa, file="~/Dropbox/bam/maritimes2015/res-cawa.csv")
 write.csv(frrubl, file="~/Dropbox/bam/maritimes2015/res-rubl.csv")
 write.csv(frosfl, file="~/Dropbox/bam/maritimes2015/res-osfl.csv")
 
+write.csv(mid, file="~/Dropbox/bam/maritimes2015/res-all.csv")
+
+write.csv(aiccawa, file="~/Dropbox/bam/maritimes2015/res-cawa-aic.csv")
+write.csv(aicrubl, file="~/Dropbox/bam/maritimes2015/res-rubl-aic.csv")
+write.csv(aicosfl, file="~/Dropbox/bam/maritimes2015/res-osfl-aic.csv")
+
+write.csv(cfcawaA, file="~/Dropbox/bam/maritimes2015/res-cawa-coef-A.csv")
+write.csv(cfcawaB, file="~/Dropbox/bam/maritimes2015/res-cawa-coef-B.csv")
+write.csv(cfcawaC, file="~/Dropbox/bam/maritimes2015/res-cawa-coef-C.csv")
+write.csv(cfrublA, file="~/Dropbox/bam/maritimes2015/res-rubl-coef-A.csv")
+write.csv(cfrublB, file="~/Dropbox/bam/maritimes2015/res-rubl-coef-B.csv")
+write.csv(cfrublC, file="~/Dropbox/bam/maritimes2015/res-rubl-coef-C.csv")
+write.csv(cfosflA, file="~/Dropbox/bam/maritimes2015/res-osfl-coef-A.csv")
+write.csv(cfosflB, file="~/Dropbox/bam/maritimes2015/res-osfl-coef-B.csv")
+write.csv(cfosflC, file="~/Dropbox/bam/maritimes2015/res-osfl-coef-C.csv")
 
 ### Session info
 
@@ -581,3 +650,4 @@ sessionInfo()
 ## This little utility is used to turn this plain text file into
 ## a human readable documentation
 #mefa4::r2rmd("~/repos/bamanalytics/R/maritimes.R")
+
