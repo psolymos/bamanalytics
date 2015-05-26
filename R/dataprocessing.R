@@ -463,6 +463,12 @@ abline(lm(start_time ~ srise, aa), col=2, lwd=2, lty=2)
 box()
 par(op)
 
+## Check EMCLA
+
+i <- grepl("EMCLA", rownames(PKEY))
+x <- droplevels(PKEY[i,])
+hist(x$start_time)
+hist(x$JDAY*365)
 
 }
 
