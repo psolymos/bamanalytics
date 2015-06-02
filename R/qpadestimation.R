@@ -667,13 +667,14 @@ lines(t, pp[,spp], col=1, lwd=2)
 
 plot(r*100, qq[,spp], type="n", ylim=c(0,1),
      xlab="Point count radius (m)",
-     ylab="Probability of singing")
+     ylab="Probability of detection")
 #polygon(100*c(r, rev(r)), c(q[,2], rev(q[,3])),
 #        col="grey", border="grey")
 matlines(r*100, qq, col="grey", lwd=1, lty=1)
 lines(r*100, qq[,spp], col=1, lwd=2)
 abline(v=cfall[spp,2]*100, lty=2)
 rug(cfall[,2]*100, side=1, col="grey")
+box()
 
 image(jd*365, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
@@ -735,8 +736,12 @@ plot(n2[,2], n3v[,2], main="n edr", xlab="v2", ylab="v3");abline(0,1)
 abline(0,2,lty=2)
 abline(0,4,lty=2)
 abline(0,8,lty=2)
-plot(est2[,1], est3v[,1], main="srate", xlab="v2", ylab="v3");abline(0,1)
-plot(est2[,2], est3v[,2], main="EDR", xlab="v2", ylab="v3");abline(0,1)
+plot(est2[,1], est3v[,1], main="srate", xlab="v2", ylab="v3",
+    cex=sqrt((n3v[,1]-n2[,1])/n2[,1]))
+abline(0,1)
+plot(est2[,2], est3v[,2], main="EDR", xlab="v2", ylab="v3",
+    cex=sqrt((n3v[,2]-n2[,2])/n2[,2]))
+abline(0,1)
 
 e <- new.env()
 load(file.path(ROOT, "out", "new_offset_data_package_2015-05-14.Rdata"), envir=e)
@@ -751,7 +756,8 @@ tab <- data.frame(getBAMspeciestable(),
     Order=TAX$Order, Family=TAX$Family_Sci)
 write.csv(tab, file=file.path(ROOT, "out", "offsets-spp-list.csv"), row.names=FALSE)
 
-data.frame(x=sort(table(tab$Order)))
-data.frame(x=sort(table(tab$Family)))
+data.frame(Order=sort(table(tab$Order)))
+data.frame(Family=sort(table(tab$Family)))
 
+cbind(table(tab$Order, tab$v3.sra.n > 74), table(tab$Order))
 

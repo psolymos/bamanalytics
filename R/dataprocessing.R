@@ -465,11 +465,19 @@ par(op)
 
 ## Check EMCLA
 
+rownames(PKEY) <- PKEY$PKEY
 i <- grepl("EMCLA", rownames(PKEY))
 x <- droplevels(PKEY[i,])
 hist(x$start_time)
 hist(x$JDAY*365)
 
+plot(x$JDAY*365, x$HOUR, col=CL, pch=19, type="n", main="EMCLA",
+    ylab="Start time (24 hour clock)", xlab="Julian day")
+abline(v=seq(0, 360, by=30), col="grey")
+text(seq(0, 360, by=30)+17, rep(13, 12), c("Jan","Feb","Mar","Apr","May","Jun",
+    "Jul", "Aug","Sep","Oct","Nov","Dec"))
+abline(h=seq(0, 24, by=5), col="grey")
+points(x$JDAY*365, x$HOUR, col=CL, pch=19)
 }
 
 ## counts
@@ -548,6 +556,34 @@ rownames(dat2) <- dat2$PKEY
 compare.sets(DISMET$DISTANCECODE, PKEY$DISMETH)
 compare.sets(DURMET$DURATIONCODE, PKEY$DURMETH)
 
+## getting problematic ones to TF
+if (FALSE) {
+
+PCTBL$issue <- character(nrow(PCTBL))
+PCTBL$issue[with(PCTBL, DURMETH=="A" & dur=="0-3")] <- "DURMETH=A: 0-3 -> 0-10"
+PCTBL$issue[with(PCTBL, DURMETH=="B" & dur=="5-8")] <- "DURMETH=B: 5-8 -> 0-5"
+PCTBL$issue[with(PCTBL, DURMETH=="X" & dur=="10-10")] <- "DURMETH=X: 10-10 -> 6.66-10"
+
+PCTBL$issue[with(PCTBL, DISMETH=="B" & dis=="0-Inf")] <- "DISMETH=B: 0-Inf -> 0-50 //best guess"
+PCTBL$issue[with(PCTBL, DISMETH=="C" & dis=="0-Inf")] <- "DISMETH=C: 0-Inf -> 0-50 //best guess"
+PCTBL$issue[with(PCTBL, DISMETH=="F")] <- "DISMETH=F: all -> 0-100 //all kinds of weird stuff"
+PCTBL$issue[with(PCTBL, DISMETH=="I" & dis=="100-125")] <- "DISMETH=I: 100-125 -> 0-25"
+PCTBL$issue[with(PCTBL, DISMETH=="I" & dis=="100-Inf")] <- "DISMETH=I: 100-Inf -> 0-25 //best guess"
+PCTBL$issue[with(PCTBL, DISMETH=="M" & dis=="0-Inf")] <- "DISMETH=M: 0-Inf -> 150-Inf"
+PCTBL$issue[with(PCTBL, DISMETH=="U" & dis=="0-50")] <- "DISMETH=U: 0-50 -> 40-50"
+PCTBL$issue[with(PCTBL, DISMETH=="U" & dis=="100-150")] <- "DISMETH=U: 100-150 -> 125-150"
+PCTBL$issue[with(PCTBL, DISMETH=="U" & dis=="100-Inf")] <- "DISMETH=U: 100-Inf -> 150-Inf"
+PCTBL$issue[with(PCTBL, DISMETH=="U" & dis=="50-100")] <- "DISMETH=U: 50-100 -> 90-100"
+PCTBL$issue[with(PCTBL, DISMETH=="U" & dis=="50-Inf")] <- "DISMETH=U: 50-Inf -> 150-Inf"
+PCTBL$issue[with(PCTBL, DISMETH=="W" & dis=="150-Inf")] <- "DISMETH=W: 150-Inf -> 100-Inf"
+PCTBL$issue[with(PCTBL, DISMETH=="W" & dis=="100-125")] <- "DISMETH=W: 100-125 -> 100-Inf"
+
+ISSUE <- PCTBL[PCTBL$issue != "",]
+
+write.csv(ISSUE, row.names=FALSE, file=file.path(ROOT, "out",
+    paste0("issues-toTF-", Sys.Date(), ".csv")))
+
+}
 
 ## Oddities that should not happen:
 PCTBL$dur <- as.character(PCTBL$dur)
