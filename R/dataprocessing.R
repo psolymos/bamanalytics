@@ -98,6 +98,122 @@ SS03$LCC_OFF2[SS03$HAB_NALC1 %in% c("ConifDense","MixedDense")] <- "1"
 SS03$LCC_combo <- SS03$LCC_OFF1
 SS03$LCC_combo[is.na(SS03$LCC_OFF1)] <- SS03$LCC_OFF2[is.na(SS03$LCC_OFF1)]
 
+## Grid ID 4x4 km
+SS_grid <- read.csv(file.path(ROOT, "BAMBBS_Gridcode.csv"))
+rownames(SS_grid) <- SS_grid$SS
+compare.sets(rownames(SS01), rownames(SS_grid))
+SS_grid <- SS_grid[rownames(SS01),"gridcode",drop=FALSE]
+levels(SS_grid$gridcode) <- gsub(",", "", levels(SS_grid$gridcode))
+
+## Road: dist to, class, #lanes, surface
+SS_road <- sqlFetch(con, "dbo_BAMBBS_2015_NearDistanceRoadJoin1000M")
+rownames(SS_road) <- SS_road$SS
+compare.sets(rownames(SS01), rownames(SS_road))
+SS_road <- SS_road[rownames(SS01),]
+SS_road$d2road <- SS_road[["Distance to Road"]]
+table(SS_road$ROADCLASS, SS_road$d2road > 0, useNA="a")
+table(SS_road$NBRLANES, SS_road$d2road > 0, useNA="a")
+table(SS_road$PAVSTATUS, SS_road$d2road > 0, useNA="a")
+table(SS_road$ROADCLASS, SS_road$NBRLANES, useNA="a")
+SS_road <- SS_road[,c("d2road","ROADCLASS","NBRLANES","PAVSTATUS")]
+## need to exclude # lanes >2
+
+## Fire: year, size
+SS_fire <- sqlFetch(con, "dbo_BBSBAM_2015_FIRE")
+rownames(SS_fire) <- SS_fire$SS
+compare.sets(rownames(SS01), rownames(SS_fire))
+SS_fire <- SS_fire[rownames(SS01),]
+SS_fire <- SS_fire[,c("Year","SIZE_HA")]
+colnames(SS_fire) <- c("YearFire","FIRE_HA")
+
+## Terrain: slope, twi, elev
+SS_terr <- sqlFetch(con, "dbo_BBSBAM_2015_TERRAIN90")
+rownames(SS_terr) <- SS_terr$SS
+compare.sets(rownames(SS01), rownames(SS_terr))
+SS_terr <- SS_terr[rownames(SS01),]
+t(table(is.na(SS_terr$cti90), SS01$PCODE)) # mostly affects BBS in some states
+SS_terr <- SS_terr[,c("slp90","cti90","elv90")]
+
+## Climate variables from DS and NALCMS 4x4 level
+SS_clim <- sqlFetch(con, "dbo_BBSBAM_2015__CLIMLU")
+rownames(SS_clim) <- SS_clim$SS
+compare.sets(rownames(SS01), rownames(SS_clim))
+SS_clim <- SS_clim[rownames(SS01),]
+tmp <- as.matrix(SS_clim[,grepl("NALCMS05_", colnames(SS_clim))])
+SS_clim <- SS_clim[,!grepl("NALCMS05_", colnames(SS_clim))]
+colnames(tmp) <- gsub("NALCMS05_", "", colnames(tmp))
+Col <- as.character(ltnalc$Label)[match(colnames(tmp), as.character(ltnalc$Value))]
+Col[is.na(Col)] <- "Water"
+SS_NALC4x4 <- data.frame(groupSums(tmp, 2, Col, na.rm=TRUE))
+colnames(SS_NALC4x4) <- paste0("GRID4_NALC_", colnames(SS_NALC4x4))
+SS_clim$NALCMS05 <- NULL
+SS_clim$PCODE <- NULL
+SS_clim$SS <- NULL
+
+## LCC05 4x4 level
+SS_LCC4x4 <- sqlFetch(con, "dbo_BBSBAM_V4_LCC05CND_4X4SUMM")
+SS_LCC4x4 <- nonDuplicated(SS_LCC4x4, SS, TRUE)
+#rownames(SS_LCC4x4) <- SS_LCC4x4$SS
+compare.sets(rownames(SS01), rownames(SS_LCC4x4))
+SS_LCC4x4 <- SS_LCC4x4[rownames(SS01),]
+SS_LCC4x4$SS <- NULL
+SS_LCC4x4$gridcode <- NULL
+SS_LCC4x4$LCCVVSUM <- NULL
+SS_LCC4x4 <- as.matrix(SS_LCC4x4)
+colnames(SS_LCC4x4) <- gsub("LCCVV", "", colnames(SS_LCC4x4))
+Col <- as.character(ltlcc$BAMLCC05V2_label1)[match(colnames(SS_LCC4x4), 
+    as.character(ltlcc$lcc05v1_2))]
+Col[is.na(Col)] <- "BARREN"
+SS_LCC4x4 <- data.frame(groupSums(SS_LCC4x4, 2, Col, na.rm=TRUE))
+SS_LCC4x4[is.na(SS03$HAB_LCC2),] <- NA
+colnames(SS_LCC4x4) <- paste0("GRID4_LCC_", colnames(SS_LCC4x4))
+
+## EOSD 4x4 level
+SS_EOSD4x4 <- sqlFetch(con, "dbo_BBSBAM_V4_EOSD_4X4SUMM")
+SS_EOSD4x4$upsize_ts <- NULL
+rownames(SS_EOSD4x4) <- SS_EOSD4x4$SS
+compare.sets(rownames(SS01), rownames(SS_EOSD4x4))
+SS_EOSD4x4 <- SS_EOSD4x4[match(rownames(SS01), rownames(SS_EOSD4x4)),]
+rownames(SS_EOSD4x4) <- SS01$SS
+
+SS_EOSD4x4 <- as.matrix(SS_EOSD4x4[,grepl("eosdVV", colnames(SS_EOSD4x4))])
+colnames(SS_EOSD4x4) <- gsub("eosdVV", "", colnames(SS_EOSD4x4))
+
+Col <- as.character(lteosd$Reclass_label1)[match(colnames(SS_EOSD4x4), 
+    as.character(lteosd$Value))]
+Col[is.na(Col)] <- "BARREN"
+SS_EOSD4x4 <- data.frame(groupSums(SS_EOSD4x4, 2, Col, na.rm=TRUE))
+SS_EOSD4x4[is.na(SS03$HAB_EOSD2),] <- NA
+colnames(SS_EOSD4x4) <- paste0("GRID4_EOSD_", colnames(SS_EOSD4x4))
+
+## HEIGHT (Simard)
+SS_height <- sqlFetch(con, "dbo_Height")
+SS_height <- nonDuplicated(SS_height, SS, TRUE)
+compare.sets(rownames(SS01), rownames(SS_height))
+SS_height <- SS_height[rownames(SS01),]
+SS_height <- SS_height[,"HEIGHTSIMARD",drop=FALSE]
+
+## Nature Serve range: 3 spp (Can clipped range used 0/1)
+SS_nserv <- sqlFetch(con, "dbo_BBSBAM_SARSPPLOCATIONSRange")
+SS_nserv <- nonDuplicated(SS_nserv, SS, TRUE)
+compare.sets(rownames(SS01), rownames(SS_nserv))
+SS_nserv <- SS_nserv[rownames(SS01),]
+SS_nserv <- SS_nserv[,c("CAWAINOUT","OSFLINOUT","CONIINOUT")]
+
+## GFW yearly loss intersections and 1st year of loss
+SS_gfw <- sqlFetch(con, "dbo_BAMBBS_GFWLossYear")
+SS_gfw <- nonDuplicated(SS_gfw, SS, TRUE)
+compare.sets(rownames(SS01), rownames(SS_gfw))
+SS_gfw <- SS_gfw[rownames(SS01),]
+SS_gfw <- SS_gfw[,"YearLoss",drop=FALSE]
+
+## Pasher disturbance
+SS_pash <- read.csv(file.path(ROOT, "bambbs2015beadandpasher.csv"))
+SS_pash <- nonDuplicated(SS_pash, SS, TRUE)
+compare.sets(rownames(SS01), rownames(SS_pash))
+SS_pash <- SS_pash[rownames(SS01),]
+SS_pash <- SS_pash[,c("BEADTotalL","BEADtotPol")]
+
 ## Put together the main SS level object
 SS <- data.frame(
     PCODE=SS01$PCODE,
@@ -112,7 +228,18 @@ SS <- data.frame(
     TREE=SS02$TREE,
     TREE3=SS02$TREE3,
     SS03[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", "HAB_EOSD2", 
-        "HAB_NALC2", "HAB_NALC1", "LCC_combo")])
+        "HAB_NALC2", "HAB_NALC1", "LCC_combo")],
+    SS_grid,
+    SS_road, 
+    SS_terr, 
+    SS_fire, 
+    SS_clim, 
+    SS_pash, 
+    SS_gfw, 
+    SS_height,
+    SS_NALC4x4, 
+    SS_LCC4x4, 
+    SS_EOSD4x4)
 
 #### Project summary table
 
@@ -588,7 +715,7 @@ write.csv(ISSUE, row.names=FALSE, file=file.path(ROOT, "out",
 ## Oddities that should not happen:
 PCTBL$dur <- as.character(PCTBL$dur)
 PCTBL$dur[with(PCTBL, DURMETH=="A" & dur=="0-3")] <- "0-10"
-PCTBL$dur[with(PCTBL, DURMETH=="B" & dur=="5-8")] <- "0-5"
+# PCTBL$dur[with(PCTBL, DURMETH=="B" & dur=="5-8")] <- "0-5" -- fixed on proj summ
 PCTBL$dur[with(PCTBL, DURMETH=="X" & dur=="10-10")] <- "6.66-10"
 PCTBL$dur <- as.factor(PCTBL$dur)
 
