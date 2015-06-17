@@ -306,12 +306,16 @@ PKEY$ROAD[PKEY$PCODE %in% treat.as.bbs] <- 1L
 #### Offset specific variables
 
 ## Date/time components
+PKEY$MIN[is.na(PKEY$MIN)] <- 0 # min is not that critical is not
 MM <- ifelse(PKEY$MONTH < 10, paste0("0", PKEY$MONTH), as.character(PKEY$MONTH))
 HH <- ifelse(PKEY$HOUR < 10, paste0("0", PKEY$HOUR), as.character(PKEY$HOUR))
 mm <- ifelse(PKEY$MIN < 10, paste0("0", PKEY$MIN), as.character(PKEY$MIN))
+#mm[is.na(mm) & !is.na(HH)] <- "00"
 DD <- with(PKEY, paste0(YEAR, "-", MM, "-", DAY, " ", HH, ":", mm, ":00"))
 DD <- strptime(DD, "%Y-%m-%e %H:%M:%S")
+PKEY$DATE <- DD
 ## Julian day
+PKEY$JULIAN <- DD$yday # this is kept as original
 PKEY$JDAY <- DD$yday / 365
 summary(PKEY$JDAY)
 ## prevent too far extrapolation
@@ -330,6 +334,7 @@ lttz <- nonDuplicated(lttz, Timezone, TRUE)
 PKEY$MDT_offset <- lttz$MDT_offset[match(TZ, rownames(lttz))]
 table(TZ, PKEY$MDT_offset)
 PKEY$TSSR <- (PKEY$start_time - PKEY$srise + PKEY$MDT_offset) / 24
+PKEY$TSSR_orig <- PKEY$TSSR # keep a full copy
 PKEY$TSSR[PKEY$start_time > 12] <- NA ## after noon
 summary(PKEY$TSSR)
 summary(PKEY$start_time)
