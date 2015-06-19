@@ -793,3 +793,198 @@ save(dat, pc, ltdur, ltdis, TAX,
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT, "out",
     paste0("data_package_", Sys.Date(), ".Rdata")))
+
+
+######## These are the transformations #################
+
+if (FALSE) {
+## TREE
+xy$TREE[xy$TREE > 100] <- NA
+xy$TREE <- xy$TREE/100
+## linear features
+xy$xLIN <- log(xy$BLIN + 1)
+## Polygon is fine as it is (0-1)
+## NALCMS reclass
+xy$HAB31 <- as.character(xy$NALCMS)
+xy$HAB31[xy$NALCMS %in% c("1","2")] <- "Conif"
+xy$HAB31[xy$NALCMS %in% c("5")] <- "Decid"
+xy$HAB31[xy$NALCMS %in% c("6")] <- "Mixed"
+xy$HAB31[xy$NALCMS %in% c("8","11")] <- "Shrub"
+xy$HAB31[xy$NALCMS %in% c("10","12")] <- "Grass"
+xy$HAB31[xy$NALCMS %in% c("13","16")] <- "Barren"
+xy$HAB31[xy$NALCMS %in% c("14")] <- "Wet"
+xy$HAB31[xy$NALCMS %in% c("15")] <- "Agr"
+xy$HAB31[xy$NALCMS %in% c("17")] <- "Devel"
+xy$HAB31[xy$HAB31 %in% c("0", "18","19")] <- NA # nodata,water,snow/ice
+xy$HAB31 <- as.factor(xy$HAB31)
+
+## cell level NALCMS prop
+xy$Cell_Conif <- xy$lc1 + xy$lc2
+xy$Cell_Decid <- xy$lc5
+xy$Cell_Mixed <- xy$lc6
+xy$Cell_Shrub <- xy$lc8 + xy$lc11
+xy$Cell_Grass <- xy$lc10 + xy$lc12
+xy$Cell_Barren <- xy$lc13 + xy$lc16
+xy$Cell_Wet <- xy$lc14
+xy$Cell_Agr <- xy$lc15
+xy$Cell_Devel <- xy$lc17
+xy$Cell_HF <- xy$Cell_Agr + xy$Cell_Devel
+xy$Cell_HF2 <- xy$Cell_HF^2
+xy$Cell_Wet2 <- xy$Cell_Wet^2
+xy$Cell_WetWater <- xy$lc14 + xy$lc18
+xy$Cell_WetWater2 <- xy$Cell_WetWater^2
+
+## this is going to be based on actual Habitat classification
+#xy$isConif <- ifelse(xy$HAB == "Conif", 1L, 0L) # this is reference, not needed
+#xy$isDecid <- ifelse(xy$HAB == "Decid", 1L, 0L)
+#xy$isMixed <- ifelse(xy$HAB == "Mixed", 1L, 0L)
+#xy$isForest <- ifelse(xy$HAB %in% c("Conif","Decid","Mixed"), 1L, 0L)
+#xy$isNonforest <- ifelse(!(xy$HAB %in% c("Conif","Decid","Mixed")), 1L, 0L)
+
+## CTI
+xy$xCTI <- (xy$CTI-8)/2
+xy$xCTI2 <- xy$xCTI^2
+xy$xSLOPE <- sqrt(xy$SLOPE)
+xy$xSLOPE2 <- xy$xSLOPE^2
+
+## height
+xy$HEIGHT <- xy$SVEG / 50
+
+## quadratics
+xy$HEIGHT2 <- xy$HEIGHT^2
+#xy$TREE2 <- xy$TREE^2
+xy$TREE3 <- factor(NA, levels=c("Open", "Sparse", "Dense"))
+xy$TREE3[xy$TREE < 0.25] <- "Open"
+xy$TREE3[xy$TREE >= 0.25 & xy$TREE < 0.60] <- "Sparse"
+xy$TREE3[xy$TREE >= 0.60] <- "Dense"
+
+xy$FireYear <- ifelse(is.na(xy$Year), 2013-100, xy$Year)
+xy$Year <- NULL
+xy$FireSizeHa <- ifelse(is.na(xy$SizeHa), 0, xy$SizeHa)
+xy$SizeHa <- NULL
+
+xy$xBCR <- as.character(xy$BCR)
+xy$xBCR[xy$BCR =="0"] <- NA
+xy$xBCR[xy$BCR %in% c("1","2","4")] <- "Ak"
+xy$xBCR[xy$BCR %in% c("3","7")] <- "Arctic"
+xy$xBCR[xy$BCR %in% c("23","24","26","28","29","30")] <- "USeast"
+xy$xBCR[xy$BCR %in% c("17","22","11")] <- "Prairie"
+
+#with(xy, plot(POINT_X, POINT_Y, pch=19, cex=0.1, col=xy$xBCR))
+
+#xyz <- xy[,grep("NORM_6190_",colnames(xy))]
+#xyz <- xyz[rowSums(is.na(xyz))==0,]
+
+load("c:/bam/Feb2014/casfri_ec_2014.Rdata")
+
+length(intersect(xy$SS, cas$ss))
+length(setdiff(xy$SS, cas$ss))
+length(setdiff(cas$ss, xy$SS)) ## cooool!
+cas$crown_closure[is.na(cas$crown_closure)] <- 0
+cas$height[is.na(cas$height)] <- 0
+cas$CHEIGHT <- cas$height / 50
+cas$CHEIGHT2 <- cas$CHEIGHT^2
+cas$CTREE <- cas$crown_closure / 100
+cas$CTREE3 <- factor(NA, levels=c("Open", "Sparse", "Dense"))
+cas$CTREE3[cas$CTREE < 0.25] <- "Open"
+cas$CTREE3[cas$CTREE >= 0.25 & cas$CTREE < 0.60] <- "Sparse"
+cas$CTREE3[cas$CTREE >= 0.60] <- "Dense"
+
+xy <- data.frame(xy, cas[match(xy$SS, cas$ss),-which(colnames(cas)=="ss")])
+
+
+DAT <- data.frame(xt, pk[match(rownames(xt), pk$PKEY),])
+DAT <- data.frame(DAT, xy[match(DAT$SS, xy$SS),])
+
+## CAS related
+DAT$YSD <- ifelse(DAT$YEAR < DAT$origin, NA, DAT$YEAR - DAT$origin)
+##DAT$YSD[DAT$origin == 0] <- 0
+##DAT$YSD[is.na(DAT$YSD)] <- 80
+DAT$FOR <- ifelse(DAT$HABW %in% c("00Decid", "ConifLo", "ConifUp", "Mixedwood"), 1L, 0L)
+DAT$YSD[DAT$FOR == 0] <- 0
+DAT$YSD <- DAT$YSD/100
+DAT$YSD2 <- DAT$YSD^2
+DAT$CCC <- ifelse(DAT$YSD <= 10/100, 1L, 0L)
+
+## create offsets for 3 spp
+DAT$QPAD_CAWA <- as.numeric(corrections2offset(globalBAMcorrections("CAWA", r=DAT$MAXDIS, t=DAT$MAXDUR)))
+DAT$QPAD_OSFL <- as.numeric(corrections2offset(globalBAMcorrections("OSFL", r=DAT$MAXDIS, t=DAT$MAXDUR)))
+DAT$QPAD_CONI <- as.numeric(corrections2offset(globalBAMcorrections("OVEN", r=DAT$MAXDIS, t=DAT$MAXDUR,
+    phi=exp(qpad$CONI$coef$sra), tau=exp(qpad$CONI$coef$edr))))
+
+DAT$isWest <- ifelse(DAT$POINT_X < -98, 1L, 0L)
+DAT$Decade <- ifelse(DAT$YEAR < 2000, 0L, 1L)
+
+DAT$YSF <- DAT$YEAR - DAT$FireYear
+DAT$YSF[DAT$YSF < 0] <- 100
+#DAT$YSF[is.na(DAT$YSF)] <- 100
+DAT$YSF <- DAT$YSF / 100
+DAT$BURN <- ifelse(DAT$YSF <= 10/100, 1L, 0L)
+
+DAT <- DAT[DAT$ROUND == 1,]
+DAT <- DAT[DAT$YEAR >= 1997,]
+#DAT <- DAT[DAT$BCR != "0",]
+#DAT$METHOD <- NULL
+#DAT$FireYear <- ifelse(is.na(DAT$Year), 2013-100, DAT$Year)
+#DAT$Year <- NULL
+#DAT$FireSizeHa <- ifelse(is.na(DAT$SizeHa), 0, DAT$Year)
+#DAT$SizeHa <- NULL
+
+## year effect
+#plot(table(DAT$YEAR))
+DAT$YR5 <- 0
+DAT$YR5[DAT$YEAR > 2001 & DAT$YEAR <= 2006] <- 1
+DAT$YR5[DAT$YEAR > 2006] <- 2
+DAT$YR5 <- as.factor(DAT$YR5)
+DAT$YR <- DAT$YEAR - 2000
+DAT$bootg <- interaction(DAT$xBCR, DAT$YR5, drop=TRUE)
+
+DAT$HAB12 <- relevel(DAT$HAB12, "Conif")
+DAT$HAB22 <- relevel(DAT$HAB22, "Conif")
+DAT$HAB31 <- relevel(DAT$HAB31, "Conif")
+
+DAT$xCMIJJApm <- (DAT$NORM_6190_CMIJJApm - 0) / 50
+DAT$xCMIpm <- (DAT$NORM_6190_CMIpm - 0) / 50
+DAT$xCMDpm <- log(DAT$NORM_6190_CMDpm + 1)
+DAT$xMAT <- (DAT$NORM_6190_MAT - 0) / 100
+DAT$xTD <- (DAT$NORM_6190_TD - 300) / 100
+DAT$xPET <- (DAT$NORM_6190_PET - 500) / 400
+DAT$xDD0 <- (DAT$NORM_6190_DD0 - 1000) / 1000
+DAT$xDD5 <- (DAT$NORM_6190_DD5 - 1600) / 1000
+DAT$xEMT <- (DAT$NORM_6190_EMT + 400) / 100
+DAT$xMAP <- log(DAT$NORM_6190_MAP / 100) - 2
+DAT$xMSP <- (DAT$NORM_6190_MSP - 400) / 200
+DAT$xPPT_sm <- (DAT$NORM_6190_PPT_sm - 200) / 150
+
+#colnames(DAT)[grep("NORM_6190_", colnames(DAT))] <- sub("NORM_6190_", "", 
+#    colnames(DAT)[grep("NORM_6190_", colnames(DAT))])
+DAT <- DAT[,!grepl("NORM_6190_", colnames(DAT))]
+
+#with(DAT, plot(POINT_X, POINT_Y, pch=19, cex=0.1, col=1+is.na(DAT$CTI250)))
+#plot(DAT$CTI250, DAT$CTI)
+
+#aa=colSums(is.na(DAT))
+#data.frame(v=100*aa[order(aa)]/nrow(DAT))
+
+#DAT <- DAT[rowSums(is.na(DAT[,!grepl("HAB", colnames(DAT)) & colnames(DAT) != "CTI250"]))==0,]
+#DAT <- DAT[!is.na(DAT$HAB31),]
+DAT <- DAT[sample.int(nrow(DAT)),]
+DAT <- droplevels(DAT)
+DAT$IP <- 0 # placeholder
+DAT$IP2 <- 0
+DAT$HAB <- 0
+DAT$isDecid <- 0
+DAT$isMixed <- 0
+DAT$isForest <- 0
+DAT$isNonforest <- 0
+
+DAT$HAB41 <- as.character(DAT$Habitat)
+DAT$HAB41[DAT$Habitat == "Water"] <- NA
+DAT$HAB41[DAT$Habitat == "Cult"] <- "Agr"
+DAT$HAB41[DAT$Habitat == "UrbInd"] <- "Devel"
+DAT$HAB41[DAT$Habitat == "Wetland"] <- "Wet"
+DAT$HAB41[DAT$Habitat == "Mixedwood"] <- "Mixed"
+DAT$HAB41 <- as.factor(DAT$HAB41)
+DAT$HAB41 <- relevel(DAT$HAB41, "Conif")
+
+}
