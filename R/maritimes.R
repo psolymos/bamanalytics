@@ -13,9 +13,24 @@
 ROOT <- "c:/bam/May2015"
 library(mefa4)
 ## Load data files
-x50 <- read.csv(file.path(ROOT, "maritimes", "Avian_50.csv"))
-x100 <- read.csv(file.path(ROOT, "maritimes", "Avian_100.csv"))
-x250 <- read.csv(file.path(ROOT, "maritimes", "Avian_250.csv"))
+## use new files
+x50 <- read.csv(file.path(ROOT, "maritimes/June19", "avian_50.csv"))
+x100 <- read.csv(file.path(ROOT, "maritimes/June19", "avian_100.csv"))
+x250 <- read.csv(file.path(ROOT, "maritimes/June19", "avian_250.csv"))
+## but CAS data is in old files
+x50v <- read.csv(file.path(ROOT, "maritimes", "Avian_50.csv"))
+x100v <- read.csv(file.path(ROOT, "maritimes", "Avian_100.csv"))
+x250v <- read.csv(file.path(ROOT, "maritimes", "Avian_250.csv"))
+x50v <- x50v[match(x50$OBJECTID, x50v$OBJECTID),]
+x100v <- x100v[match(x100$OBJECTID, x100v$OBJECTID),]
+x250v <- x250v[match(x250$OBJECTID, x250v$OBJECTID),]
+stopifnot(all(x50$OBJECTID==x50v$OBJECTID))
+stopifnot(all(x100$OBJECTID==x100v$OBJECTID))
+stopifnot(all(x250$OBJECTID==x250v$OBJECTID))
+x50 <- data.frame(x50, x50v[,setdiff(colnames(x50v), colnames(x50))])
+x100 <- data.frame(x100, x100v[,setdiff(colnames(x100v), colnames(x100))])
+x250 <- data.frame(x250, x250v[,setdiff(colnames(x250v), colnames(x250))])
+rm(x50v,x100v,x250v)
 ## Checking duplicates
 x50[duplicated(x50$SS),1:6]
 x100[duplicated(x100$SS),1:6]
@@ -167,7 +182,7 @@ xx100 <- data.frame(x100, x250[,!(colnames(x250) %in% asis)])
 #### Pull in BAM counts and PKEY table
 
 e <- new.env()
-load(file.path(ROOT, "out", "data_package_2015-05-14.Rdata"),
+load(file.path(ROOT, "out", "data_package_2015-06-19.Rdata"),
     envir=e)
 names(as.list(e))
 pc <- e$PCTBL
@@ -176,7 +191,7 @@ pk <- e$PKEY
 rm(e)
 ## Load pre-calculated offsets (QPAD v2)
 e <- new.env()
-load(file.path(ROOT, "out", "offsets_allspp_BAMBBS_2015-05-05.Rdata"),
+load(file.path(ROOT, "out", "offsets_allspp_BAMBBS_2015-06-19.Rdata"),
     envir=e)
 names(as.list(e))
 off <- e$OFF[,c("CAWA","RUBL","OSFL")]
