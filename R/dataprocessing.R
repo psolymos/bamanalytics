@@ -347,50 +347,6 @@ PKEY <- droplevels(PKEY)
 #with(PKEY, table(PCODE, is.na(MAXDUR)))
 #with(PKEY, table(PCODE, is.na(MAXDIS)))
 
-#### Calculate the offsets (optional)
-if (FALSE) { # BEGIN offset calculations
-
-offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
-    SS[match(PKEY$SS, rownames(SS)),c("LCC_combo","TREE")])
-offdat$srise <- PKEY$srise + PKEY$MDT_offset
-summary(offdat)
-#summary(offdat[PKEY$PCODE=="QCATLAS",]) -- problem solved: QCAtlas vs QCATLAS
-
-load_BAM_QPAD(version=1)
-BAMspp <- getBAMspecieslist()
-load("~/Dropbox/abmi/intactness/dataproc/BAMCOEFS25.Rdata")
-
-(sppp <- union(BAMspp, BAMCOEFS25$spp))
-
-OFF <- matrix(NA, nrow(offdat), length(sppp))
-rownames(OFF) <- offdat$PKEY
-colnames(OFF) <- sppp
-for (i in sppp) {
-    cat(i, date(), "\n");flush.console()
-    tmp <- try(offset_fun(j=1, i, offdat))
-    if (!inherits(tmp, "try-error"))
-        OFF[,i] <- tmp
-}
-## 99-100 percentile can be crazy high (~10^5), thus reset
-for (i in sppp) {
-    q <- quantile(OFF[,i], 0.99, na.rm=TRUE)
-    OFF[!is.na(OFF[,i]) & OFF[,i] > q, i] <- q
-}
-colSums(is.na(OFF))/nrow(OFF)
-apply(exp(OFF), 2, range, na.rm=TRUE)
-
-
-save(OFF, file=file.path(ROOT, "out",
-    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".Rdata")))
-write.csv(OFF, file=file.path(ROOT, "out",
-    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".csv")))
-save(offdat, file=file.path(ROOT, "out",
-    paste0("offset_covariates_", Sys.Date(), ".Rdata")))
-write.csv(offdat, row.names=FALSE, file=file.path(ROOT, "out",
-    paste0("offset_covariates_", Sys.Date(), ".csv")))
-
-} # END offset calculations
-
 
 #### Point count tables and methodology
 
@@ -793,6 +749,54 @@ save(dat, pc, ltdur, ltdis, TAX,
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT, "out",
     paste0("data_package_", Sys.Date(), ".Rdata")))
+
+
+#### Calculate the offsets (optional)
+
+if (FALSE) { # BEGIN offset calculations ------------------- !!!!!!!!!!!!!!
+
+load(file.path(ROOT, "out", "data_package_2015-06-19.Rdata"))
+
+offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
+    SS[match(PKEY$SS, rownames(SS)),c("LCC_combo","TREE")])
+offdat$srise <- PKEY$srise + PKEY$MDT_offset
+summary(offdat)
+#summary(offdat[PKEY$PCODE=="QCATLAS",]) -- problem solved: QCAtlas vs QCATLAS
+
+load_BAM_QPAD(version=1)
+BAMspp <- getBAMspecieslist()
+load("~/Dropbox/abmi/intactness/dataproc/BAMCOEFS25.Rdata")
+
+(sppp <- union(BAMspp, BAMCOEFS25$spp))
+
+OFF <- matrix(NA, nrow(offdat), length(sppp))
+rownames(OFF) <- offdat$PKEY
+colnames(OFF) <- sppp
+for (i in sppp) {
+    cat(i, date(), "\n");flush.console()
+    tmp <- try(offset_fun(j=1, i, offdat))
+    if (!inherits(tmp, "try-error"))
+        OFF[,i] <- tmp
+}
+## 99-100 percentile can be crazy high (~10^5), thus reset
+for (i in sppp) {
+    q <- quantile(OFF[,i], 0.99, na.rm=TRUE)
+    OFF[!is.na(OFF[,i]) & OFF[,i] > q, i] <- q
+}
+colSums(is.na(OFF))/nrow(OFF)
+apply(exp(OFF), 2, range, na.rm=TRUE)
+
+
+save(OFF, file=file.path(ROOT, "out",
+    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".Rdata")))
+write.csv(OFF, file=file.path(ROOT, "out",
+    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".csv")))
+save(offdat, file=file.path(ROOT, "out",
+    paste0("offset_covariates_", Sys.Date(), ".Rdata")))
+write.csv(offdat, row.names=FALSE, file=file.path(ROOT, "out",
+    paste0("offset_covariates_", Sys.Date(), ".csv")))
+
+} # END offset calculations
 
 
 ######## These are the transformations #################
