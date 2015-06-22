@@ -268,13 +268,13 @@ getModelVariation <- function(res, mods, use_rmax=FALSE) {
 plotMid <- function(res, mods, web=TRUE, ...) {
     if (is.character(res))
         res <- allres[[res]]
-    mid <- getMid(res, mods, use_rmax=FALSE)
+    mid <- getMidPure(res, mods)
     if (web) {
         opar <- par(mai=0.1*c(1,1,2,1))
-        midfig(mid, sapply(mods, length), 
+        midfig(mid, sapply(mods, length), ...)
             #main=paste(taxa(mm)[res[[1]]$species,"CommonName"], " (", res[[1]]$species, ")", sep="")
-            main=as.character(taxa(mm)[res[[1]]$species,"English_Name"])
-            , ...)
+            #main=as.character(taxa(mm)[res[[1]]$species,"English_Name"])
+            #, ...)
         text(rep(-0.5-0.5*max(sapply(mods, length)), ncol(mid)), 
             seq_len(ncol(mid))+0.25, names(mods))
         par(opar)
