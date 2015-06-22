@@ -599,7 +599,7 @@ frcawa <- do.call(rbind, fun1(allres$CAWA))
 frrubl <- do.call(rbind, fun1(allres$RUBL))
 frosfl <- do.call(rbind, fun1(allres$OSFL))
 
-xnA <- model.frame(getTerms(modsA, "formula"), dcawa, 
+xnA <- model.frame(getTerms(modsA, "formula"), dcawa,
     na.action=na.pass)
 XnA <- model.matrix(getTerms(modsA, "formula"), xnA)
 colnames(XnA) <- fixNames(colnames(XnA))
@@ -608,7 +608,7 @@ cfcawaA <- getEst(allres$CAWA$A)
 cfrublA <- getEst(allres$CAWA$A)
 cfosflA <- getEst(allres$CAWA$A)
 
-xnB <- model.frame(getTerms(modsB, "formula"), dcawa, 
+xnB <- model.frame(getTerms(modsB, "formula"), dcawa,
     na.action=na.pass)
 XnB <- model.matrix(getTerms(modsB, "formula"), xnB)
 colnames(XnB) <- fixNames(colnames(XnB))
@@ -617,7 +617,7 @@ cfcawaB <- getEst(allres$CAWA$B)
 cfrublB <- getEst(allres$CAWA$B)
 cfosflB <- getEst(allres$CAWA$B)
 
-xnC <- model.frame(getTerms(modsC, "formula"), dcawa, 
+xnC <- model.frame(getTerms(modsC, "formula"), dcawa,
     na.action=na.pass)
 XnC <- model.matrix(getTerms(modsC, "formula"), xnC)
 colnames(XnC) <- fixNames(colnames(XnC))
@@ -657,6 +657,36 @@ write.csv(cfrublC, file="~/Dropbox/bam/maritimes2015/res-rubl-coef-C.csv")
 write.csv(cfosflA, file="~/Dropbox/bam/maritimes2015/res-osfl-coef-A.csv")
 write.csv(cfosflB, file="~/Dropbox/bam/maritimes2015/res-osfl-coef-B.csv")
 write.csv(cfosflC, file="~/Dropbox/bam/maritimes2015/res-osfl-coef-C.csv")
+
+### MID figures
+
+pdf("~/Dropbox/bam/maritimes2015/mid-figures.pdf", onefile=TRUE)
+plotMid(allres$CAWA$A, modsA, web=TRUE, main="CAWA, A")
+plotMid(allres$CAWA$B, modsB, web=TRUE, main="CAWA, B")
+plotMid(allres$CAWA$C, modsC, web=TRUE, main="CAWA, C")
+plotMid(allres$RUBL$A, modsA, web=TRUE, main="RUBL, A")
+plotMid(allres$RUBL$B, modsB, web=TRUE, main="RUBL, B")
+plotMid(allres$RUBL$C, modsC, web=TRUE, main="RUBL, C")
+plotMid(allres$OSFL$A, modsA, web=TRUE, main="OSFL, A")
+plotMid(allres$OSFL$B, modsB, web=TRUE, main="OSFL, B")
+plotMid(allres$OSFL$C, modsC, web=TRUE, main="OSFL, C")
+dev.off()
+
+pdf("~/Dropbox/bam/maritimes2015/mid-figures-x3.pdf",
+    height=5, width=15, onefile=TRUE)
+op <- par(mfrow=c(1,3))
+plotMid(allres$CAWA$A, modsA, web=TRUE, main="CAWA, A")
+plotMid(allres$CAWA$B, modsB, web=TRUE, main="CAWA, B")
+plotMid(allres$CAWA$C, modsC, web=TRUE, main="CAWA, C")
+plotMid(allres$RUBL$A, modsA, web=TRUE, main="RUBL, A")
+plotMid(allres$RUBL$B, modsB, web=TRUE, main="RUBL, B")
+plotMid(allres$RUBL$C, modsC, web=TRUE, main="RUBL, C")
+plotMid(allres$OSFL$A, modsA, web=TRUE, main="OSFL, A")
+plotMid(allres$OSFL$B, modsB, web=TRUE, main="OSFL, B")
+plotMid(allres$OSFL$C, modsC, web=TRUE, main="OSFL, C")
+par(op)
+dev.off()
+
 
 ### Session info
 
