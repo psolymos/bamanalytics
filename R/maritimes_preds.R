@@ -208,7 +208,6 @@ colSums(is.na(xx100))
 save(xx50, xx100,
     file=file.path(ROOT, "out", "maritimes_preds.Rdata"))
 
-
 ### Predictions
 
 ROOT <- "c:/bam/May2015"
@@ -275,4 +274,62 @@ osfl$C <- res
 
 allres <- list(CAWA=cawa, RUBL=rubl, OSFL=osfl)
 
+
+xn_50B <- xx50[,TermsB]
+xn_100C <- xx100[,TermsC] # ------------------- FIXME when OSFL is updated
+Xn_50B <- model.matrix(getTerms(modsB, "formula"), xn_50B)
+Xn_100C <- model.matrix(getTerms(modsC, "formula"), xn_100C)
+
+## ----- species specific
+
+spp <- "RUBL"
+if (spp == "OSFL") {
+    xn <- xn_100C
+    Xn <- Xn_100C
+    res <- allres$OSFL$C
+    mods <- modsC
+} else {
+    xn <- xn_50B
+    Xn <- Xn_50B
+    res <- allres[[spp]]$B
+    mods <- modsB
+}
+
+est <- getEst(res)
+printCoefmat(getSummary(res))
+
+mu <- getDataPred(res)
+bmu <- apply(exp(mu), 1, median, na.rm=TRUE)
+
+CL <- rgb(210, 180, 140, alpha=1*255, max=255)
+CLa <- rgb(210, 180, 140, alpha=0.25*255, max=255)
+
+pdf(paste0("~/Dropbox/bam/maritimes2015/", spp, "_preds.pdf"), onefile=TRUE)
+for (i in 1:ncol(xn)) {
+    if (is.factor(xn[,i])) {
+        boxplot(xn[,i], bmu, range=0, col=CL, main=spp, xlab=colnames(xn)[i],
+            ylab="density")
+    } else {
+        if (length(unique(xn[,i])) < 5) {
+            boxplot(xn[,i], bmu, range=0, col=CL, main=spp, xlab=colnames(xn)[i],
+                ylab="density")
+        } else {
+            ii <- sample.int(nrow(xn), 5000)
+            plot(xn[ii,i], bmu[ii], col=CLa, pch=19,
+                main=spp, xlab=colnames(xn)[i],
+                ylab="density")
+        }
+    }
+}
+dev.off()
+
+par(mfrow=c(3,2))
+boxplot(bmu ~ PROTECT, xn)
+boxplot(bmu ~ LOC_ltree, xn)
+boxplot(bmu ~ ltree, xn)
+
+boxplot(bmu ~ COMPLEXITY, xn)
+plot(bmu ~ CONNECTEDNESS, xn)
+plot(bmu ~ DTW_STD, xn)
+plot(bmu ~ HUMAN_FOOTPRINT, xn)
 

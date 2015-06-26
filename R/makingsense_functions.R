@@ -297,3 +297,41 @@ plotMid <- function(res, mods, web=TRUE, ...) {
     invisible(NULL)
 }
 
+## --- prediction
+
+## add in option for offsets ???
+getDataPred <- function(res, ...) {
+    est <- getEst(res, ...)
+    tX <- t(Xn[,colnames(est)])
+    mu <- apply(est, 1, function(z) crossprod(tX, z))
+    mu
+}
+#mu <- getDataPred(res)
+#summary(apply(exp(mu), 1, median, na.rm=TRUE))
+
+## ---------------- predict: natural veg and age [AUPRF]
+
+predStat <- function(X, est, level=0.95, n=0, ci=TRUE, raw=FALSE) {
+    tX <- t(X)
+    mu <- apply(est, 1, function(z) crossprod(tX, z))
+    if (raw)
+        return(mu)
+    pr <- exp(mu)
+    out <- matrix(NA, nrow(pr), ifelse(ci, 6, 2))
+    rownames(out) <- rownames(X)
+    out[,1] <- rowMeans(pr, na.rm=TRUE)
+    out[,2] <- apply(pr, 1, median, na.rm=TRUE)
+    if (!ci) {
+        colnames(out) <- c("Mean", "Median")
+    } else {
+        colnames(out) <- c("Mean", "Median", "CL1n", "CL2n", "CL1q", "CL2q")
+        a <- (1 - level)/2
+        a <- c(a, 1 - a)
+        if (n > 0) {
+            tmp <- exp(replicate(n, rnorm(nrow(mu), rowMeans(mu), apply(mu, 1, sd))))
+            out[,3:4] <- t(apply(tmp, 1, quantile, probs=a, na.rm=TRUE))
+        }
+        out[,5:6] <- t(apply(pr, 1, quantile, probs=a, na.rm=TRUE))
+    }
+    out
+}
