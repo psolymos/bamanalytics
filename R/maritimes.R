@@ -215,6 +215,8 @@ off <- off[rownames(pk),]
 
 #### Packages for each species and save
 
+## use 50 m for CAWA and RUBL
+## use 100 m for OSFL
 dcawa <- data.frame(
     spp=xt[,"CAWA"],
     off=off[,"CAWA"],
@@ -229,7 +231,7 @@ dosfl <- data.frame(
     spp=xt[,"OSFL"],
     off=off[,"OSFL"],
     pk[,c("SITE","STN","ROUND","YEAR","ROAD")],
-    xx50[match(pk$SS, xx50$SS),])
+    xx100[match(pk$SS, xx50$SS),])
 ## Bootstrap matrix
 source("~/repos/detect/R/hbootindex.R")
 set.seed(1234)
