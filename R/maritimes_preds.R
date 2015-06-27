@@ -57,7 +57,7 @@ tree_250 <- c("Abie_bals", "Abie_pice", "Abie_spp", "Acer_rubr",
     "Pice_rube", "Pice_spp", "Pinu_bank", "Pinu_resi", "Pinu_spp",
     "Pinu_stro", "Pinu_sylv", "Popu_balb", "Popu_spp", "Popu_trem",
     "Prun_sero", "Quer_rubr", "Soft_unkn", "Thuj_occi", "Tsug_cana",
-    "Ulmu_amer", "Uncl_spp", 
+    "Ulmu_amer", "Uncl_spp",
     ## new to preds
     "Lari_kaem")
 colnames(x50) <- sub("\\.", "_", colnames(x50))
@@ -303,11 +303,12 @@ colnames(Xn) <- fixNames(colnames(Xn))
 
 est <- getEst(res)
 
-capture.output(printCoefmat(getSummary(res), 3), 
+capture.output(printCoefmat(getSummary(res), 3),
     file=paste0("~/Dropbox/bam/maritimes2015/preds_", spp, ".txt"))
 
 mu <- getDataPred(res)
 bmu <- rowMeans(exp(mu))
+SD <- apply(exp(mu), 1, sd)
 ci <- t(apply(exp(mu), 1, quantile, c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975), na.rm=TRUE))
 
 CL <- rgb(210, 180, 140, alpha=1*255, max=255)
@@ -318,18 +319,18 @@ op <- par(las=2, mar=c(5,4,2,1)+0.1)
 for (i in 1:ncol(xn)) {
     if (is.factor(xn[,i])) {
         boxplot(bmu ~ xn[,i], range=0, col=CL, main=spp, xlab=colnames(xn)[i],
-            ylab="density")
+            ylab="Density (males / ha)")
         abline(h=median(bmu), col="red4", lty=2)
     } else {
         if (length(unique(xn[,i])) < 5) {
             boxplot(bmu ~ xn[,i], range=0, col=CL, main=spp, xlab=colnames(xn)[i],
-                ylab="density")
+                ylab="Density (males / ha)")
             abline(h=median(bmu), col="red4", lty=2)
         } else {
             ii <- sample.int(nrow(xn), 5000)
             plot(xn[ii,i], bmu[ii], col=CLa, pch=19,
                 main=spp, xlab=colnames(xn)[i],
-                ylab="density")
+                ylab="Density (males / ha)")
             lines(lowess(xn[,i], bmu), col="red4")
         }
     }
@@ -337,8 +338,9 @@ for (i in 1:ncol(xn)) {
 par(op)
 dev.off()
 
-out <- data.frame(x=bmu, ci)
-colnames(out) <- paste(spp, c("Mean", 5, 10, 25, 50, 75, 90, 95), sep="_")
+out <- data.frame(Mean=bmu, SD=SD, ci)
+colnames(out) <- paste(spp, c("Mean", "SD",
+        2.5, 5, 25, 50, 75, 95, 97.5), sep="_")
 out <- data.frame(xx, out)
 write.csv(out, paste0("~/Dropbox/bam/maritimes2015/preds_", spp, ".csv"),
     row.names=FALSE)
@@ -353,12 +355,12 @@ op <- par(mar=c(5,4,2,1)+0.1, mfrow=c(5,2))
 for (i in levels(lt)) {
     plot(xn$DTW_PROP[lt == i], bmu[lt == i], col=CLa, pch=19,
         main=i, xlab="DTW_PROP",
-        ylab="density", ylim=quantile(bmu, c(0,0.999)), xlim=range(xn$DTW_PROP))
+        ylab="Density (males / ha)", ylim=quantile(bmu, c(0,0.999)), xlim=range(xn$DTW_PROP))
     lines(lowess(xn$DTW_PROP[lt == i], bmu[lt == i]), col="red4")
 }
 par(op)
 dev.off()
-    
+
 }
 
 } ## loop for spp end
