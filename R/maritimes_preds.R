@@ -276,60 +276,89 @@ allres <- list(CAWA=cawa, RUBL=rubl, OSFL=osfl)
 
 
 xn_50B <- xx50[,TermsB]
-xn_100C <- xx100[,TermsC] # ------------------- FIXME when OSFL is updated
+xn_100C <- xx100[,TermsC]
 Xn_50B <- model.matrix(getTerms(modsB, "formula"), xn_50B)
 Xn_100C <- model.matrix(getTerms(modsC, "formula"), xn_100C)
 
 ## ----- species specific
 
-spp <- "RUBL"
+spp <- "OSFL"
+for (spp in c("CAWA","RUBL","OSFL")) { # loop for spp start
+
 if (spp == "OSFL") {
     xn <- xn_100C
     Xn <- Xn_100C
-    res <- allres$OSFL$C
+    res <- allres[[spp]]$C
     mods <- modsC
+    xx <- xx100
 } else {
     xn <- xn_50B
     Xn <- Xn_50B
     res <- allres[[spp]]$B
     mods <- modsB
+    xx <- xx50
 }
+colnames(Xn) <- fixNames(colnames(Xn))
+
 
 est <- getEst(res)
-printCoefmat(getSummary(res))
+
+capture.output(printCoefmat(getSummary(res), 3), 
+    file=paste0("~/Dropbox/bam/maritimes2015/preds_", spp, ".txt"))
 
 mu <- getDataPred(res)
-bmu <- apply(exp(mu), 1, median, na.rm=TRUE)
+bmu <- rowMeans(exp(mu))
+ci <- t(apply(exp(mu), 1, quantile, c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975), na.rm=TRUE))
 
 CL <- rgb(210, 180, 140, alpha=1*255, max=255)
 CLa <- rgb(210, 180, 140, alpha=0.25*255, max=255)
 
-pdf(paste0("~/Dropbox/bam/maritimes2015/", spp, "_preds.pdf"), onefile=TRUE)
+pdf(paste0("~/Dropbox/bam/maritimes2015/preds_", spp, ".pdf"), onefile=TRUE)
+op <- par(las=2, mar=c(5,4,2,1)+0.1)
 for (i in 1:ncol(xn)) {
     if (is.factor(xn[,i])) {
-        boxplot(xn[,i], bmu, range=0, col=CL, main=spp, xlab=colnames(xn)[i],
+        boxplot(bmu ~ xn[,i], range=0, col=CL, main=spp, xlab=colnames(xn)[i],
             ylab="density")
+        abline(h=median(bmu), col="red4", lty=2)
     } else {
         if (length(unique(xn[,i])) < 5) {
-            boxplot(xn[,i], bmu, range=0, col=CL, main=spp, xlab=colnames(xn)[i],
+            boxplot(bmu ~ xn[,i], range=0, col=CL, main=spp, xlab=colnames(xn)[i],
                 ylab="density")
+            abline(h=median(bmu), col="red4", lty=2)
         } else {
             ii <- sample.int(nrow(xn), 5000)
             plot(xn[ii,i], bmu[ii], col=CLa, pch=19,
                 main=spp, xlab=colnames(xn)[i],
                 ylab="density")
+            lines(lowess(xn[,i], bmu), col="red4")
         }
     }
 }
+par(op)
 dev.off()
 
-par(mfrow=c(3,2))
-boxplot(bmu ~ PROTECT, xn)
-boxplot(bmu ~ LOC_ltree, xn)
-boxplot(bmu ~ ltree, xn)
+out <- data.frame(x=bmu, ci)
+colnames(out) <- paste(spp, c("Mean", 5, 10, 25, 50, 75, 90, 95), sep="_")
+out <- data.frame(xx, out)
+write.csv(out, paste0("~/Dropbox/bam/maritimes2015/preds_", spp, ".csv"),
+    row.names=FALSE)
 
-boxplot(bmu ~ COMPLEXITY, xn)
-plot(bmu ~ CONNECTEDNESS, xn)
-plot(bmu ~ DTW_STD, xn)
-plot(bmu ~ HUMAN_FOOTPRINT, xn)
+## OSFL interaction between ltree & DTW_PROP
+if (spp == "OSFL") {
 
+lt <- droplevels(xn$ltree)
+pdf(paste0("~/Dropbox/bam/maritimes2015/preds_", spp, "_interaction.pdf"),
+    width=6, height=12)
+op <- par(mar=c(5,4,2,1)+0.1, mfrow=c(5,2))
+for (i in levels(lt)) {
+    plot(xn$DTW_PROP[lt == i], bmu[lt == i], col=CLa, pch=19,
+        main=i, xlab="DTW_PROP",
+        ylab="density", ylim=quantile(bmu, c(0,0.999)), xlim=range(xn$DTW_PROP))
+    lines(lowess(xn$DTW_PROP[lt == i], bmu[lt == i]), col="red4")
+}
+par(op)
+dev.off()
+    
+}
+
+} ## loop for spp end
