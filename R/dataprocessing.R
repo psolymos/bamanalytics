@@ -161,7 +161,9 @@ SS_LCC4x4$gridcode <- NULL
 SS_LCC4x4$LCCVVSUM <- NULL
 SS_LCC4x4 <- as.matrix(SS_LCC4x4)
 colnames(SS_LCC4x4) <- gsub("LCCVV", "", colnames(SS_LCC4x4))
-Col <- as.character(ltlcc$BAMLCC05V2_label1)[match(colnames(SS_LCC4x4), 
+#Col <- as.character(ltlcc$BAMLCC05V2_label1)[match(colnames(SS_LCC4x4), 
+#    as.character(ltlcc$lcc05v1_2))]
+Col <- as.character(ltlcc$BAMLCC05V2_label2)[match(colnames(SS_LCC4x4), 
     as.character(ltlcc$lcc05v1_2))]
 Col[is.na(Col)] <- "BARREN"
 SS_LCC4x4 <- data.frame(groupSums(SS_LCC4x4, 2, Col, na.rm=TRUE))
@@ -179,7 +181,9 @@ rownames(SS_EOSD4x4) <- SS01$SS
 SS_EOSD4x4 <- as.matrix(SS_EOSD4x4[,grepl("eosdVV", colnames(SS_EOSD4x4))])
 colnames(SS_EOSD4x4) <- gsub("eosdVV", "", colnames(SS_EOSD4x4))
 
-Col <- as.character(lteosd$Reclass_label1)[match(colnames(SS_EOSD4x4), 
+#Col <- as.character(lteosd$Reclass_label1)[match(colnames(SS_EOSD4x4), 
+#    as.character(lteosd$Value))]
+Col <- as.character(lteosd$Reclass_label2)[match(colnames(SS_EOSD4x4), 
     as.character(lteosd$Value))]
 Col[is.na(Col)] <- "BARREN"
 SS_EOSD4x4 <- data.frame(groupSums(SS_EOSD4x4, 2, Col, na.rm=TRUE))
@@ -201,9 +205,12 @@ SS_nserv <- SS_nserv[rownames(SS01),]
 SS_nserv <- SS_nserv[,c("CAWAINOUT","OSFLINOUT","CONIINOUT")]
 
 ## GFW yearly loss intersections and 1st year of loss
-SS_gfw <- sqlFetch(con, "dbo_BAMBBS_GFWLossYear")
+#SS_gfw <- sqlFetch(con, "dbo_BAMBBS_GFWLossYear")
+SS_gfw <- read.csv(file.path(ROOT, "GFWLossYear.csv"))
 SS_gfw <- nonDuplicated(SS_gfw, SS, TRUE)
 compare.sets(rownames(SS01), rownames(SS_gfw))
+levels(SS_gfw$YearLoss) <- gsub(",", "", levels(SS_gfw$YearLoss))
+SS_gfw$YearLoss <- as.integer(as.character(SS_gfw$YearLoss))
 SS_gfw <- SS_gfw[rownames(SS01),]
 SS_gfw <- SS_gfw[,"YearLoss",drop=FALSE]
 
@@ -230,6 +237,7 @@ SS <- data.frame(
     SS03[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", "HAB_EOSD2", 
         "HAB_NALC2", "HAB_NALC1", "LCC_combo")],
     SS_grid,
+    SS_nserv,
     SS_road, 
     SS_terr, 
     SS_fire, 
@@ -414,6 +422,11 @@ PCTBL <- droplevels(PCTBL[keeppkey,])
 ## Excluding non-aerial detections
 keep <- rep(TRUE, nrow(PCTBL))
 keep[!(PCTBL$BEH %in% c("1","6","11"))] <- FALSE
+## check species with high visual detection rates
+if (FALSE) {
+    xtx <- Xtab(ABUND ~ SPECIES + BEH, PCTBL)
+    save(BEH, xtx, file=file.path(ROOT, "out", "spp-beh.Rdata"))
+}
 ## Excluding >10 min intervals
 ## 10=10-20
 ## 3=before or after
@@ -753,9 +766,90 @@ save(SS, PKEY, PCTBL, TAX,
 
 #### Calculate the offsets (optional)
 
-if (FALSE) { # BEGIN offset calculations ------------------- !!!!!!!!!!!!!!
+if (FALSE) { # BEGIN offset calculations !!! NEW VERSION ------------------- !!!!!!!!!!!!!!
 
-load(file.path(ROOT, "out", "data_package_2015-06-19.Rdata"))
+ROOT <- "c:/bam/May2015"
+source("~/repos/bamanalytics/R/dataprocessing_functions.R")
+load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
+
+library(QPAD)
+load_BAM_QPAD(3)
+getBAMversion()
+sppp <- getBAMspecieslist()
+
+rownames(TAX) <- TAX$Species_ID
+tax <- droplevels(TAX[sppp,])
+tax$keep <- TRUE
+tax$keep[tax$Order %in% c("Gaviiformes","Pelecaniformes","Podicipediformes",
+"Gruiformes","Galliformes","Anseriformes","Charadriiformes")] <- FALSE
+
+#data.frame(n=sort(table(tax$Family_CmName_EN)))
+#data.frame(n=sort(table(tax$Order)))
+## OK
+#Apodiformes        1 ok
+#Caprimulgiformes   1 ok
+#Coraciiformes      1 ok
+#Columbiformes      2 ok
+#Cuculiformes       2 ok
+#Piciformes        10 ok
+#Passeriformes    130 ok
+## birds of prey
+#Falconiformes      2 ???
+#Strigiformes       3 ???
+#Accipitriformes    7 ???
+## water birds
+#Gaviiformes        2 xxx
+#Pelecaniformes     2 xxx
+#Podicipediformes   2 xxx
+#Gruiformes         3 xxx
+#Galliformes        6 xxx
+#Anseriformes       7 xxx
+#Charadriiformes   17 xxx
+
+load(file=file.path(ROOT, "out", "spp-beh.Rdata"))
+xtx <- as.matrix(xtx[sppp,])
+audi <- rowSums(xtx[,c("1","6","11")]) / rowSums(xtx)
+by(audi,tax$Order,summary)
+
+sppp <- sppp[tax$keep]
+
+offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
+    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","HAB_NALC1","HAB_NALC2")])
+offdat$srise <- PKEY$srise + PKEY$MDT_offset
+summary(offdat)
+#summary(offdat[PKEY$PCODE=="QCATLAS",]) -- problem solved: QCAtlas vs QCATLAS
+
+#load_BAM_QPAD(version=1)
+#BAMspp <- getBAMspecieslist()
+#load("~/Dropbox/abmi/intactness/dataproc/BAMCOEFS25.Rdata")
+
+OFF <- matrix(NA, nrow(offdat), length(sppp))
+rownames(OFF) <- offdat$PKEY
+colnames(OFF) <- sppp
+
+for (i in sppp) {
+    cat(i, date(), "\n");flush.console()
+    tmp <- try(offset_fun(j=1, i, offdat))
+    if (!inherits(tmp, "try-error"))
+        OFF[,i] <- tmp
+}
+## 99-100 percentile can be crazy high (~10^5), thus reset
+for (i in sppp) {
+    q <- quantile(OFF[,i], 0.99, na.rm=TRUE)
+    OFF[!is.na(OFF[,i]) & OFF[,i] > q, i] <- q
+}
+colSums(is.na(OFF))/nrow(OFF)
+apply(exp(OFF), 2, range, na.rm=TRUE)
+
+
+save(OFF, file=file.path(ROOT, "out",
+    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".Rdata")))
+
+} # END offset calculations
+
+if (FALSE) { # BEGIN offset calculations !!! OLD VERSION ------------------- !!!!!!!!!!!!!!
+
+load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
 
 offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
     SS[match(PKEY$SS, rownames(SS)),c("LCC_combo","TREE")])
@@ -801,138 +895,143 @@ write.csv(offdat, row.names=FALSE, file=file.path(ROOT, "out",
 
 ######## These are the transformations #################
 
-if (FALSE) {
-## TREE
-xy$TREE[xy$TREE > 100] <- NA
-xy$TREE <- xy$TREE/100
+library(mefa4)
+ROOT <- "c:/bam/May2015"
+load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
+load(file.path(ROOT, "out", "offsets_allspp_BAMBBS_2015-07-24.Rdata"))
+
+colnames(OFF)[colnames(OFF) == "YWAR"] <- "YEWA"
+
+rownames(TAX) <- TAX$Species_ID
+TAX <- droplevels(TAX[colnames(OFF),])
+#TAX$keep <- TRUE
+#TAX$keep[TAX$Order %in% c("Gaviiformes","Pelecaniformes","Podicipediformes",
+#"Gruiformes","Galliformes","Anseriformes","Charadriiformes")] <- FALSE
+#TAX <- TAX[TAX$keep,]
+
+SPP <- colnames(OFF)
+
+YY <- Xtab(ABUND ~ PKEY + SPECIES, PCTBL)
+YY <- YY[,SPP]
+rm(PCTBL)
+
+PKEY <- PKEY[,c("PKEY", "SS", "PCODE", "METHOD", "SITE", "STN", "ROUND", "YEAR")]
+
+SS$ALL_HAB_OK <- ifelse(rowSums(is.na(SS[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", 
+    "HAB_EOSD2", "HAB_NALC2", "HAB_NALC1")])) == 0, 0L, 1L)
+
+with(SS, table(ROADCLASS, PAVSTATUS))
+with(SS, table(NBRLANES, PAVSTATUS))
+with(SS, table(ROADCLASS, NBRLANES))
+SS$ROAD_OK <- ifelse(SS$NBRLANES > 2, 0L, 1L)
+SS$d2road <- NULL
+SS$ROADCLASS <- NULL
+SS$NBRLANES <- NULL
+SS$PAVSTATUS <- NULL
+
+hist(SS$BEADTotalL)
+hist(SS$BEADtotPol)
 ## linear features
-xy$xLIN <- log(xy$BLIN + 1)
+SS$LIN <- log(SS$BEADTotalL + 1)
+SS$BEADTotalL <- NULL
 ## Polygon is fine as it is (0-1)
-## NALCMS reclass
-xy$HAB31 <- as.character(xy$NALCMS)
-xy$HAB31[xy$NALCMS %in% c("1","2")] <- "Conif"
-xy$HAB31[xy$NALCMS %in% c("5")] <- "Decid"
-xy$HAB31[xy$NALCMS %in% c("6")] <- "Mixed"
-xy$HAB31[xy$NALCMS %in% c("8","11")] <- "Shrub"
-xy$HAB31[xy$NALCMS %in% c("10","12")] <- "Grass"
-xy$HAB31[xy$NALCMS %in% c("13","16")] <- "Barren"
-xy$HAB31[xy$NALCMS %in% c("14")] <- "Wet"
-xy$HAB31[xy$NALCMS %in% c("15")] <- "Agr"
-xy$HAB31[xy$NALCMS %in% c("17")] <- "Devel"
-xy$HAB31[xy$HAB31 %in% c("0", "18","19")] <- NA # nodata,water,snow/ice
-xy$HAB31 <- as.factor(xy$HAB31)
+SS$POL <- SS$BEADtotPol
+SS$BEADtotPol <- NULL
 
-## cell level NALCMS prop
-xy$Cell_Conif <- xy$lc1 + xy$lc2
-xy$Cell_Decid <- xy$lc5
-xy$Cell_Mixed <- xy$lc6
-xy$Cell_Shrub <- xy$lc8 + xy$lc11
-xy$Cell_Grass <- xy$lc10 + xy$lc12
-xy$Cell_Barren <- xy$lc13 + xy$lc16
-xy$Cell_Wet <- xy$lc14
-xy$Cell_Agr <- xy$lc15
-xy$Cell_Devel <- xy$lc17
-xy$Cell_HF <- xy$Cell_Agr + xy$Cell_Devel
-xy$Cell_HF2 <- xy$Cell_HF^2
-xy$Cell_Wet2 <- xy$Cell_Wet^2
-xy$Cell_WetWater <- xy$lc14 + xy$lc18
-xy$Cell_WetWater2 <- xy$Cell_WetWater^2
-
-## this is going to be based on actual Habitat classification
-#xy$isConif <- ifelse(xy$HAB == "Conif", 1L, 0L) # this is reference, not needed
-#xy$isDecid <- ifelse(xy$HAB == "Decid", 1L, 0L)
-#xy$isMixed <- ifelse(xy$HAB == "Mixed", 1L, 0L)
-#xy$isForest <- ifelse(xy$HAB %in% c("Conif","Decid","Mixed"), 1L, 0L)
-#xy$isNonforest <- ifelse(!(xy$HAB %in% c("Conif","Decid","Mixed")), 1L, 0L)
-
-## CTI
-xy$xCTI <- (xy$CTI-8)/2
-xy$xCTI2 <- xy$xCTI^2
-xy$xSLOPE <- sqrt(xy$SLOPE)
-xy$xSLOPE2 <- xy$xSLOPE^2
+## slope, cti, elev
+SS$SLP <- sqrt(SS$slp90)
+SS$SLP2 <- SS$SLP^2
+SS$CTI <- (SS$cti90 - 8) / 4
+SS$CTI2 <- SS$CTI^2
+SS$ELV <- SS$elv90 / 1000
+SS$ELV2 <- SS$ELV^2
+SS$slp90 <- NULL
+SS$cti90 <- NULL
+SS$elv90 <- NULL
 
 ## height
-xy$HEIGHT <- xy$SVEG / 50
+SS$HGT <- SS$HEIGHTSIMARD / 50
+SS$HGT2 <- SS$HGT^2
+SS$HEIGHTSIMARD <- NULL
 
-## quadratics
-xy$HEIGHT2 <- xy$HEIGHT^2
-#xy$TREE2 <- xy$TREE^2
-xy$TREE3 <- factor(NA, levels=c("Open", "Sparse", "Dense"))
-xy$TREE3[xy$TREE < 0.25] <- "Open"
-xy$TREE3[xy$TREE >= 0.25 & xy$TREE < 0.60] <- "Sparse"
-xy$TREE3[xy$TREE >= 0.60] <- "Dense"
+SS$TR3 <- SS$TREE3
+SS$TREE3 <- NULL
 
-xy$FireYear <- ifelse(is.na(xy$Year), 2013-100, xy$Year)
-xy$Year <- NULL
-xy$FireSizeHa <- ifelse(is.na(xy$SizeHa), 0, xy$SizeHa)
-xy$SizeHa <- NULL
+## climate
+SS$CMIJJA <- (SS$CMIJJA - 0) / 50
+SS$CMI <- (SS$CMI - 0) / 50
+SS$TD <- (SS$TD - 300) / 100
+SS$DD0 <- (SS$DD01 - 1000) / 1000
+SS$DD5 <- (SS$DD51 - 1600) / 1000
+SS$EMT <- (SS$EMT + 400) / 100
+SS$MSP <- (SS$MSP - 400) / 200
 
-xy$xBCR <- as.character(xy$BCR)
-xy$xBCR[xy$BCR =="0"] <- NA
-xy$xBCR[xy$BCR %in% c("1","2","4")] <- "Ak"
-xy$xBCR[xy$BCR %in% c("3","7")] <- "Arctic"
-xy$xBCR[xy$BCR %in% c("23","24","26","28","29","30")] <- "USeast"
-xy$xBCR[xy$BCR %in% c("17","22","11")] <- "Prairie"
+SS$CMD <- NULL
+#CMI
+#CMIJJA
+SS$DD01 <- NULL
+SS$DD51 <- NULL
+#EMT
+SS$FFP <- NULL
+SS$ID <- NULL
+SS$MAP <- NULL
+SS$MAT <- NULL
+SS$MCMT <- NULL
+#MSP
+SS$MWMT <- NULL
+SS$NFFD <- NULL
+SS$PAS <- NULL
+SS$PET <- NULL
+SS$PPT_sm <- NULL
+SS$PPT_wt <- NULL
+#TD
 
-#with(xy, plot(POINT_X, POINT_Y, pch=19, cex=0.1, col=xy$xBCR))
+SS$FIRE_HA <- NULL
+SS$YearLoss[SS$YearLoss == 0] <- NA
 
-#xyz <- xy[,grep("NORM_6190_",colnames(xy))]
-#xyz <- xyz[rowSums(is.na(xyz))==0,]
+SS$YearFire[is.na(SS$YearFire)] <- 2015 - 200
+SS$YearLoss[is.na(SS$YearLoss)] <- 2015 - 200
 
-load("c:/bam/Feb2014/casfri_ec_2014.Rdata")
+DAT <- data.frame(PKEY, SS[match(PKEY$SS, SS$SS),])
+DAT$SS.1 <- NULL
+DAT$PCODE.1 <- NULL
 
-length(intersect(xy$SS, cas$ss))
-length(setdiff(xy$SS, cas$ss))
-length(setdiff(cas$ss, xy$SS)) ## cooool!
-cas$crown_closure[is.na(cas$crown_closure)] <- 0
-cas$height[is.na(cas$height)] <- 0
-cas$CHEIGHT <- cas$height / 50
-cas$CHEIGHT2 <- cas$CHEIGHT^2
-cas$CTREE <- cas$crown_closure / 100
-cas$CTREE3 <- factor(NA, levels=c("Open", "Sparse", "Dense"))
-cas$CTREE3[cas$CTREE < 0.25] <- "Open"
-cas$CTREE3[cas$CTREE >= 0.25 & cas$CTREE < 0.60] <- "Sparse"
-cas$CTREE3[cas$CTREE >= 0.60] <- "Dense"
-
-xy <- data.frame(xy, cas[match(xy$SS, cas$ss),-which(colnames(cas)=="ss")])
-
-
-DAT <- data.frame(xt, pk[match(rownames(xt), pk$PKEY),])
-DAT <- data.frame(DAT, xy[match(DAT$SS, xy$SS),])
-
-## CAS related
-DAT$YSD <- ifelse(DAT$YEAR < DAT$origin, NA, DAT$YEAR - DAT$origin)
-##DAT$YSD[DAT$origin == 0] <- 0
-##DAT$YSD[is.na(DAT$YSD)] <- 80
-DAT$FOR <- ifelse(DAT$HABW %in% c("00Decid", "ConifLo", "ConifUp", "Mixedwood"), 1L, 0L)
-DAT$YSD[DAT$FOR == 0] <- 0
-DAT$YSD <- DAT$YSD/100
-DAT$YSD2 <- DAT$YSD^2
-DAT$CCC <- ifelse(DAT$YSD <= 10/100, 1L, 0L)
-
-## create offsets for 3 spp
-DAT$QPAD_CAWA <- as.numeric(corrections2offset(globalBAMcorrections("CAWA", r=DAT$MAXDIS, t=DAT$MAXDUR)))
-DAT$QPAD_OSFL <- as.numeric(corrections2offset(globalBAMcorrections("OSFL", r=DAT$MAXDIS, t=DAT$MAXDUR)))
-DAT$QPAD_CONI <- as.numeric(corrections2offset(globalBAMcorrections("OVEN", r=DAT$MAXDIS, t=DAT$MAXDUR,
-    phi=exp(qpad$CONI$coef$sra), tau=exp(qpad$CONI$coef$edr))))
-
-DAT$isWest <- ifelse(DAT$POINT_X < -98, 1L, 0L)
-DAT$Decade <- ifelse(DAT$YEAR < 2000, 0L, 1L)
-
-DAT$YSF <- DAT$YEAR - DAT$FireYear
+## years since fire
+DAT$YSF <- DAT$YEAR - DAT$YearFire
 DAT$YSF[DAT$YSF < 0] <- 100
-#DAT$YSF[is.na(DAT$YSF)] <- 100
-DAT$YSF <- DAT$YSF / 100
-DAT$BURN <- ifelse(DAT$YSF <= 10/100, 1L, 0L)
+## years since loss
+DAT$YSL <- DAT$YEAR - DAT$YearLoss
+DAT$YSL[DAT$YSL < 0] <- 100
+## years since most recent burn or loss
+DAT$YSD <- pmin(DAT$YSF, DAT$YSL)
 
-DAT <- DAT[DAT$ROUND == 1,]
+DAT$BRN <- ifelse(DAT$YSF <= 10, 1L, 0L)
+DAT$LSS <- ifelse(DAT$YSL <= 10, 1L, 0L)
+DAT$LSS[DAT$YEAR < 2000] <- NA
+DAT$DTB <- ifelse(DAT$YSD <= 10, 1L, 0L)
+DAT$DTB[DAT$YEAR < 2000] <- NA
+
+
+## decid + mixed
+DAT$isDM_LCC <- ifelse(DAT$HAB_LCC2 %in% c("Decid", "Mixed"), 1L, 0L)
+DAT$isDM_EOSD <- ifelse(DAT$HAB_EOSD2 %in% c("Decid", "Mixed"), 1L, 0L)
+DAT$isDM_NALC <- ifelse(DAT$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
+## non-forest (wet etc)
+DAT$isNF_LCC <- ifelse(DAT$HAB_LCC2 %in% 
+    c("Agr", "Barren", "Burn", "Devel", "Grass", "Wet"), 1L, 0L)
+DAT$isNF_EOSD <- ifelse(DAT$HAB_EOSD2 %in% 
+    c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
+DAT$isNF_NALC <- ifelse(DAT$HAB_NALC2 %in% 
+    c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
+
+DAT$HSH <- 0 # placeholder
+DAT$HSH2 <- 0
+DAT$HAB <- 0
+DAT$isDM <- 0
+DAT$isNF <- 0
+
+## see above for filtering
 DAT <- DAT[DAT$YEAR >= 1997,]
-#DAT <- DAT[DAT$BCR != "0",]
-#DAT$METHOD <- NULL
-#DAT$FireYear <- ifelse(is.na(DAT$Year), 2013-100, DAT$Year)
-#DAT$Year <- NULL
-#DAT$FireSizeHa <- ifelse(is.na(DAT$SizeHa), 0, DAT$Year)
-#DAT$SizeHa <- NULL
 
 ## year effect
 #plot(table(DAT$YEAR))
@@ -940,25 +1039,89 @@ DAT$YR5 <- 0
 DAT$YR5[DAT$YEAR > 2001 & DAT$YEAR <= 2006] <- 1
 DAT$YR5[DAT$YEAR > 2006] <- 2
 DAT$YR5 <- as.factor(DAT$YR5)
-DAT$YR <- DAT$YEAR - 2000
-DAT$bootg <- interaction(DAT$xBCR, DAT$YR5, drop=TRUE)
+DAT$YR <- DAT$YEAR - 1997
+DAT$bootg <- interaction(DAT$BCR, DAT$YR5, drop=TRUE)
 
-DAT$HAB12 <- relevel(DAT$HAB12, "Conif")
-DAT$HAB22 <- relevel(DAT$HAB22, "Conif")
-DAT$HAB31 <- relevel(DAT$HAB31, "Conif")
+## exclude same year revisits
+DAT$ROUND[is.na(DAT$ROUND)] <- 1
+DAT <- droplevels(DAT[DAT$ROUND == 1,])
 
-DAT$xCMIJJApm <- (DAT$NORM_6190_CMIJJApm - 0) / 50
-DAT$xCMIpm <- (DAT$NORM_6190_CMIpm - 0) / 50
-DAT$xCMDpm <- log(DAT$NORM_6190_CMDpm + 1)
-DAT$xMAT <- (DAT$NORM_6190_MAT - 0) / 100
-DAT$xTD <- (DAT$NORM_6190_TD - 300) / 100
-DAT$xPET <- (DAT$NORM_6190_PET - 500) / 400
-DAT$xDD0 <- (DAT$NORM_6190_DD0 - 1000) / 1000
-DAT$xDD5 <- (DAT$NORM_6190_DD5 - 1600) / 1000
-DAT$xEMT <- (DAT$NORM_6190_EMT + 400) / 100
-DAT$xMAP <- log(DAT$NORM_6190_MAP / 100) - 2
-DAT$xMSP <- (DAT$NORM_6190_MSP - 400) / 200
-DAT$xPPT_sm <- (DAT$NORM_6190_PPT_sm - 200) / 150
+DAT$SITE <- as.character(DAT$SITE)
+DAT$SITE[is.na(DAT$SITE)] <- paste0("gr.", as.character(DAT$gridcode[is.na(DAT$SITE)]))
+DAT$SITE <- as.factor(DAT$SITE)
+
+DAT$ROAD_OK[is.na(DAT$ROAD_OK)] <- 1L
+
+stopifnot(all(!is.na(DAT$PKEY)))
+
+keep <- rep(TRUE, nrow(DAT))
+keep[DAT$ROAD_OK < 1] <- FALSE
+keep[DAT$YEAR < 2000] <- FALSE
+keep[is.na(DAT$HAB_LCC2)] <- FALSE
+keep[is.na(DAT$HAB_NALC2)] <- FALSE
+keep[is.na(DAT$HAB_EOSD2)] <- FALSE
+keep[DAT$COUNTRY != "CAN"] <- FALSE
+keep[is.na(DAT$TREE)] <- FALSE
+keep[is.na(DAT$CMI)] <- FALSE
+keep[is.na(DAT$HGT)] <- FALSE
+keep[is.na(DAT$SLP)] <- FALSE
+
+
+DAT1 <- droplevels(DAT[keep,])
+dim(DAT1)
+data.frame(n=colSums(is.na(DAT1)))
+
+DAT1_LCC <- DAT1
+DAT1_LCC$HAB <- DAT1$HAB_LCC2
+DAT1_LCC$isDM <- DAT1_LCC$isDM_LCC
+DAT1_LCC$isNF <- DAT1_LCC$isNF_LCC
+DAT1_LCC <- DAT1_LCC[,!grepl("_NALC", colnames(DAT1_LCC))]
+DAT1_LCC <- DAT1_LCC[,!grepl("_EOSD", colnames(DAT1_LCC))]
+colnames(DAT1_LCC) <- gsub("_LCC_", "_", colnames(DAT1_LCC))
+DAT1_LCC <- DAT1_LCC[,!grepl("_LCC", colnames(DAT1_LCC))]
+
+DAT1_EOSD <- DAT1
+DAT1_EOSD$HAB <- DAT1$HAB_EOSD2
+DAT1_EOSD$isDM <- DAT1_EOSD$isDM_EOSD
+DAT1_EOSD$isNF <- DAT1_EOSD$isNF_EOSD
+DAT1_EOSD <- DAT1_EOSD[,!grepl("_NALC", colnames(DAT1_EOSD))]
+DAT1_EOSD <- DAT1_EOSD[,!grepl("_LCC", colnames(DAT1_EOSD))]
+colnames(DAT1_EOSD) <- gsub("_EOSD_", "_", colnames(DAT1_EOSD))
+DAT1_EOSD <- DAT1_EOSD[,!grepl("_EOSD", colnames(DAT1_EOSD))]
+
+DAT1_NALC <- DAT1
+DAT1_NALC$HAB <- DAT1$HAB_NALC2
+DAT1_NALC$isDM <- DAT1_NALC$isDM_NALC
+DAT1_NALC$isNF <- DAT1_NALC$isNF_NALC
+DAT1_NALC <- DAT1_NALC[,!grepl("_LCC", colnames(DAT1_NALC))]
+DAT1_NALC <- DAT1_NALC[,!grepl("_EOSD", colnames(DAT1_NALC))]
+colnames(DAT1_NALC) <- gsub("_NALC_", "_", colnames(DAT1_NALC))
+DAT1_NALC <- DAT1_NALC[,!grepl("_NALC", colnames(DAT1_NALC))]
+
+
+keep2 <- rep(TRUE, nrow(DAT))
+keep2[DAT$ROAD_OK < 1] <- FALSE
+keep2[DAT$YEAR < 2000] <- FALSE
+keep2[is.na(DAT$HAB_NALC2)] <- FALSE
+keep2[is.na(DAT$TREE)] <- FALSE
+keep2[is.na(DAT$CMI)] <- FALSE
+keep2[is.na(DAT$HGT)] <- FALSE
+keep2[is.na(DAT$SLP)] <- FALSE
+
+DAT2 <- droplevels(DAT[keep2,])
+DAT2 <- DAT2[,!grepl("_LCC", colnames(DAT2))]
+DAT2 <- DAT2[,!grepl("_EOSD", colnames(DAT2))]
+colnames(DAT2) <- gsub("_NALC_", "_", colnames(DAT2))
+DAT2 <- DAT2[,!grepl("_NALC", colnames(DAT2))]
+dim(DAT2)
+data.frame(n=colSums(is.na(DAT2)))
+
+
+## ---------- here
+
+
+
+
 
 #colnames(DAT)[grep("NORM_6190_", colnames(DAT))] <- sub("NORM_6190_", "", 
 #    colnames(DAT)[grep("NORM_6190_", colnames(DAT))])
@@ -974,21 +1137,4 @@ DAT <- DAT[,!grepl("NORM_6190_", colnames(DAT))]
 #DAT <- DAT[!is.na(DAT$HAB31),]
 DAT <- DAT[sample.int(nrow(DAT)),]
 DAT <- droplevels(DAT)
-DAT$IP <- 0 # placeholder
-DAT$IP2 <- 0
-DAT$HAB <- 0
-DAT$isDecid <- 0
-DAT$isMixed <- 0
-DAT$isForest <- 0
-DAT$isNonforest <- 0
 
-DAT$HAB41 <- as.character(DAT$Habitat)
-DAT$HAB41[DAT$Habitat == "Water"] <- NA
-DAT$HAB41[DAT$Habitat == "Cult"] <- "Agr"
-DAT$HAB41[DAT$Habitat == "UrbInd"] <- "Devel"
-DAT$HAB41[DAT$Habitat == "Wetland"] <- "Wet"
-DAT$HAB41[DAT$Habitat == "Mixedwood"] <- "Mixed"
-DAT$HAB41 <- as.factor(DAT$HAB41)
-DAT$HAB41 <- relevel(DAT$HAB41, "Conif")
-
-}

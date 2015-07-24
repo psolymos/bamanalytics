@@ -22,7 +22,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2015-05-14.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2015-07-24.Rdata"))
 
 ### Removal sampling
 
@@ -32,6 +32,30 @@ pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
 ## strange methodology where all counts have been filtered
 ## thus this only leads to 0 total count and exclusion
 pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
+
+## save this and spatial variation for next version
+## make sure to leave all TSSR (i.e. after noon) in the data
+if (FALSE) {
+pkDur$TSSRsin <- sin(pkDur$TSSR_orig * 2 * pi)
+pkDur$TSSRcos <- cos(pkDur$TSSR_orig * 2 * pi)
+pkDur$TSSRsin2 <- sin(pkDur$TSSR_orig * 2 * pi)^2
+pkDur$TSSRcos2 <- cos(pkDur$TSSR_orig * 2 * pi)^2
+
+NAMES <- list(
+    "1"=c("INTERCEPT", "JDAY", "JDAY2", "TSSRsin", "TSSRcos"),
+    "2"=c("INTERCEPT", "JDAY", "JDAY2", "TSSRsin", "TSSRcos", "TSSRsin2", "TSSRcos2"),
+    "3"=c("INTERCEPT", "JDAY", "JDAY2", "JDAY3", "TSSRsin", "TSSRcos"),
+    "4"=c("INTERCEPT", "JDAY", "JDAY2", "JDAY3", "TSSRsin", "TSSRcos", "TSSRsin2", "TSSRcos2"),
+    "5"=c("INTERCEPT", "JDAY", "JDAY2", "JDAY3"),
+    "6"=c("INTERCEPT", "TSSRsin", "TSSRcos", "TSSRsin2", "TSSRcos2"))
+ff <- list(
+    "1"= ~ JDAY + JDAY2 + TSSRsin + TSSRcos,
+    "2"= ~ JDAY + JDAY2 + TSSRsin + TSSRcos + TSSRsin2 + TSSRcos2,
+    "3"= ~ JDAY + JDAY2 + JDAY3 + TSSRsin + TSSRcos,
+    "4"= ~ JDAY + JDAY2 + JDAY3 + TSSRsin + TSSRcos + TSSRsin2 + TSSRcos2,
+    "5"= ~ JDAY + JDAY2 + JDAY3,
+    "6"= ~ TSSRsin + TSSRcos + TSSRsin2 + TSSRcos2)
+}
 
 ## models to consider
 NAMES <- list(
