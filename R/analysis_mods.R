@@ -3,7 +3,7 @@
 mod_Hab <- list(
     . ~ . + HAB,
     . ~ . + HGT,
-    . ~ . + HGT + HG2,
+    . ~ . + HGT + HGT2,
     . ~ . + TR3,
     . ~ . + HGT + TR3,
     . ~ . + HGT + HGT2 + TR3,

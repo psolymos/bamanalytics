@@ -915,7 +915,8 @@ YY <- Xtab(ABUND ~ PKEY + SPECIES, PCTBL)
 YY <- YY[,SPP]
 rm(PCTBL)
 
-PKEY <- PKEY[,c("PKEY", "SS", "PCODE", "METHOD", "SITE", "STN", "ROUND", "YEAR")]
+PKEY <- PKEY[,c("PKEY", "SS", "PCODE", "METHOD", "SITE", "ROUND", "YEAR",
+    "ROAD")]
 
 SS$ALL_HAB_OK <- ifelse(rowSums(is.na(SS[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", 
     "HAB_EOSD2", "HAB_NALC2", "HAB_NALC1")])) == 0, 0L, 1L)
@@ -1040,7 +1041,7 @@ DAT$YR5[DAT$YEAR > 2001 & DAT$YEAR <= 2006] <- 1
 DAT$YR5[DAT$YEAR > 2006] <- 2
 DAT$YR5 <- as.factor(DAT$YR5)
 DAT$YR <- DAT$YEAR - 1997
-DAT$bootg <- interaction(DAT$BCR, DAT$YR5, drop=TRUE)
+DAT$bootg <- interaction(DAT$BCR, DAT$JURS, DAT$YR5, drop=TRUE)
 
 ## exclude same year revisits
 DAT$ROUND[is.na(DAT$ROUND)] <- 1
@@ -1052,7 +1053,18 @@ DAT$SITE <- as.factor(DAT$SITE)
 
 DAT$ROAD_OK[is.na(DAT$ROAD_OK)] <- 1L
 
+DAT$ARU <- ifelse(DAT$PCODE %in% levels(DAT$PCODE)[grep("EMC", levels(DAT$PCODE))],
+    1L, 0L)
+
 stopifnot(all(!is.na(DAT$PKEY)))
+
+source("~/repos/bamanalytics/R/analysis_mods.R")
+source("~/repos/detect/R/hbootindex.R")
+
+nmin <- 25
+B <- 239
+
+
 
 keep <- rep(TRUE, nrow(DAT))
 keep[DAT$ROAD_OK < 1] <- FALSE
@@ -1068,8 +1080,26 @@ keep[is.na(DAT$SLP)] <- FALSE
 
 
 DAT1 <- droplevels(DAT[keep,])
+rownames(DAT1) <- DAT1$PKEY
+DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY)),])
 dim(DAT1)
 data.frame(n=colSums(is.na(DAT1)))
+
+set.seed(1234)
+## make sure that time intervals are considered as blocks
+## keep out 10% of the data for validation
+id2 <- list()
+for (l in levels(DAT1$bootg)) {
+    sset <- which(DAT1$bootg == l)
+    id2[[l]] <- sample(sset, floor(length(sset) * 0.9), FALSE)
+}
+KEEP_ID <- unname(unlist(id2))
+HOLDOUT_ID <- setdiff(seq_len(nrow(DAT1)), KEEP_ID)
+
+DAT1k <- DAT1[KEEP_ID,]
+DAT1 <- DAT1[c(KEEP_ID, HOLDOUT_ID),]
+DAT1k$SITE <- droplevels(DAT1k$SITE)
+BB1 <- hbootindex(DAT1k$SITE, DAT1k$bootg, B=B)
 
 DAT1_LCC <- DAT1
 DAT1_LCC$HAB <- DAT1$HAB_LCC2
@@ -1113,28 +1143,87 @@ DAT2 <- DAT2[,!grepl("_LCC", colnames(DAT2))]
 DAT2 <- DAT2[,!grepl("_EOSD", colnames(DAT2))]
 colnames(DAT2) <- gsub("_NALC_", "_", colnames(DAT2))
 DAT2 <- DAT2[,!grepl("_NALC", colnames(DAT2))]
-dim(DAT2)
 data.frame(n=colSums(is.na(DAT2)))
+rownames(DAT2) <- DAT2$PKEY
+DAT2 <- droplevels(DAT2[intersect(rownames(DAT2), rownames(YY)),])
+dim(DAT2)
 
+set.seed(1234)
+## make sure that time intervals are considered as blocks
+## keep out 10% of the data for validation
+id2 <- list()
+for (l in levels(DAT2$bootg)) {
+    sset <- which(DAT2$bootg == l)
+    id2[[l]] <- sample(sset, floor(length(sset) * 0.9), FALSE)
+}
+KEEP_ID <- unname(unlist(id2))
+HOLDOUT_ID <- setdiff(seq_len(nrow(DAT2)), KEEP_ID)
 
-## ---------- here
+DAT2k <- DAT2[KEEP_ID,]
+DAT2 <- DAT2[c(KEEP_ID, HOLDOUT_ID),]
+DAT2k$SITE <- droplevels(DAT2k$SITE)
+BB2 <- hbootindex(DAT2k$SITE, DAT2k$bootg, B=B)
 
+source("~/repos/bragging/R/glm_skeleton.R")
+DAT0 <- DAT
+TAX0 <- TAX
+YY0 <- YY
+OFF0 <- OFF
 
+pk <- intersect(rownames(DAT2), rownames(YY0))
+DAT <- DAT2[pk,]
+YY <- YY0[pk,]
+YY <- YY[,colSums(YY) >= nmin]
+OFF <- OFF0[pk,colnames(YY)]
+TAX <- TAX0[colnames(YY),]
+mods <- mods_fire
+HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+BB <- BB2
+DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+save(DAT, YY, OFF, TAX, mods, HTH, BB,
+    file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-07-24.Rdata"))
 
+pk <- intersect(rownames(DAT1_LCC), rownames(YY0))
+DAT <- DAT1_LCC[pk,]
+YY <- YY0[pk,]
+YY <- YY[,colSums(YY) >= nmin]
+OFF <- OFF0[pk,colnames(YY)]
+TAX <- TAX0[colnames(YY),]
+mods <- mods_gfw
+HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+BB <- BB1
+DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+save(DAT, YY, OFF, TAX, mods, HTH, BB,
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-07-24.Rdata"))
 
+pk <- intersect(rownames(DAT1_EOSD), rownames(YY0))
+DAT <- DAT1_EOSD[pk,]
+YY <- YY0[pk,]
+YY <- YY[,colSums(YY) >= nmin]
+OFF <- OFF0[pk,colnames(YY)]
+TAX <- TAX0[colnames(YY),]
+mods <- mods_gfw
+HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+BB <- BB1
+DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+save(DAT, YY, OFF, TAX, mods, HTH, BB,
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-07-24.Rdata"))
 
-#colnames(DAT)[grep("NORM_6190_", colnames(DAT))] <- sub("NORM_6190_", "", 
-#    colnames(DAT)[grep("NORM_6190_", colnames(DAT))])
-DAT <- DAT[,!grepl("NORM_6190_", colnames(DAT))]
+pk <- intersect(rownames(DAT1_NALC), rownames(YY0))
+DAT <- DAT1_NALC[pk,]
+YY <- YY0[pk,]
+YY <- YY[,colSums(YY) >= nmin]
+OFF <- OFF0[pk,colnames(YY)]
+TAX <- TAX0[colnames(YY),]
+mods <- mods_gfw
+HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+BB <- BB1
+DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+save(DAT, YY, OFF, TAX, mods, HTH, BB,
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-07-24.Rdata"))
 
-#with(DAT, plot(POINT_X, POINT_Y, pch=19, cex=0.1, col=1+is.na(DAT$CTI250)))
-#plot(DAT$CTI250, DAT$CTI)
-
-#aa=colSums(is.na(DAT))
-#data.frame(v=100*aa[order(aa)]/nrow(DAT))
-
-#DAT <- DAT[rowSums(is.na(DAT[,!grepl("HAB", colnames(DAT)) & colnames(DAT) != "CTI250"]))==0,]
-#DAT <- DAT[!is.na(DAT$HAB31),]
-DAT <- DAT[sample.int(nrow(DAT)),]
-DAT <- droplevels(DAT)
 
