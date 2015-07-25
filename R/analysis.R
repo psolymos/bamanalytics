@@ -1,8 +1,154 @@
+library(mefa4)
+ROOT <- "c:/bam/May2015"
+source("~/repos/bragging/R/glm_skeleton.R")
+
+fid <- 1
+fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
+    "analysis_package_gfwfire-eosd-2015-07-24.Rdata",
+    "analysis_package_gfwfire-lcc-2015-07-24.Rdata",
+    "analysis_package_fire-nalc-2015-07-24.Rdata")
+load(file.path(ROOT, "out", fl[fid]))
 
 
 
+if (FALSE) {
+B <- ncol(BB) - 1
+j=1
+i="CAWA"
+w_id="gridcode"
+CAICalpha=1
+hsh_name="HAB"
+silent=FALSE
+nmax=25000
+}
 
 
+do_1spec1run <- function(j, i, mods, 
+silent=FALSE, w_id=NA, 
+hsh_name=NA, CAICalpha=0.5, nmax=NULL) 
+{
+    select_hsh <- !is.na(hsh_name)
+    use_wt <- !is.na(w_id)
+    x <- DAT[BB[,j],]
+    y <- as.numeric(YY[BB[,j], i])
+    if (select_hsh)
+        hsh <- HSH[BB[,j],]
+    off <- OFF[BB[,j], i]
+    ## spatial weights
+    if (use_wt) {
+        tmp <- Xtab(~ x[[w_id]] + rownames(x), drop.unused.levels=TRUE)
+        w <- rowSums(tmp)[match(x[[w_id]], rownames(tmp))]
+    } else {
+        w <- rep(1L, length(y))
+    }
+    if (!is.null(nmax)) {
+        if (nmax > length(y))
+            stop("nmax > length(y)")
+        ss <- sample.int(length(y), nmax, replace=FALSE, prob=1/w)
+        x <- x[ss,]
+        x[[w_id]] <- droplevels(x[[w_id]])
+        y <- y[ss]
+        off <- off[ss]
+        if (select_hsh)
+            hsh <- hsh[ss,]
+        tmp <- Xtab(~ x[[w_id]] + rownames(x), drop.unused.levels=TRUE)
+        w <- rowSums(tmp)[match(x[[w_id]], rownames(tmp))]
+    }
+    w <- 1/sqrt(w)
+    ## empty objects for storing results
+    nmods <- length(mods)
+    nnmods <- sapply(mods, length)
+    mid <- numeric(nmods)
+    bestList <- vector("list", nmods)
+    caicList <- vector("list", nmods)
+    ## Null
+    null <- glm_skeleton(glm(y ~ 1, 
+        x, 
+        family=poisson(), 
+        offset=off, 
+        weights=w,
+        x=FALSE, y=FALSE, model=FALSE), CAICalpha=CAICalpha)
+    best <- null
+    ## Lorenz-tangent approach for core habitat delineation
+    if (select_hsh) {
+        HABV <- x[,hsh_name]
+        habmod <- glm_skeleton(try(glm(y ~ HABV + ROAD,
+            x,
+            family=poisson(), 
+            offset=off, 
+            weights=w,
+            x=FALSE, y=FALSE, model=FALSE), silent=silent), CAICalpha=CAICalpha)
+        ## need to correct for linear effects
+        ## so that we estimate potential pop in habitats (and not realized)
+        XHSH <- model.matrix(~ HABV + ROAD, x)
+        XHSH[,"ROAD"] <- 0 # not predicting edge effects
+        ## some levels might be dropped (e.g. Marsh)
+        XHSH <- XHSH[,names(habmod$coef)]
+        lam <- exp(drop(XHSH %*% habmod$coef))
+        cv <- Lc_cut(lam, transform=FALSE) # $lam is threshold
+        Freq <- table(hab=HABV, lc=ifelse(lam >= cv$lam, 1, 0))
+        Prob <- Freq[,"1"] / rowSums(Freq)
+        ## missing/dropped levels are NaN=0/0
+        Prob[is.na(Prob)] <- 0
+        Hi <- names(Prob)[Prob > 0.5]
+        #tb <- ifelse(Freq > 0, 1, 0)
+        #Hi <- rownames(tb)[tb[,"1"] > 0]
+        #Lo <- rownames(tb)[tb[,"1"] == 0]
+        x$HSH <- unname(rowSums(hsh[, Hi, drop=FALSE]))
+        x$HSH2 <- x$HSH^2
+    } else {
+        Hi <- NULL
+        lam <- NULL
+        cv <- NULL
+        habmod <- NULL
+    }
+    ## looping through models list
+    for (l1 in 1:nmods) {
+        if (nnmods[l1] > 0) {
+            mlist <- vector("list", nnmods[l1])
+            glist <- vector("list", nnmods[l1])
+            for (l2 in 1:nnmods[l1]) {
+                mlist[[l2]] <- glm_skeleton(try(update(object=best, 
+                    formula=mods[[l1]][[l2]]), silent=silent), CAICalpha=CAICalpha)
+            }
+            mcaic <- sapply(mlist, "[[", "caic")
+            attr(mcaic, "StartCAIC") <- best$caic
+            for (l2 in 1:length(mlist)) { # check convergence
+                if (mlist[[l2]]$class != "try-error" && !mlist[[l2]]$converge)
+                    mcaic[l2] <- 2*.Machine$double.xmax^(1/3)
+            }
+            dcaic <- mcaic - best$caic
+            mmid <- which.min(dcaic)
+            if (dcaic[mmid] < 0) {
+                best <- mlist[[mmid]]
+                mid[l1] <- mmid
+                gofbest <- glist[[mmid]]
+            }
+            caicList[[l1]] <- mcaic
+        }
+        bestList[[l1]] <- best
+    }
+    ## final assembly
+    out <- list(species=i, iteration=j,
+        null=null$coef,
+        null_caic=null$caic,
+        caic=caicList,
+        coef=lapply(bestList, "[[", "coef"),
+        mid=mid,
+        hi=Hi,
+        lc=cv,
+        alpha=CAICalpha,
+        nmax=nmax,
+        w_id=w_id,
+        habmod=habmod$coef,
+        hsh_name=hsh_name)
+    out
+}
+
+
+system.time(res <- do_1spec1run(1, "CAWA", mods, 
+    w_id="gridcode", hsh_name="HAB", CAICalpha=1, nmax=NULL))
+data.frame(id=structure(res$mid,names=names(mods)))
 
 
 
@@ -112,8 +258,6 @@ res_coni <- lapply(1:B, do_1spec1run,
 save(res_coni, file=paste0("res_CONI_", hab, "_", 
     ifelse(SPATIAL, "Clim", "BCR"), "_EC_2014.Rdata"))
 
-system.time(res <- do_1spec1run(1, "CAWA", mods, xn=xn, hab=hab, n=10))
-data.frame(id=structure(res$mid,names=names(mods)))
 
 
 

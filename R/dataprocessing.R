@@ -1170,60 +1170,60 @@ TAX0 <- TAX
 YY0 <- YY
 OFF0 <- OFF
 
-pk <- intersect(rownames(DAT2), rownames(YY0))
-DAT <- DAT2[pk,]
+DAT <- DAT2
+pk <- rownames(DAT)
 YY <- YY0[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
 mods <- mods_fire
-HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB2
 DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HTH, BB,
+save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-07-24.Rdata"))
 
-pk <- intersect(rownames(DAT1_LCC), rownames(YY0))
-DAT <- DAT1_LCC[pk,]
+DAT <- DAT1_LCC
+pk <- rownames(DAT)
 YY <- YY0[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
 mods <- mods_gfw
-HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HTH, BB,
+save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-07-24.Rdata"))
 
-pk <- intersect(rownames(DAT1_EOSD), rownames(YY0))
-DAT <- DAT1_EOSD[pk,]
+DAT <- DAT1_EOSD
+pk <- rownames(DAT)
 YY <- YY0[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
 mods <- mods_gfw
-HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HTH, BB,
+save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-07-24.Rdata"))
 
-pk <- intersect(rownames(DAT1_NALC), rownames(YY0))
-DAT <- DAT1_NALC[pk,]
+DAT <- DAT1_NALC
+pk <- rownames(DAT)
 YY <- YY0[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
 mods <- mods_gfw
-HTH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HTH) <- gsub("GRID4_", "", colnames(HTH))
+HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HTH, BB,
+save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-07-24.Rdata"))
 
 
