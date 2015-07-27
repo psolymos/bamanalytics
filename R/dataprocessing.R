@@ -1037,19 +1037,93 @@ DAT <- DAT[DAT$YEAR >= 1997,]
 ## year effect
 #plot(table(DAT$YEAR))
 DAT$YR5 <- 0
-DAT$YR5[DAT$YEAR > 2001 & DAT$YEAR <= 2006] <- 1
-DAT$YR5[DAT$YEAR > 2006] <- 2
+DAT$YR5[DAT$YEAR > 2000] <- 1
+DAT$YR5[DAT$YEAR > 2004] <- 2
+DAT$YR5[DAT$YEAR > 2009] <- 3
+table(DAT$YEAR,DAT$YR5)
+table(DAT$YR5)
+
 DAT$YR5 <- as.factor(DAT$YR5)
 DAT$YR <- DAT$YEAR - 1997
-DAT$bootg <- interaction(DAT$BCR, DAT$JURS, DAT$YR5, drop=TRUE)
+
+DAT$BCR[DAT$BCR == "0"] <- NA
+DAT <- droplevels(DAT[!is.na(DAT$BCR),])
+table(DAT$JURS, DAT$BCR)
+
+DAT$BCR_JURS <- interaction(DAT$BCR, DAT$JURS, drop=TRUE, sep="_")
+levels(DAT$BCR_JURS)[grepl("_AK", levels(DAT$BCR_JURS))] <- "AK"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("9_BC","9_ID","9_WA",
+    "5_BC","5_WA","10_AB","10_BC","10_ID","10_MT","10_WA")] <- "Mtn"
+levels(DAT$BCR_JURS)[grepl("11_", levels(DAT$BCR_JURS))] <- "Pra" # Prairies
+levels(DAT$BCR_JURS)[grepl("17_", levels(DAT$BCR_JURS))] <- "Pra"
+levels(DAT$BCR_JURS)[grepl("22_", levels(DAT$BCR_JURS))] <- "Pra"
+
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("4_BC",
+    "4_NT","4_YK","6_YK","6_NT")] <- "4+6_YK+NT"
+
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB")] <- "6_south"
+
+## keep northern points in
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NT","7_MB","7_NT")] <- "3+7_west"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NU","7_ON","7_QC","7_NL")] <- "3+7_east"
+
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_MB","8_SK")] <- "8_east"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_NL","8_ON","8_QC")] <- "8_west"
+
+levels(DAT$BCR_JURS)[grepl("12_", levels(DAT$BCR_JURS))] <- "Grl" # Great Lakes
+levels(DAT$BCR_JURS)[grepl("13_", levels(DAT$BCR_JURS))] <- "Grl"
+levels(DAT$BCR_JURS)[grepl("23_", levels(DAT$BCR_JURS))] <- "Grl"
+
+levels(DAT$BCR_JURS)[grepl("14_", levels(DAT$BCR_JURS))] <- "Mar" # Maritimes
+levels(DAT$BCR_JURS)[grepl("30_", levels(DAT$BCR_JURS))] <- "Mar"
+
+levels(DAT$BCR_JURS)[grepl("24_", levels(DAT$BCR_JURS))] <- "Seus" # SE US
+levels(DAT$BCR_JURS)[grepl("26_", levels(DAT$BCR_JURS))] <- "Seus"
+levels(DAT$BCR_JURS)[grepl("28_", levels(DAT$BCR_JURS))] <- "Seus"
+levels(DAT$BCR_JURS)[grepl("29_", levels(DAT$BCR_JURS))] <- "Seus"
+
+sort(levels(DAT$BCR_JURS))
+table(DAT$BCR_JURS)
+table(DAT$BCR_JURS, DAT$YR5)
+
+## regions for trend
+DAT$REG <- DAT$BCR_JURS
+levels(DAT$REG)[levels(DAT$REG) %in% c("Mtn", "AK")] <- "Coast"
+levels(DAT$REG)[levels(DAT$REG) %in% c("4+6_YK+NT", "3+7_west", "3+7_east")] <- "North"
+levels(DAT$REG)[levels(DAT$REG) %in% c("Pra")] <- "South"
+levels(DAT$REG)[levels(DAT$REG) %in% c("Pra","8_west","6_south")] <- "West"
+levels(DAT$REG)[levels(DAT$REG) %in% c("Mar","Seus","8_east","Grl")] <- "East"
+table(DAT$BCR_JURS, DAT$REG)
+table(DAT$REG)
+
+## resampling blocks
+DAT$bootg <- interaction(DAT$BCR_JURS, DAT$YR5, drop=TRUE)
 
 ## exclude same year revisits
-DAT$ROUND[is.na(DAT$ROUND)] <- 1
-DAT <- droplevels(DAT[DAT$ROUND == 1,])
+#DAT$ROUND[is.na(DAT$ROUND)] <- 1
+#DAT <- droplevels(DAT[DAT$ROUND == 1,])
+DAT$SS_YR <- interaction(DAT$SS, DAT$YEAR, drop=TRUE)
+table(table(DAT$SS_YR))
+dup <- unique(DAT$SS_YR[duplicated(DAT$SS_YR)])
+tmp1 <- DAT[DAT$SS_YR %in% dup, c("PKEY","SS_YR")]
+rownames(tmp1) <- tmp1$PKEY
+dim(tmp1)
+tmp2 <- nonDuplicated(tmp1[sample.int(nrow(tmp1)),], SS_YR)
+rownames(tmp2) <- tmp2$PKEY
+dim(tmp2)
+dim(tmp1) - dim(tmp2)
+tmp1 <- tmp1[setdiff(rownames(tmp1), rownames(tmp2)),]
+dim(tmp1)
+dim(tmp1) + dim(tmp2)
+DAT <- DAT[!(DAT$PKEY %in% rownames(tmp1)),]
+DAT$SS_YR <- NULL
 
+## unit of resampling is site x year to maintain temporal distribution
 DAT$SITE <- as.character(DAT$SITE)
 DAT$SITE[is.na(DAT$SITE)] <- paste0("gr.", as.character(DAT$gridcode[is.na(DAT$SITE)]))
 DAT$SITE <- as.factor(DAT$SITE)
+
+DAT$SITE_YR <- interaction(DAT$SITE, DAT$YEAR, drop=TRUE, sep="_")
 
 DAT$ROAD_OK[is.na(DAT$ROAD_OK)] <- 1L
 
@@ -1065,10 +1139,9 @@ nmin <- 25
 B <- 239
 
 
-
 keep <- rep(TRUE, nrow(DAT))
 keep[DAT$ROAD_OK < 1] <- FALSE
-keep[DAT$YEAR < 2000] <- FALSE
+keep[DAT$YEAR < 2001] <- FALSE
 keep[is.na(DAT$HAB_LCC2)] <- FALSE
 keep[is.na(DAT$HAB_NALC2)] <- FALSE
 keep[is.na(DAT$HAB_EOSD2)] <- FALSE
@@ -1084,6 +1157,7 @@ rownames(DAT1) <- DAT1$PKEY
 DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY)),])
 dim(DAT1)
 data.frame(n=colSums(is.na(DAT1)))
+
 
 set.seed(1234)
 ## make sure that time intervals are considered as blocks
@@ -1169,6 +1243,7 @@ DAT0 <- DAT
 TAX0 <- TAX
 YY0 <- YY
 OFF0 <- OFF
+Extra <- c("gridcode", "SS", "SITE_YR", "bootg")
 
 DAT <- DAT2
 pk <- rownames(DAT)
@@ -1180,7 +1255,7 @@ mods <- mods_fire
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB2
-DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-07-24.Rdata"))
 
@@ -1194,7 +1269,7 @@ mods <- mods_gfw
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
-DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-07-24.Rdata"))
 
@@ -1208,7 +1283,7 @@ mods <- mods_gfw
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
-DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-07-24.Rdata"))
 
@@ -1222,7 +1297,7 @@ mods <- mods_gfw
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
-DAT <- DAT[,c("gridcode", getTerms(mods, "list"))]
+DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-07-24.Rdata"))
 

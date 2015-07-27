@@ -23,38 +23,15 @@ nmax=25000
 }
 
 
-do_1spec1run <- function(j, i, mods, 
-silent=FALSE, w_id=NA, 
-hsh_name=NA, CAICalpha=0.5, nmax=NULL) 
+do_1spec1run_noW <- function(j, i, mods, 
+silent=FALSE, hsh_name=NA, CAICalpha=1) 
 {
     select_hsh <- !is.na(hsh_name)
-    use_wt <- !is.na(w_id)
     x <- DAT[BB[,j],]
     y <- as.numeric(YY[BB[,j], i])
     if (select_hsh)
         hsh <- HSH[BB[,j],]
     off <- OFF[BB[,j], i]
-    ## spatial weights
-    if (use_wt) {
-        tmp <- Xtab(~ x[[w_id]] + rownames(x), drop.unused.levels=TRUE)
-        w <- rowSums(tmp)[match(x[[w_id]], rownames(tmp))]
-    } else {
-        w <- rep(1L, length(y))
-    }
-    if (!is.null(nmax)) {
-        if (nmax > length(y))
-            stop("nmax > length(y)")
-        ss <- sample.int(length(y), nmax, replace=FALSE, prob=1/w)
-        x <- x[ss,]
-        x[[w_id]] <- droplevels(x[[w_id]])
-        y <- y[ss]
-        off <- off[ss]
-        if (select_hsh)
-            hsh <- hsh[ss,]
-        tmp <- Xtab(~ x[[w_id]] + rownames(x), drop.unused.levels=TRUE)
-        w <- rowSums(tmp)[match(x[[w_id]], rownames(tmp))]
-    }
-    w <- 1/sqrt(w)
     ## empty objects for storing results
     nmods <- length(mods)
     nnmods <- sapply(mods, length)
@@ -66,7 +43,7 @@ hsh_name=NA, CAICalpha=0.5, nmax=NULL)
         x, 
         family=poisson(), 
         offset=off, 
-        weights=w,
+        #weights=w,
         x=FALSE, y=FALSE, model=FALSE), CAICalpha=CAICalpha)
     best <- null
     ## Lorenz-tangent approach for core habitat delineation
@@ -76,7 +53,7 @@ hsh_name=NA, CAICalpha=0.5, nmax=NULL)
             x,
             family=poisson(), 
             offset=off, 
-            weights=w,
+            #weights=w,
             x=FALSE, y=FALSE, model=FALSE), silent=silent), CAICalpha=CAICalpha)
         ## need to correct for linear effects
         ## so that we estimate potential pop in habitats (and not realized)
@@ -138,16 +115,16 @@ hsh_name=NA, CAICalpha=0.5, nmax=NULL)
         hi=Hi,
         lc=cv,
         alpha=CAICalpha,
-        nmax=nmax,
-        w_id=w_id,
+        #nmax=nmax,
+        #w_id=w_id,
         habmod=habmod$coef,
         hsh_name=hsh_name)
     out
 }
 
 
-system.time(res <- do_1spec1run(1, "CAWA", mods, 
-    w_id="gridcode", hsh_name="HAB", CAICalpha=1, nmax=NULL))
+system.time(res <- do_1spec1run_noW(1, "CAWA", mods, 
+    hsh_name="HAB", CAICalpha=1))
 data.frame(id=structure(res$mid,names=names(mods)))
 
 

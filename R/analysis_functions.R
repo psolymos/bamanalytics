@@ -1,42 +1,3 @@
-#### step 2 -------------------------------------
-
-glm_skeleton <- function(object, ...) {
-    out <- structure(list(
-        call=object$call,
-        formula=formula(object),
-        coef=coef(object),
-        converge=object$converge,
-        logLik=as.numeric(logLik(object)),
-        df=attr(logLik(object), "df"),
-        nobs=nobs(object)), class="glm_skeleton")
-    out$class0 <- class(object)[1L]
-    out$aic <- -2*out$logLik + 2*out$df
-    out$bic <- -2*out$logLik + log(out$nobs)*out$df
-    out$caic <- 0.5 * (out$aic + out$bic)
-    out
-}
-
-getTerms <- function(mods, type=c("formula", "list")) {
-    type <- match.arg(type)
-    x <- unlist(lapply(unlist(mods), function(z) as.character(z)[3]))
-#    x <- unname(substr(x, 5, nchar(x)))
-    x <- gsub(". + ", "", x, fixed=TRUE)
-    x <- unlist(strsplit(x, "+", fixed=TRUE))
-    x <- unlist(strsplit(x, "*", fixed=TRUE))
-    if (type == "list")
-        x <- unlist(strsplit(x, ":", fixed=TRUE))
-    x <- sub("^[[:space:]]*(.*?)[[:space:]]*$", "\\1", x, perl=TRUE)
-    x <- unique(x)
-    if (type == "formula")
-        x <- as.formula(paste("~", paste(x, collapse=" + ", sep="")))
-    x
-}
-
-fixNames <- function(x, sep=":") {
-    unlist(lapply(x, function(z) {
-        paste(sort(strsplit(z, sep)[[1]]), collapse=sep)
-    }))
-}
 
 ## x=DAT, n is max no of pts in grid
 do_sample_0 <- function(x, n=10) {
@@ -75,29 +36,6 @@ do_sample <- function(j, g, x, n=10) {
 #system.time(jj <- do_sample(1, DAT$bootg, DAT, n=5))
 #Bm <- list(jj)
 
-Lc_cut <-
-function (lam, transform=FALSE) 
-{
-    if (transform)
-        lam <- 1-exp(-lam)
-    o <- order(lam)
-    x <- lam[o]
-    p <- seq_len(length(x))/sum(length(x))
-    L <- cumsum(x)/sum(x)
-    p <- c(0, p)
-    L <- c(0, L)
-    J <- p - L
-
-    G <- sum(x * 1:length(x))
-    G <- 2 * G/(length(x) * sum(x))
-    G <- G - 1 - (1/length(x))
-
-    m1 <- which.max(J)
-    list(lam=unname(ifelse(transform, -log(1-x[m1]), x[m1])), 
-        L=unname(L[m1+1]), 
-        p=unname(p[m1+1]), S=unname(L[m1+1]+p[m1+1]), 
-        G=G, J=max(p - L))
-}
 
 
 do_1spec1run <- function(j, i, mods, xn, hab, n=10, use_wt=TRUE, silent=TRUE) {
