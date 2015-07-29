@@ -24,6 +24,8 @@ if (!interactive())
 
 TEST <- interactive()
 
+ROOT <- "~/bam"
+
 #### setup ####
 
 nodes <- if (interactive())
@@ -42,7 +44,7 @@ fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
     "analysis_package_gfwfire-lcc-2015-07-24.Rdata",
     "analysis_package_fire-nalc-2015-07-24.Rdata")
 fn <- fl[fid]
-load(file.path("data", fn))
+load(file.path(ROOT, "data", fn))
 if (TEST)
     mods <- mods[1:3]
 
@@ -105,7 +107,7 @@ attr(res, "hsh_name") <- hsh_name
 attr(res, "CAICalpha") <- CAICalpha
 
 fout <- paste0(PROJECT, "_", spp, ".Rdata", sep="")
-save(res, file=file.path("results", fout))
+save(res, file=file.path(ROOT, "results", fout))
 
 
 #### shutting down ####
