@@ -15,8 +15,8 @@
 ## script to update the runs
 
 ```
-module load application/git/1.7.10.1
 rm ~/bam/*
+module load application/git/1.7.10.1
 cd ~/repos/bamanalytics/
 git pull
 cd ~/bam/
