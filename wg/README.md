@@ -11,3 +11,15 @@
 ## Loading R on jasper
 
 `module load application/R/3.1.2`
+
+## script to update the runs
+
+```
+module load application/git/1.7.10.1
+rm ~/bam/*
+cd ~/repos/bamanalytics/
+git pull
+cd ~/bam/
+cp ~/repos/bamanalytics/wg/* ~/bam/
+
+```
