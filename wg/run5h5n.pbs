@@ -5,7 +5,7 @@
 #PBS -e run5h5n.err
 #PBS -M solymos@ualberta.ca
 #PBS -m bea
-#PBS -l walltime=5:00:00
+#PBS -l walltime=10:00:00
 #PBS -l nodes=5:ppn=12
 #PBS -l pmem=2000mb
 
@@ -25,21 +25,21 @@ echo "Starting run at: `date`"
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 CAWA
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 CAWA
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 CAWA
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 CAWA
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 CAWA
 
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 OSFL
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 OSFL
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 OSFL
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 OSFL
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 OSFL
 
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 RUBL
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 RUBL
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 RUBL
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 RUBL
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 RUBL
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 RUBL
 
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 WEWP
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 WEWP
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 WEWP
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 WEWP
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 WEWP
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 WEWP
 
 echo "Program finished with exit code $? at: `date`"
