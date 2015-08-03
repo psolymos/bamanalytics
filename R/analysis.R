@@ -3,12 +3,12 @@ ROOT <- "c:/bam/May2015"
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/analysis_functions.R")
 
-fid <- 1
+fid <- 4
 fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
     "analysis_package_gfwfire-eosd-2015-07-24.Rdata",
     "analysis_package_gfwfire-lcc-2015-07-24.Rdata",
     "analysis_package_fire-nalc-2015-07-24.Rdata")
-load(file.path(ROOT, "out", fl[fid]))
+load(file.path(ROOT, "out", "data", fl[fid]))
 
 
 
@@ -16,11 +16,9 @@ if (FALSE) {
 B <- ncol(BB) - 1
 j=1
 i="CAWA"
-w_id="gridcode"
 CAICalpha=1
 hsh_name="HAB"
 silent=FALSE
-nmax=25000
 }
 
 

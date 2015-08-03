@@ -1213,6 +1213,9 @@ keep2[is.na(DAT$HGT)] <- FALSE
 keep2[is.na(DAT$SLP)] <- FALSE
 
 DAT2 <- droplevels(DAT[keep2,])
+DAT2$HAB <- DAT2$HAB_NALC2
+DAT2$isDM <- DAT2$isDM_NALC
+DAT2$isNF <- DAT2$isNF_NALC
 DAT2 <- DAT2[,!grepl("_LCC", colnames(DAT2))]
 DAT2 <- DAT2[,!grepl("_EOSD", colnames(DAT2))]
 colnames(DAT2) <- gsub("_NALC_", "_", colnames(DAT2))
