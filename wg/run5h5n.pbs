@@ -7,7 +7,7 @@
 #PBS -m bea
 #PBS -l walltime=10:00:00
 #PBS -l nodes=5:ppn=12
-#PBS -l pmem=2000mb
+#PBS -l pmem=4000mb
 
 cd $PBS_O_WORKDIR
 echo "Current working directory is `pwd`"
