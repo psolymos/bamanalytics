@@ -67,15 +67,24 @@ getEst <- function(res, stage=NULL, na.out=TRUE) {
     est
 }
 
-getCaic <- function(res, stage=NULL, run=1) {
+getCaic <- function(res, stage=NULL, na.out=TRUE) {
     OK <- !sapply(res, inherits, "try-error")
-    ii <- sapply(res[OK], "[[", "iteration")
     if (is.null(stage))
-        stage <- length(res[[ii[1]]]$coef)
-    if (stage == 0)
-        return(attr(res[[run]]$caic[[1]], "StartCAIC"))
-    cc <- res[[run]]$caic[[stage]]
-    cc[which.min(cc)]
+        stage <- length(res[[which(OK)[1]]]$coef)
+    caic <- numeric(length(OK))
+    caic[!OK] <- NA
+    for (run in which(OK)) {
+        if (stage == 0) {
+            cc <- attr(res[[run]]$caic[[1]], "StartCAIC")
+        } else {
+            cc <- res[[run]]$caic[[stage]]
+            cc <- cc[which.min(cc)]
+        }
+        caic[run] <- cc
+    }
+    if (!na.out)
+        caic <- caic[OK]
+    caic
 }
 
 getSummary <- function(res, stage=NULL) {
