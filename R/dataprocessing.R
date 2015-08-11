@@ -1067,9 +1067,8 @@ levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB")] <
 levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NT","7_MB","7_NT")] <- "3+7_west"
 levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NU","7_ON","7_QC","7_NL")] <- "3+7_east"
 
-#### --- note: eas and west flipped!
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_MB","8_SK")] <- "8_west" #---------- !!!
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_NL","8_ON","8_QC")] <- "8_east" #--- !!!
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_MB","8_SK")] <- "8_west"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_NL","8_ON","8_QC")] <- "8_east"
 
 levels(DAT$BCR_JURS)[grepl("12_", levels(DAT$BCR_JURS))] <- "Grl" # Great Lakes
 levels(DAT$BCR_JURS)[grepl("13_", levels(DAT$BCR_JURS))] <- "Grl"
@@ -1092,7 +1091,7 @@ DAT$REG <- DAT$BCR_JURS
 levels(DAT$REG)[levels(DAT$REG) %in% c("Mtn", "AK")] <- "Coast"
 levels(DAT$REG)[levels(DAT$REG) %in% c("4+6_YK+NT", "3+7_west", "3+7_east")] <- "North"
 levels(DAT$REG)[levels(DAT$REG) %in% c("Pra")] <- "South"
-levels(DAT$REG)[levels(DAT$REG) %in% c("Pra","8_west","6_south")] <- "West"
+levels(DAT$REG)[levels(DAT$REG) %in% c("8_west","6_south")] <- "West"
 levels(DAT$REG)[levels(DAT$REG) %in% c("Mar","Seus","8_east","Grl")] <- "East"
 table(DAT$BCR_JURS, DAT$REG)
 table(DAT$REG)
@@ -1154,6 +1153,7 @@ keep[is.na(DAT$TREE)] <- FALSE
 keep[is.na(DAT$CMI)] <- FALSE
 keep[is.na(DAT$HGT)] <- FALSE
 keep[is.na(DAT$SLP)] <- FALSE
+keep[DAT$REG == "South"] <- FALSE
 
 
 DAT1 <- droplevels(DAT[keep,])
@@ -1250,7 +1250,7 @@ DAT0 <- DAT
 TAX0 <- TAX
 YY0 <- YY
 OFF0 <- OFF
-Extra <- c("gridcode", "SS", "SITE_YR", "bootg")
+Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y")
 
 DAT <- DAT2
 pk <- rownames(DAT)
@@ -1265,6 +1265,7 @@ BB <- BB2
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
     file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-08-11.Rdata"))
+#plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
 
 DAT <- DAT1_LCC
 pk <- rownames(DAT)
