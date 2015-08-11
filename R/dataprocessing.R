@@ -1051,6 +1051,7 @@ DAT <- droplevels(DAT[!is.na(DAT$BCR),])
 table(DAT$JURS, DAT$BCR)
 
 DAT$BCR_JURS <- interaction(DAT$BCR, DAT$JURS, drop=TRUE, sep="_")
+
 levels(DAT$BCR_JURS)[grepl("_AK", levels(DAT$BCR_JURS))] <- "AK"
 levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("9_BC","9_ID","9_WA",
     "5_BC","5_WA","10_AB","10_BC","10_ID","10_MT","10_WA")] <- "Mtn"
@@ -1058,10 +1059,12 @@ levels(DAT$BCR_JURS)[grepl("11_", levels(DAT$BCR_JURS))] <- "Pra" # Prairies
 levels(DAT$BCR_JURS)[grepl("17_", levels(DAT$BCR_JURS))] <- "Pra"
 levels(DAT$BCR_JURS)[grepl("22_", levels(DAT$BCR_JURS))] <- "Pra"
 
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("4_BC",
-    "4_NT","4_YK","6_YK","6_NT")] <- "4+6_YK+NT"
+#levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("4_BC",
+#    "4_NT","4_YK","6_YK","6_NT")] <- "4+6_YK+NT"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("4_BC","4_NT","4_YK")] <- "4_all"
 
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB")] <- "6_south"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB",
+    "6_YK","6_NT")] <- "6_all"
 
 ## keep northern points in
 levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NT","7_MB","7_NT")] <- "3+7_west"
@@ -1077,10 +1080,10 @@ levels(DAT$BCR_JURS)[grepl("23_", levels(DAT$BCR_JURS))] <- "Grl"
 levels(DAT$BCR_JURS)[grepl("14_", levels(DAT$BCR_JURS))] <- "Mar" # Maritimes
 levels(DAT$BCR_JURS)[grepl("30_", levels(DAT$BCR_JURS))] <- "Mar"
 
-levels(DAT$BCR_JURS)[grepl("24_", levels(DAT$BCR_JURS))] <- "Seus" # SE US
-levels(DAT$BCR_JURS)[grepl("26_", levels(DAT$BCR_JURS))] <- "Seus"
-levels(DAT$BCR_JURS)[grepl("28_", levels(DAT$BCR_JURS))] <- "Seus"
-levels(DAT$BCR_JURS)[grepl("29_", levels(DAT$BCR_JURS))] <- "Seus"
+levels(DAT$BCR_JURS)[grepl("24_", levels(DAT$BCR_JURS))] <- "SEus" # SE US
+levels(DAT$BCR_JURS)[grepl("26_", levels(DAT$BCR_JURS))] <- "SEus"
+levels(DAT$BCR_JURS)[grepl("28_", levels(DAT$BCR_JURS))] <- "SEus"
+levels(DAT$BCR_JURS)[grepl("29_", levels(DAT$BCR_JURS))] <- "SEus"
 
 sort(levels(DAT$BCR_JURS))
 table(DAT$BCR_JURS)
@@ -1089,10 +1092,10 @@ table(DAT$BCR_JURS, DAT$YR5)
 ## regions for trend
 DAT$REG <- DAT$BCR_JURS
 levels(DAT$REG)[levels(DAT$REG) %in% c("Mtn", "AK")] <- "Coast"
-levels(DAT$REG)[levels(DAT$REG) %in% c("4+6_YK+NT", "3+7_west", "3+7_east")] <- "North"
+levels(DAT$REG)[levels(DAT$REG) %in% c("4_all", "3+7_west", "3+7_east")] <- "North"
 levels(DAT$REG)[levels(DAT$REG) %in% c("Pra")] <- "South"
-levels(DAT$REG)[levels(DAT$REG) %in% c("8_west","6_south")] <- "West"
-levels(DAT$REG)[levels(DAT$REG) %in% c("Mar","Seus","8_east","Grl")] <- "East"
+levels(DAT$REG)[levels(DAT$REG) %in% c("8_west","6_all")] <- "West"
+levels(DAT$REG)[levels(DAT$REG) %in% c("Mar","SEus","8_east","Grl")] <- "East"
 table(DAT$BCR_JURS, DAT$REG)
 table(DAT$REG)
 DAT$REG <- relevel(DAT$REG, "West")
