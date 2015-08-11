@@ -39,10 +39,10 @@ if (interactive())
     setwd("c:/bam/May2015/out")
 fid <- if (interactive())
     1 else as.numeric(args[2])
-fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
-    "analysis_package_gfwfire-eosd-2015-07-24.Rdata",
-    "analysis_package_gfwfire-lcc-2015-07-24.Rdata",
-    "analysis_package_fire-nalc-2015-07-24.Rdata")
+fl <- c("analysis_package_gfwfire-nalc-2015-08-11.Rdata",
+    "analysis_package_gfwfire-eosd-2015-08-11.Rdata",
+    "analysis_package_gfwfire-lcc-2015-08-11.Rdata",
+    "analysis_package_fire-nalc-2015-08-11.Rdata")
 fn <- fl[fid]
 load(file.path(ROOT, "data", fn))
 if (TEST)
