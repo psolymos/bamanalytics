@@ -2,6 +2,7 @@
 
 ROOT <- "e:/peter/bam/pred-2015"
 library(mefa4)
+library(pbapply)
 library(data.table)
 getOption("datatable.fread.datatable")
 options(datatable.fread.datatable=FALSE)
@@ -306,8 +307,21 @@ zz$POINT_Y <- NULL
 zz$FID_Grid4x4GFWall <- NULL
 zz$Id <- NULL                    
 zz$gridcode <- NULL
+zz$Grid4x4 <- NULL
+zz$FID_MergeLossLCC <- NULL
+zz$ID_1 <- NULL
 zz$pointid <- gsub(",", "", zz$pointid)
 zz$pointid <- as.integer(zz$pointid)
+zz$YearLoss <- as.integer(zz$GRIDCODE_1 + 2000)
+zz$YearLoss[zz$GRIDCODE_1 < 1] <- NA
+
+length(intersect(z$pointid, zz$pointid))
+colnames(z)[colnames(z) == "YEAR"] <- "YearFire"
+z$YearLoss <- zz$YearLoss[match(z$pointid, zz$pointid)]
+
+loss <- z
+save(loss, file=file.path(ROOT, "pg-loss.Rdata"))
+
 
 load(file.path(ROOT, "pg-main.Rdata"))
 load(file.path(ROOT, "pg-clim.Rdata"))
@@ -320,8 +334,100 @@ x$HAB <- 0
 x$isDM <- 0
 x$isNF <- 0
 
+BASE_YEAR <- 2015
+
 ## YR
-x$YR <- 2015 - 1997
+x$YR <- BASE_YEAR - 1997
+
+## disturbance
+SS$YearFire[is.na(SS$YearFire)] <- BASE_YEAR - 200
+SS$YearLoss[is.na(SS$YearLoss)] <- BASE_YEAR - 200
+
+## years since fire
+DAT$YSF <- DAT$YEAR - DAT$YearFire
+DAT$YSF[DAT$YSF < 0] <- 100
+## years since loss
+DAT$YSL <- DAT$YEAR - DAT$YearLoss
+DAT$YSL[DAT$YSL < 0] <- 100
+## years since most recent burn or loss
+DAT$YSD <- pmin(DAT$YSF, DAT$YSL)
+
+DAT$BRN <- ifelse(DAT$YSF <= 10, 1L, 0L)
+DAT$LSS <- ifelse(DAT$YSL <= 10, 1L, 0L)
+DAT$LSS[DAT$YEAR < 2000] <- NA
+DAT$DTB <- ifelse(DAT$YSD <= 10, 1L, 0L)
+DAT$DTB[DAT$YEAR < 2000] <- NA
 
 ## check NA occurrences, especially in HAB_*
 plot(x[,2:3],pch=".",col=ifelse(is.na(x$HAB_EOSD2),2,1))
+
+
+## LCC 4x4
+
+fn <- file.path(ROOT, "PredictionIntersections", "Pred_LCC05_4x4CAN.csv")
+ltlcc <- read.csv("~/repos/bamanalytics/lookup/lcc05.csv")
+ltlcc$vv <- paste0("LCCVV", ltlcc$lcc05v1_2)
+ltlcc$BAMLCC05V2_label2 <- as.character(ltlcc$BAMLCC05V2_label2)
+ltlcc$BAMLCC05V2_label2[is.na(ltlcc$BAMLCC05V2_label2)] <- "NONE"
+
+tmp0 <- read.csv(fn, nrows=2, skip=0, header=TRUE)
+
+f1 <- function(tmp0) {
+    tmp0$LCCVVSUM <- NULL
+    tmp0$LCCVV0 <- NULL
+    m <- as(as.matrix(tmp0[,grepl("LCCVV", colnames(tmp0))]), "dgCMatrix")
+    rownames(m) <- gsub(",", "", tmp0$pointid)
+    groupSums(m, 2, ltlcc$BAMLCC05V2_label2)
+}
+f1(tmp0)
+rBind(tmp0,tmp0)
+
+nlines <- function(file) {
+    ## http://r.789695.n4.nabble.com/Fast-way-to-determine-number-of-lines-in-a-file-td1472962.html
+    ## needs Rtools on Windows
+    if (.Platform$OS.type == "windows") { 
+        nr <- as.integer(strsplit(system(paste("/RTools/bin/wc -l", 
+            file), intern=TRUE), " ")[[1]][1])
+    } else {
+        nr <- as.integer(strsplit(system(paste("wc -l", 
+            file), intern=TRUE), " ")[[1]][1])
+    }
+    nr
+}
+nlines(fn)
+
+MapReduce_function <- function(file, n, nr, FUN, REDUCE, ...) {
+    ## Map
+    if (missing(nr))
+        nr <- nlines(file)
+    m <- floor((nr-1) / n)
+    mm <- (nr-1) %% n
+    if (mm > 0)
+        m <- m+1
+    ## Reduce
+    tmp0 <- read.csv(file, nrows=2, skip=0, header=TRUE, ...)
+    cn <- colnames(tmp0)
+    #res <- list()
+    pb <- startpb(0, m)
+    on.exit(closepb(pb))
+    ## 1st run
+    tmp1 <- read.csv(file, nrows=n, skip=(1-1)*n+1, 
+        header=FALSE, ...)
+    colnames(tmp1) <- cn
+    res1 <- FUN(tmp1)
+    setpb(pb, 1)
+    for (i in 2:m) {
+        tmp <- read.csv(file, nrows=n, skip=(i-1)*n+1, 
+            header=FALSE, ...)
+        colnames(tmp) <- cn
+        res <- FUN(tmp)
+        res1 <- REDUCE(res1, res)
+        setpb(pb, i)
+        gc()
+    }
+    #out <- do.call(REDUCE, res)
+    res1
+}
+
+lcc4x4 <- MapReduce_function(fn, n=50000, nr=7935918, FUN=f1, REDUCE=rBind)
+
