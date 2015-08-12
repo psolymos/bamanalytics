@@ -21,5 +21,4 @@ cd ~/repos/bamanalytics/
 git pull
 cd ~/bam/
 cp ~/repos/bamanalytics/wg/* ~/bam/
-
 ```
