@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -S /bin/bash
-#PBS -N run5h5n
-#PBS -o run5h5n.out
-#PBS -e run5h5n.err
+#PBS -N run4
+#PBS -o run4.out
+#PBS -e run4.err
 #PBS -M solymos@ualberta.ca
 #PBS -m bea
 #PBS -l walltime=12:00:00
