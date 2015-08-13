@@ -2,11 +2,13 @@
 
 ROOT <- "e:/peter/bam/pred-2015"
 library(mefa4)
-library(pbapply)
+#library(pbapply)
 library(data.table)
 getOption("datatable.fread.datatable")
 options(datatable.fread.datatable=FALSE)
 getOption("datatable.fread.datatable")
+
+################# PREPROCESSING ###############################
 
 ## Climate preprocessing -------------------------
 z <- fread(file.path(ROOT, "cti", "ECGrid_climMarch2014.csv"))
@@ -15,6 +17,7 @@ cn1 <- c("pointid", "POINT_X", "POINT_Y",
     "NORM_6190_CMIJJApm", "NORM_6190_DD0", "NORM_6190_DD5", 
     "NORM_6190_EMT", "NORM_6190_TD", "NORM_6190_CMIpm", "NORM_6190_MSP")
 write.csv(z[,cn1], file=file.path(ROOT, "cti", "clim-only.csv"))
+## NALC 4x4
 cn2 <- c("pointid", "POINT_X", "POINT_Y",
     "lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17", 
     "lc18", "lc19", "lc2", "lc5", "lc6", "lc8")
@@ -322,9 +325,179 @@ z$YearLoss <- zz$YearLoss[match(z$pointid, zz$pointid)]
 loss <- z
 save(loss, file=file.path(ROOT, "pg-loss.Rdata"))
 
+## LCC 4x4
+
+fn <- file.path(ROOT, "PredictionIntersections", "Pred_LCC05_4x4CAN.csv")
+ltlcc <- read.csv("~/repos/bamanalytics/lookup/lcc05.csv")
+ltlcc$vv <- paste0("LCCVV", ltlcc$lcc05v1_2)
+ltlcc$BAMLCC05V2_label2 <- as.character(ltlcc$BAMLCC05V2_label2)
+ltlcc$BAMLCC05V2_label2[is.na(ltlcc$BAMLCC05V2_label2)] <- "NONE"
+
+tmp0 <- read.csv(fn, nrows=2, skip=0, header=TRUE)
+
+f1 <- function(tmp0) {
+    tmp0$LCCVVSUM <- NULL
+    tmp0$LCCVV0 <- NULL
+    m <- as(as.matrix(tmp0[,grepl("LCCVV", colnames(tmp0))]), "dgCMatrix")
+    rownames(m) <- gsub(",", "", tmp0$pointid)
+    groupSums(m, 2, ltlcc$BAMLCC05V2_label2)
+}
+#f1(tmp0)
+#rBind(tmp0,tmp0)
+
+nlines <- function(file) {
+    ## http://r.789695.n4.nabble.com/Fast-way-to-determine-number-of-lines-in-a-file-td1472962.html
+    ## needs Rtools on Windows
+    if (.Platform$OS.type == "windows") { 
+        nr <- as.integer(strsplit(system(paste("/RTools/bin/wc -l", 
+            file), intern=TRUE), " ")[[1]][1])
+    } else {
+        nr <- as.integer(strsplit(system(paste("wc -l", 
+            file), intern=TRUE), " ")[[1]][1])
+    }
+    nr
+}
+nlines(fn)
+
+n <- 10^6
+nr <- 7935918
+cn <- colnames(tmp0)
+#res <- list()
+m <- floor((nr-1) / n)
+mm <- (nr-1) %% n
+if (mm > 0)
+    m <- m+1
+for (i in 1:m) {
+    cat(i, "/", m, "\n");flush.console()
+    tmp <- fread(fn, nrows=n, skip=(i-1)*n+1, header=FALSE)
+    colnames(tmp) <- cn
+    res <- f1(tmp)
+    save(res, file = file.path(ROOT, paste0("lcc4x4-", i, ".Rdata")))
+    rm(tmp, res)
+    gc()
+}
+
+## EOSD 4x4
+
+fn <- file.path(ROOT, "eosd4x4", "EOSD4x4Pred_eosdextent.csv")
+lteosd <- read.csv("~/repos/bamanalytics/lookup/eosd.csv")
+lteosd$vv <- paste0("eosdVV", lteosd$Value)
+lteosd$Reclass_label2 <- as.character(lteosd$Reclass_label2)
+rownames(lteosd) <- lteosd$vv
+
+tmp0 <- read.csv(fn, nrows=2, skip=0, header=TRUE)
+tmp0$eosdVVSUM <- NULL
+m <- as(as.matrix(tmp0[,grepl("eosdVV", colnames(tmp0))]), "dgCMatrix")
+rownames(m) <- gsub(",", "", tmp0$pointid)
+lteosd <- lteosd[colnames(m),]
+rownames(lteosd) <- colnames(m)
+lteosd$Reclass_label2[is.na(lteosd$Reclass_label2)] <- "OUT"
+
+f1 <- function(tmp0) {
+    tmp0$eosdVVSUM <- NULL
+    m <- as(as.matrix(tmp0[,grepl("eosdVV", colnames(tmp0))]), "dgCMatrix")
+    rownames(m) <- gsub(",", "", tmp0$pointid)
+    groupSums(m, 2, lteosd$Reclass_label2)
+}
+#f1(tmp0)
+#rBind(tmp0,tmp0)
+
+nlines(fn)
+
+n <- 10^6
+nr <- 6357648
+cn <- colnames(tmp0)
+#res <- list()
+m <- floor((nr-1) / n)
+mm <- (nr-1) %% n
+if (mm > 0)
+    m <- m+1
+for (i in 1:m) {
+    cat(i, "/", m, "\n");flush.console()
+    tmp <- fread(fn, nrows=n, skip=(i-1)*n+1, header=FALSE)
+    colnames(tmp) <- cn
+    res <- f1(tmp)
+    save(res, file = file.path(ROOT, paste0("eosd4x4-", i, ".Rdata")))
+    rm(tmp, res)
+    gc()
+}
+
+nalc4x4 <- fread(file.path(ROOT, "cti", "nalc4x4-processed.csv"))
+rownames(nalc4x4) <- nalc4x4[,1]
+nalc4x4[,1] <- NULL
+nalc4x4 <- as(as.matrix(nalc4x4), "dgCMatrix")
+
+load(file.path(ROOT, paste0("eosd4x4-", 1, ".Rdata")))
+eosd4x4 <- res
+for (i in 2:7) {
+    cat(i, "\t");flush.console()
+    load(file.path(ROOT, paste0("eosd4x4-", i, ".Rdata")))
+    eosd4x4 <- rBind(eosd4x4, res)
+}
+rm(res)
+
+load(file.path(ROOT, paste0("lcc4x4-", 1, ".Rdata")))
+lcc4x4 <- res
+for (i in 2:8) {
+    cat(i, "\t");flush.console()
+    load(file.path(ROOT, paste0("lcc4x4-", i, ".Rdata")))
+    lcc4x4 <- rBind(lcc4x4, res)
+}
+rm(res)
+
+save(lcc4x4, eosd4x4, nalc4x4, file=file.path(ROOT, "pg-4x4.Rdata"))
+
+################# PACKAGING ###############################
+
+## use eosd coverage to save bcr/jurs0 chunks
+
+ROOT <- "e:/peter/bam/pred-2015"
+library(mefa4)
 
 load(file.path(ROOT, "pg-main.Rdata"))
+x <- x[x$EOSD_COVER == 1,]
+rownames(x) <- x$pointid
+
+load(file.path(ROOT, "pg-loss.Rdata"))
+x$YearFire <- loss$YearFire[match(x$pointid, loss$pointid)]
+x$YearLoss <- loss$YearLoss[match(x$pointid, loss$pointid)]
+rm(loss)
+
 load(file.path(ROOT, "pg-clim.Rdata"))
+rownames(clim) <- clim$pointid
+clim <- clim[match(x$pointid, clim$pointid),4:14]
+x <- data.frame(x, clim)
+rm(clim)
+
+x <- x[!is.na(x$CTI) & ! is.na(x$TD),]
+
+load(file.path(ROOT, "pg-4x4.Rdata"))
+tmp <- setdiff(rownames(x), rownames(lcc4x4))
+plot(x[,2:3],pch=".",col=ifelse(rownames(x) %in% tmp,2,1))
+x <- x[rownames(x) %in% rownames(lcc4x4),]
+
+length(setdiff(rownames(x), rownames(lcc4x4)))
+length(setdiff(rownames(x), rownames(eosd4x4)))
+length(setdiff(rownames(x), rownames(nalc4x4)))
+
+x$REG <- droplevels(x$REG)
+x$BCR_JURS0 <- droplevels(x$BCR_JURS0)
+lcc4x4 <- lcc4x4[rownames(x),]
+eosd4x4 <- eosd4x4[rownames(x),]
+nalc4x4 <- nalc4x4[rownames(x),]
+
+x$TR3[is.na(x$TR3)] <- "Open" # this is global
+
+reg <- levels(x$BCR_JURS0)
+for (i in reg) {
+    cat(i, "\n");flush.console()
+    ii <- x$BCR_JURS0 == i
+    dat <- x[ii,]
+    pg4x4 <- list(lcc=lcc4x4[ii,], eosd=eosd4x4[ii,], nalc=nalc4x4[ii,])
+    save(dat, pg4x4, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
+}
+
+################# POSTPROCESSING ###############################
 
 
 ## placeholders: HSH, HSH2, isDM, isNF
@@ -361,73 +534,7 @@ DAT$DTB[DAT$YEAR < 2000] <- NA
 ## check NA occurrences, especially in HAB_*
 plot(x[,2:3],pch=".",col=ifelse(is.na(x$HAB_EOSD2),2,1))
 
+plot(x[,2:3],pch=".",col=ifelse(is.na(x$EMT),2,1)) # coastal
+plot(x[,2:3],pch=".",col=ifelse(is.na(x$SLP),2,1)) # coastal + N YK
 
-## LCC 4x4
-
-fn <- file.path(ROOT, "PredictionIntersections", "Pred_LCC05_4x4CAN.csv")
-ltlcc <- read.csv("~/repos/bamanalytics/lookup/lcc05.csv")
-ltlcc$vv <- paste0("LCCVV", ltlcc$lcc05v1_2)
-ltlcc$BAMLCC05V2_label2 <- as.character(ltlcc$BAMLCC05V2_label2)
-ltlcc$BAMLCC05V2_label2[is.na(ltlcc$BAMLCC05V2_label2)] <- "NONE"
-
-tmp0 <- read.csv(fn, nrows=2, skip=0, header=TRUE)
-
-f1 <- function(tmp0) {
-    tmp0$LCCVVSUM <- NULL
-    tmp0$LCCVV0 <- NULL
-    m <- as(as.matrix(tmp0[,grepl("LCCVV", colnames(tmp0))]), "dgCMatrix")
-    rownames(m) <- gsub(",", "", tmp0$pointid)
-    groupSums(m, 2, ltlcc$BAMLCC05V2_label2)
-}
-f1(tmp0)
-rBind(tmp0,tmp0)
-
-nlines <- function(file) {
-    ## http://r.789695.n4.nabble.com/Fast-way-to-determine-number-of-lines-in-a-file-td1472962.html
-    ## needs Rtools on Windows
-    if (.Platform$OS.type == "windows") { 
-        nr <- as.integer(strsplit(system(paste("/RTools/bin/wc -l", 
-            file), intern=TRUE), " ")[[1]][1])
-    } else {
-        nr <- as.integer(strsplit(system(paste("wc -l", 
-            file), intern=TRUE), " ")[[1]][1])
-    }
-    nr
-}
-nlines(fn)
-
-MapReduce_function <- function(file, n, nr, FUN, REDUCE, ...) {
-    ## Map
-    if (missing(nr))
-        nr <- nlines(file)
-    m <- floor((nr-1) / n)
-    mm <- (nr-1) %% n
-    if (mm > 0)
-        m <- m+1
-    ## Reduce
-    tmp0 <- read.csv(file, nrows=2, skip=0, header=TRUE, ...)
-    cn <- colnames(tmp0)
-    #res <- list()
-    pb <- startpb(0, m)
-    on.exit(closepb(pb))
-    ## 1st run
-    tmp1 <- read.csv(file, nrows=n, skip=(1-1)*n+1, 
-        header=FALSE, ...)
-    colnames(tmp1) <- cn
-    res1 <- FUN(tmp1)
-    setpb(pb, 1)
-    for (i in 2:m) {
-        tmp <- read.csv(file, nrows=n, skip=(i-1)*n+1, 
-            header=FALSE, ...)
-        colnames(tmp) <- cn
-        res <- FUN(tmp)
-        res1 <- REDUCE(res1, res)
-        setpb(pb, i)
-        gc()
-    }
-    #out <- do.call(REDUCE, res)
-    res1
-}
-
-lcc4x4 <- MapReduce_function(fn, n=50000, nr=7935918, FUN=f1, REDUCE=rBind)
 
