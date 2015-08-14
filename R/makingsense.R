@@ -12,16 +12,16 @@ fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
     "analysis_package_fire-nalc-2015-07-24.Rdata")
 e <- new.env()
 load(file.path(ROOT, "out", "data", fl[fid]), envir=e)
-
+mods <- e$mods
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
-xn <- e$DAT[1:5000,Terms]
+xn <- e$DAT[1:1000,Terms]
 Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
 rm(e)
 
-mods <- if (fid == 4)
-    mods_fire else mods_gfw
+#mods <- if (fid == 4)
+#    mods_fire else mods_gfw
 fn <- paste0("bam-", fid, "_", spp, ".Rdata", sep="")
 load(file.path(ROOT, "out", "results", fn))
 
@@ -29,7 +29,7 @@ sum(getOK(res)) / length(res)
 
 ## need to load data for xn, Xn
 
-est <- getEst(res)
+est <- getEst(res, stage=6)
 
 getCaic(res)
 printCoefmat(getSummary(res))

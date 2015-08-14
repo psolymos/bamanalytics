@@ -1,3 +1,4 @@
+library(RColorBrewer)
 library(mefa4)
 library(pbapply)
 ROOT <- "c:/bam/May2015"
@@ -6,7 +7,7 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
 ## this is for fid 1:3 (not 4 !)
-mods <- mods_gfw
+#mods <- mods_gfw
 
 #fid <- 1
 Xnlist <- list()
@@ -17,6 +18,7 @@ for (fid in 1:3) {
         "analysis_package_fire-nalc-2015-07-24.Rdata")
     e <- new.env()
     load(file.path(ROOT, "out", "data", fl[fid]), envir=e)
+    mods <- e$mods
 
     Terms <- getTerms(mods, "list")
     setdiff(Terms, colnames(e$DAT))
@@ -38,6 +40,7 @@ spp <- "CAWA"
 wid <- 0
 #Stage <- which(names(mods) == "HS")
 Stage <- which(names(mods) == "Dist")
+# 2001, 2005, 2009, 2013
 BASE_YEAR <- 2015
 regs <- gsub(".Rdata", "",
     gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks"))))
@@ -55,6 +58,15 @@ load(file.path(ROOT, "out", "results", fn))
 sres$lcc <- res
 rm(res)
 
+if (FALSE) {
+Aic <- list()
+for (Stage in 1:8) {
+    Aic[[names(mods)[Stage]]] <- cbind(nalc=getCaic(sres$nalc, stage = Stage),
+        eosd=getCaic(sres$eosd, stage = Stage), lcc=getCaic(sres$lcc, stage = Stage))
+}
+lapply(Aic, function(aic) table(colnames(aic)[apply(aic, 1, which.min)]))
+}
+
 est <- list(nalc=getEst(sres$nalc, stage = Stage, X=Xnlist$nalc),
     eosd=getEst(sres$eosd, stage = Stage, X=Xnlist$eosd),
     lcc=getEst(sres$lcc, stage = Stage, X=Xnlist$lcc))
@@ -63,15 +75,21 @@ aic <- cbind(nalc=getCaic(sres$nalc, stage = Stage),
     lcc=getCaic(sres$lcc, stage = Stage))
 table(colnames(aic)[apply(aic, 1, which.min)])
 
+#for (BASE_YEAR in c(2001, 2005, 2009, 2013)) {
+for (wid in 3:2) {
 
 #regi <- "6_AB"
 for (regi in regs) {
+
 
 cat(spp, "--- Stage:", Stage, "--- setup:", 
     wid, "--- base yr:", BASE_YEAR, "--- region:", regi, "\n")
 flush.console()
 
 load(file.path(ROOT2, "chunks", paste0("pgdat-", regi, ".Rdata")))
+if (Stage <= 6)
+    rm(pg4x4)
+gc()
 
 ## placeholders: HSH, HSH2, isDM, isNF
 dat$HSH <- 0
@@ -121,51 +139,7 @@ lamfun <- function(mu, tr=0.99) {
     out
 }
 
-if (wid == 1) {
-    dat1 <- dat
-    dat1$HAB <- dat$HAB_NALC
-    dat1$isDM <- dat$isDM_NALC
-    dat1$isNF <- dat$isNF_NALC
-    dat1 <- dat1[!is.na(dat1$HAB),]
-    aa <- nrow(dat1) / AA
-    Xn1 <- model.matrix(getTerms(mods, "formula"), dat1)
-    colnames(Xn1) <- fixNames(colnames(Xn1))
-    mu1 <- pbapply(est$nalc, 1, function(z) Xn1 %*% z)
-    lam <- lamfun(mu1)
-    rownames(lam) <- rownames(dat1)
-    rn(dat1, Xn1, mu1)
-}
-if (wid == 3) {
-    dat2 <- dat
-    dat2$HAB <- dat$HAB_EOSD
-    dat2$isDM <- dat$isDM_EOSD
-    dat2$isNF <- dat$isNF_EOSD
-    dat2 <- dat2[!is.na(dat2$HAB),]
-    aa <- nrow(dat2) / AA
-    Xn2 <- model.matrix(getTerms(mods, "formula"), dat2)
-    colnames(Xn2) <- fixNames(colnames(Xn2))
-    mu2 <- pbapply(est$eosd, 1, function(z) Xn2 %*% z)
-    lam <- lamfun(mu2)
-    rownames(lam) <- rownames(dat2)
-    rn(dat2, Xn2, mu2)
-}
-if (wid == 2) {
-    dat3 <- dat
-    dat3$HAB <- dat$HAB_LCC
-    dat3$isDM <- dat$isDM_LCC
-    dat3$isNF <- dat$isNF_LCC
-    dat3 <- dat3[!is.na(dat3$HAB),]
-    aa <- nrow(dat3) / AA
-    Xn3 <- model.matrix(getTerms(mods, "formula"), dat3)
-    colnames(Xn3) <- fixNames(colnames(Xn3))
-    mu3 <- pbapply(est$lcc, 1, function(z) Xn3 %*% z)
-    lam <- lamfun(mu3)
-    rownames(lam) <- rownames(dat3)
-    rn(dat3, Xn3, mu3)
-}
-
 ## fid != 4 because that is not a combo
-if (wid == 0) {
 
     dat0 <- dat[rowSums(is.na(dat)) == 0,]
     aa <- nrow(dat0) / AA
@@ -194,9 +168,17 @@ if (wid == 0) {
     colnames(Xn3) <- fixNames(colnames(Xn3))
     rm(dat3)
 
+    aicv <- aic
+    if (wid == 1)
+        aicv[,1] <- -Inf
+    if (wid == 2)
+        aicv[,2] <- -Inf
+    if (wid == 3)
+        aicv[,3] <- -Inf
+
     mu4 <- matrix(0, nrow(Xn3), 240)
     for (j in 1:240) {
-        best <- which.min(aic[j,])
+        best <- which.min(aicv[j,])
         if (best == 1) {
             if (Stage > 6) {
                 Xn1[,"HSH"] <- rowSums(pg4x4$nalc[rownames(dat0), sres$nalc[[j]]$hi])
@@ -223,7 +205,6 @@ if (wid == 0) {
     lam <- lamfun(mu4)
     rownames(lam) <- rownames(dat0)
     rm(mu4, dat0)
-}
 
 attr(lam, "spp") <- spp
 attr(lam, "stage") <- Stage
@@ -233,22 +214,59 @@ gc()
 
 save(lam, file=file.path(ROOT2, "species", spp, 
     paste0(paste(spp, wid, Stage, BASE_YEAR, regi, sep="-"), ".Rdata")))
+rm(lam)
+}
 }
 
 as.matrix(rev(sort(sapply(ls(), function(x) object.size(get(x)))))[1:10])
 sum(sapply(ls(), function(x) object.size(get(x))))
 
-library(RColorBrewer)
-z <- lam[,"Median"]
-#z <- dat$CTI
 
-hist(attr(lam, "total"))
+## mapping
 
-plotfun <- function(lam, what="Median") {
-    z <- lam[,what]
+library(mefa4)
+library(pbapply)
+ROOT <- "c:/bam/May2015"
+ROOT2 <- "e:/peter/bam/pred-2015"
+source("~/repos/bamanalytics/R/makingsense_functions.R")
+source("~/repos/bamanalytics/R/analysis_mods.R")
+load(file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
+load(file.path(ROOT2, "XYeosd.Rdata"))
+
+spp <- "CAWA"
+wid <- 0
+Stage <- 6
+BASE_YEAR <- 2015
+regs <- gsub(".Rdata", "",
+    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks"))))
+
+xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
+
+fl <- paste0(paste(spp, wid, Stage, BASE_YEAR, regs, sep="-"), ".Rdata")
+load(file.path(ROOT2, "species", spp, fl[1]))
+plam <- lam
+tlam <- attr(lam, "total")
+for (fn in fl[-1]) {
+    cat("loading", fn, "\n");flush.console()
+    load(file.path(ROOT2, "species", spp, fn))
+    plam <- rbind(plam, lam)
+    tlam <- rbind(tlam, attr(lam, "total"))
+}
+dim(plam)
+sum(duplicated(rownames(plam)))
+
+hist(colSums(tlam)/10^6, col=3)
+sum(tlam[,1])/10^6
+median(colSums(tlam)/10^6)
+mean(colSums(tlam)/10^6)
+
+
+plotfun <- function(plam, what="Median") {
+    z <- plam[,what]
+    #z <- plam[,"IQR"]/plam[,"Median"]
     Col <- rev(brewer.pal(10, "RdBu"))
     cz <- cut(z, breaks = c(min(z)-1, quantile(z, seq(0.1, 1, 0.1))))
-    plot(dat[rownames(lam),2:3], col = Col[cz], pch=".")
+    plot(XYeosd[rownames(plam),], col = Col[cz], pch=".")
     invisible(NULL)
 }
 
@@ -261,3 +279,149 @@ plot(dat[,2:3], col = Col[z], pch=".")
 hs <- rowSums(pg4x4$nalc[rownames(dat0), c("Decid", "Mixed")])
 plot(hs, aa)
 table(unlist(lapply(sres$nalc, "[[", "hi")))
+
+
+
+
+
+
+Lc_quantile <- function (xx, probs=seq(0, 1, 0.1), type=c("L","p")) {
+    xx <- xx[!is.na(xx)]
+    o <- order(xx)
+    x <- cumsum(xx[o]) / sum(xx)
+    if (type=="L")
+        q <- probs
+    if (type=="p")
+        q <- quantile(x, probs=probs, na.rm=TRUE)
+    xxo <- xx[o]
+    i <- sapply(q, function(z) min(xxo[x >= z]))
+    i
+}
+
+png(file.path(ROOT, "out", "figs", "CAWA-2015.png"), width = 2000, height = 2000)
+op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
+
+x <- plam[,"Mean"]
+probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
+Col <- rev(brewer.pal(5, "RdYlBu"))
+br <- Lc_quantile(x, probs=probs, type="L")
+zval <- if (length(unique(round(br,10))) < 5)
+    rep(1, length(x)) else as.integer(cut(x, breaks=br))
+plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+points(xy1, pch=19, cex=1.2)
+
+
+br <- c(0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, Inf)
+Col <- rev(brewer.pal(10, "RdYlGn"))
+CoV <- plam[,"SD"] / plam[,"Mean"]
+zval <- cut(CoV, breaks=br)
+plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+points(xy1, pch=19, cex=1.2)
+
+par(op)
+dev.off()
+
+yrs <- c(2001, 2005, 2009, 2013)
+gfw <- list()
+for (BASE_YEAR in yrs) {
+    fl <- paste0(paste(spp, wid, Stage, BASE_YEAR, regs, sep="-"), ".Rdata")
+    load(file.path(ROOT2, "species", spp, fl[1]))
+    plam <- lam
+    tlam <- attr(lam, "total")
+    for (fn in fl[-1]) {
+        cat("loading", fn, "\n");flush.console()
+        load(file.path(ROOT2, "species", spp, fn))
+        plam <- rbind(plam, lam)
+        tlam <- rbind(tlam, attr(lam, "total"))
+    }
+    gfw[[as.character(BASE_YEAR)]] <- tlam
+}
+
+hist(colSums(tlam)/10^6, col=3)
+sum(tlam[,1])/10^6
+median(colSums(tlam)/10^6)
+
+ps <- sapply(gfw, function(z) {
+    tmp <- colSums(z)/10^6
+    c(Mean=mean(tmp), quantile(tmp, c(0.025, 0.975)))
+    })
+
+ps <- rbind(ps, Percent=(100 * ps[1,] / ps[1,1]) - 100)
+ps <- rbind(ps, Decadal=10*ps[4,]/c(yrs-yrs[1]))
+
+
+#spp <- "CAWA"
+
+getDistPred <- function(spp) {
+    xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
+    fd <- function(i) {
+        xy <- XYeosd[i, ]
+        min(sqrt((xy[1] - xy1[,1])^2 + (xy[2] - xy1[,2])^2)) / 1000
+    }
+    pbsapply(seq_len(nrow(XYeosd)), fd)
+}
+
+dp_cawa <- getDistPred("CAWA")
+
+
+png(file.path(ROOT, "out", "figs", "CAWA-d-2015.png"), width = 2000, height = 1000)
+op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+
+col <- rev(brewer.pal(9, "Reds"))
+z <- cut(dp_cawa, c(-1, 0, 5, 10, 50, 100, 200, 500, 1000, Inf))
+plot(XYeosd, pch=".", col=col[z],
+    ann=FALSE, axes=FALSE)
+points(xy1, pch=19, cex=1.2)
+
+par(op)
+dev.off()
+
+
+spp <- "CAWA"
+Stage <- 7
+BASE_YEAR <- 2015
+est <- list()
+map <- list()
+for (wid in c(0,2,3)) {
+    fl <- paste0(paste(spp, wid, Stage, BASE_YEAR, regs, sep="-"), ".Rdata")
+    load(file.path(ROOT2, "species", spp, fl[1]))
+    plam <- lam
+    tlam <- attr(lam, "total")
+    for (fn in fl[-1]) {
+        cat("loading", fn, "\n");flush.console()
+        load(file.path(ROOT2, "species", spp, fn))
+        plam <- rbind(plam, lam)
+        tlam <- rbind(tlam, attr(lam, "total"))
+    }
+    est[[as.character(wid)]] <- tlam
+    map[[as.character(wid)]] <- plam
+}
+
+ps <- sapply(est, function(z) {
+    tmp <- colSums(z)/10^6
+    c(Mean=mean(tmp), quantile(tmp, c(0.025, 0.975)))
+    })
+colnames(ps) <- c("NALC","EOSD","LCC")
+ps
+
+png(file.path(ROOT, "out", "figs", "CAWA-all-7-2015.png"), width = 2000, height = 3000)
+op <- par(mfrow=c(3,1), mar=c(1,1,1,1)+0.1)
+
+for (i in 1:3) {
+    x <- map[[i]][,"Mean"]
+    probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+    TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
+    Col <- rev(brewer.pal(5, "RdYlBu"))
+    br <- Lc_quantile(x, probs=probs, type="L")
+    zval <- if (length(unique(round(br,10))) < 5)
+        rep(1, length(x)) else as.integer(cut(x, breaks=br))
+    plot(XYeosd[rownames(map[[i]]),], col = Col[zval], pch=".",
+        ann=FALSE, axes=FALSE)
+    points(xy1, pch=19, cex=1.2)
+}
+
+par(op)
+dev.off()

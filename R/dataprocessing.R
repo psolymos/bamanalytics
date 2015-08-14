@@ -227,6 +227,8 @@ SS <- data.frame(
     SS=SS01$SS,
     X=SS01$X_GEONAD83,
     Y=SS01$Y_GEONAD83,
+    Xcl=SS01$X_CLCC,
+    Ycl=SS01$Y_CLCC,
     JURS=SS01$JURSALPHA,
     COUNTRY=SS01$COUNTRY,
     TZONE=SS01$TZONE_CODE,
@@ -897,7 +899,8 @@ write.csv(offdat, row.names=FALSE, file=file.path(ROOT, "out",
 
 library(mefa4)
 ROOT <- "c:/bam/May2015"
-load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
+#load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
+load(file.path(ROOT, "out", "data_package_2015-08-14.Rdata"))
 load(file.path(ROOT, "out", "offsets_allspp_BAMBBS_2015-07-24.Rdata"))
 
 colnames(OFF)[colnames(OFF) == "YWAR"] <- "YEWA"
@@ -913,6 +916,9 @@ SPP <- colnames(OFF)
 
 YY <- Xtab(ABUND ~ PKEY + SPECIES, PCTBL)
 YY <- YY[,SPP]
+YYSS <- Xtab(ABUND ~ SS + SPECIES, PCTBL)
+YYSS[YYSS > 1] <- 1
+YYSS <- YYSS[,SPP]
 rm(PCTBL)
 
 PKEY <- PKEY[,c("PKEY", "SS", "PCODE", "METHOD", "SITE", "ROUND", "YEAR",
@@ -993,6 +999,13 @@ SS$YearLoss[SS$YearLoss == 0] <- NA
 SS$YearFire[is.na(SS$YearFire)] <- 2015 - 200
 SS$YearLoss[is.na(SS$YearLoss)] <- 2015 - 200
 
+XYSS <- as.matrix(SS[,c("X","Y","Xcl","Ycl")])
+rownames(XYSS) <- SS$SS
+ii <- intersect(rownames(YYSS), rownames(XYSS))
+YYSS <- YYSS[ii,]
+XYSS <- XYSS[ii,]
+rm(ii)
+
 DAT <- data.frame(PKEY, SS[match(PKEY$SS, SS$SS),])
 DAT$SS.1 <- NULL
 DAT$PCODE.1 <- NULL
@@ -1055,9 +1068,14 @@ DAT$BCR_JURS <- interaction(DAT$BCR, DAT$JURS, drop=TRUE, sep="_")
 levels(DAT$BCR_JURS)[grepl("_AK", levels(DAT$BCR_JURS))] <- "AK"
 levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("9_BC","9_ID","9_WA",
     "5_BC","5_WA","10_AB","10_BC","10_ID","10_MT","10_WA")] <- "Mtn"
-levels(DAT$BCR_JURS)[grepl("11_", levels(DAT$BCR_JURS))] <- "Pra" # Prairies
-levels(DAT$BCR_JURS)[grepl("17_", levels(DAT$BCR_JURS))] <- "Pra"
-levels(DAT$BCR_JURS)[grepl("22_", levels(DAT$BCR_JURS))] <- "Pra"
+#levels(DAT$BCR_JURS)[grepl("11_", levels(DAT$BCR_JURS))] <- "Pra" # Prairies
+#levels(DAT$BCR_JURS)[grepl("17_", levels(DAT$BCR_JURS))] <- "Pra"
+#levels(DAT$BCR_JURS)[grepl("22_", levels(DAT$BCR_JURS))] <- "Pra"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("11_AB", "11_MB", "11_MT", "11_SK",
+    "17_MT", "17_ND", "17_SD", "11_ND", "11_SD")] <- "Pra_west" # Prairies
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("11_MN", 
+    "22_IL", "22_IN", "22_MI", "22_MN", "22_OH", "22_WI")] <- "Pra_east"
+
 
 #levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("4_BC",
 #    "4_NT","4_YK","6_YK","6_NT")] <- "4+6_YK+NT"
@@ -1093,14 +1111,27 @@ table(DAT$BCR_JURS, DAT$YR5)
 DAT$REG <- DAT$BCR_JURS
 levels(DAT$REG)[levels(DAT$REG) %in% c("Mtn", "AK")] <- "Coast"
 levels(DAT$REG)[levels(DAT$REG) %in% c("4_all", "3+7_west", "3+7_east")] <- "North"
-levels(DAT$REG)[levels(DAT$REG) %in% c("Pra")] <- "South"
+levels(DAT$REG)[levels(DAT$REG) %in% c("Pra_west", "Pra_east")] <- "South"
 levels(DAT$REG)[levels(DAT$REG) %in% c("8_west","6_all")] <- "West"
 levels(DAT$REG)[levels(DAT$REG) %in% c("Mar","SEus","8_east","Grl")] <- "East"
 table(DAT$BCR_JURS, DAT$REG)
 table(DAT$REG)
 DAT$REG <- relevel(DAT$REG, "West")
 
-#plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
+DAT$EW <- DAT$BCR_JURS
+levels(DAT$EW)[levels(DAT$EW) %in% c("Mtn", "AK", "4_all", "3+7_west", 
+    "Pra_west", "8_west","6_all")] <- "W"
+levels(DAT$EW)[levels(DAT$EW) %in% c("3+7_east", "Pra_east",
+    "Mar","SEus","8_east","Grl")] <- "E"
+table(DAT$BCR_JURS, DAT$EW)
+table(DAT$EW)
+DAT$EW <- relevel(DAT$EW, "W")
+
+library(RColorBrewer)
+#plot(DAT[,c("Xcl","Ycl")], col=DAT$REG, pch=19, cex=0.2)
+#plot(DAT[,c("Xcl","Ycl")], col=brewer.pal(12, "Set3")[DAT$BCR_JURS], pch=19, cex=0.2)
+#plot(DAT[,c("Xcl","Ycl")], col=ifelse(as.integer(DAT$BCR_JURS)==8,2,1), pch=19, cex=0.2)
+#plot(DAT[,c("Xcl","Ycl")], col=DAT$EW, pch=19, cex=0.2)
 
 ## resampling blocks
 DAT$bootg <- interaction(DAT$BCR_JURS, DAT$YR5, drop=TRUE)
@@ -1137,6 +1168,9 @@ DAT$ARU <- ifelse(DAT$PCODE %in% levels(DAT$PCODE)[grep("EMC", levels(DAT$PCODE)
     1L, 0L)
 
 stopifnot(all(!is.na(DAT$PKEY)))
+
+## placeholder for distance to nearest detection
+DAT$ND2 <- 0
 
 source("~/repos/bamanalytics/R/analysis_mods.R")
 source("~/repos/detect/R/hbootindex.R")
@@ -1253,7 +1287,11 @@ DAT0 <- DAT
 TAX0 <- TAX
 YY0 <- YY
 OFF0 <- OFF
-Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y")
+#Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y", "Xcl", "Ycl")
+Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
+
+save(YYSS, XYSS,
+    file=file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
 
 DAT <- DAT2
 pk <- rownames(DAT)
@@ -1267,7 +1305,7 @@ colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB2
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-08-11.Rdata"))
+    file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-08-14.Rdata"))
 #plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
 
 DAT <- DAT1_LCC
@@ -1282,7 +1320,7 @@ colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-08-11.Rdata"))
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-08-14.Rdata"))
 
 DAT <- DAT1_EOSD
 pk <- rownames(DAT)
@@ -1296,7 +1334,7 @@ colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-08-11.Rdata"))
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-08-14.Rdata"))
 
 DAT <- DAT1_NALC
 pk <- rownames(DAT)
@@ -1310,6 +1348,6 @@ colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-08-11.Rdata"))
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-08-14.Rdata"))
 
 

@@ -67,17 +67,21 @@ mod_DisturbGFWFire <- list(
 mod_HS <- list(
     . ~ . + HSH,
     . ~ . + HSH + HSH2)
+mod_ND <- list(
+    . ~ . + ND2)
 mod_Year <- list(
     . ~ . + YR,
-    . ~ . + YR + YR:REG)
+    . ~ . + YR + YR:EW)
 
 mods_fire <- list(Hab=mod_Hab, 
     Road=mod_Road, ARU=mod_ARU, Wet=mod_Wet, Clim=mod_Climate,
     Dist=mod_DisturbFire,
-    HS=mod_HS,
+#    HS=mod_HS,
+    ND=mod_ND,
     Year=mod_Year)
 mods_gfw <- list(Hab=mod_Hab, 
     Road=mod_Road, ARU=mod_ARU, Wet=mod_Wet, Clim=mod_Climate,
     Dist=mod_DisturbGFWFire,
-    HS=mod_HS,
+#    HS=mod_HS,
+    ND=mod_ND,
     Year=mod_Year)

@@ -490,6 +490,10 @@ nalc4x4 <- nalc4x4[rownames(x),]
 
 x$TR3[is.na(x$TR3)] <- "Open" # this is global
 
+XYeosd <- as.matrix(x[,2:3])
+rownames(XYeosd) <- x[,1]
+save(XYeosd, file=file.path(ROOT, "XYeosd.Rdata"))
+
 reg <- levels(x$BCR_JURS0)
 for (i in reg) {
     cat(i, "\n");flush.console()
