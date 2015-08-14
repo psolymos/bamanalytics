@@ -459,6 +459,8 @@ x <- x[x$EOSD_COVER == 1,]
 rownames(x) <- x$pointid
 
 load(file.path(ROOT, "pg-loss.Rdata"))
+ii <- loss$YearFire >= 9000 & !is.na(loss$YearFire)
+loss$YearFire[ii] <- loss$YearFire[ii] - 8000
 x$YearFire <- loss$YearFire[match(x$pointid, loss$pointid)]
 x$YearLoss <- loss$YearLoss[match(x$pointid, loss$pointid)]
 rm(loss)

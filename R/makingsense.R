@@ -13,7 +13,7 @@ fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
 e <- new.env()
 load(file.path(ROOT, "out", "data", fl[fid]), envir=e)
 
-Terms <- getTerms(mods, "list")
+Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
 xn <- e$DAT[1:5000,Terms]
 Xn <- model.matrix(getTerms(mods, "formula"), xn)

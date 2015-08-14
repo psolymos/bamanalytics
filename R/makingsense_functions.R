@@ -38,7 +38,9 @@ Grepl <- function(pattern, x) {
     rowSums(sapply(pattern, function(z) grepl(z, x))) > 0
 }
 
-getEst <- function(res, stage=NULL, na.out=TRUE) {
+getEst <- function(res, stage=NULL, na.out=TRUE, X) {
+    if (!missing(X))
+        Xn <- X
     OK <- !sapply(res, inherits, "try-error")
     if (any(!OK))
         warning(paste("try-error found:", sum(!OK)))
