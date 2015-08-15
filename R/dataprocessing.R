@@ -1198,7 +1198,9 @@ rownames(DAT1) <- DAT1$PKEY
 DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY)),])
 dim(DAT1)
 data.frame(n=colSums(is.na(DAT1)))
-
+## data specific 0 year and decadal change
+DAT1$YR <- (DAT1$YR - min(DAT1$YR)) / 10
+table(DAT1$YR)
 
 set.seed(1234)
 ## make sure that time intervals are considered as blocks
@@ -1246,7 +1248,7 @@ DAT1_NALC <- DAT1_NALC[,!grepl("_NALC", colnames(DAT1_NALC))]
 
 keep2 <- rep(TRUE, nrow(DAT))
 keep2[DAT$ROAD_OK < 1] <- FALSE
-keep2[DAT$YEAR < 2000] <- FALSE
+#keep2[DAT$YEAR < 1997] <- FALSE
 keep2[is.na(DAT$HAB_NALC2)] <- FALSE
 keep2[is.na(DAT$TREE)] <- FALSE
 keep2[is.na(DAT$CMI)] <- FALSE
@@ -1265,6 +1267,9 @@ data.frame(n=colSums(is.na(DAT2)))
 rownames(DAT2) <- DAT2$PKEY
 DAT2 <- droplevels(DAT2[intersect(rownames(DAT2), rownames(YY)),])
 dim(DAT2)
+## data specific 0 year and decadal change
+DAT2$YR <- (DAT2$YR - min(DAT2$YR)) / 10
+table(DAT2$YR)
 
 set.seed(1234)
 ## make sure that time intervals are considered as blocks
