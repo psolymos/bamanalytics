@@ -503,6 +503,57 @@ for (i in reg) {
     save(dat, pg4x4, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
 }
 
+## packaging: NALC full extent
+
+## use eosd coverage to save bcr/jurs0 chunks
+
+ROOT <- "e:/peter/bam/pred-2015"
+library(mefa4)
+
+load(file.path(ROOT, "pg-main.Rdata"))
+#x <- x[x$EOSD_COVER == 1,]
+rownames(x) <- x$pointid
+
+load(file.path(ROOT, "pg-loss.Rdata"))
+ii <- loss$YearFire >= 9000 & !is.na(loss$YearFire)
+loss$YearFire[ii] <- loss$YearFire[ii] - 8000
+x$YearFire <- loss$YearFire[match(x$pointid, loss$pointid)]
+x$YearLoss <- loss$YearLoss[match(x$pointid, loss$pointid)]
+rm(loss)
+
+load(file.path(ROOT, "pg-clim.Rdata"))
+rownames(clim) <- clim$pointid
+clim <- clim[match(x$pointid, clim$pointid),4:14]
+x <- data.frame(x, clim)
+rm(clim)
+
+x <- x[!is.na(x$CTI) & ! is.na(x$TD),]
+x$DD02 <- x$DD0^2
+x$DD52 <- x$DD5^2
+
+x$REG <- droplevels(x$REG)
+x$BCR_JURS0 <- droplevels(x$BCR_JURS0)
+
+x$TR3[is.na(x$TR3)] <- "Open" # this is global
+
+x$pointid <- NULL
+
+XYfull <- as.matrix(x[,c("POINT_X","POINT_Y")])
+rownames(XYfull) <- x[,1]
+save(XYfull, file=file.path(ROOT, "XYfull.Rdata"))
+
+reg <- levels(x$BCR_JURS0)
+for (i in reg) {
+    gc()
+    cat(i, "\n");flush.console()
+    ii <- x$BCR_JURS0 == i
+    dat <- x[ii,]
+    save(dat, file=file.path(ROOT, "chunks2", paste0("pgdat-full-", i, ".Rdata")))
+}
+dat <- x
+save(dat, file=file.path(ROOT, paste0("pgdat-full.Rdata")))
+
+
 ################# POSTPROCESSING ###############################
 
 

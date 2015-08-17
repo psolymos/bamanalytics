@@ -12,10 +12,10 @@ source("~/repos/bamanalytics/R/analysis_mods.R")
 #fid <- 1
 Xnlist <- list()
 for (fid in 1:3) {
-    fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
-        "analysis_package_gfwfire-eosd-2015-07-24.Rdata",
-        "analysis_package_gfwfire-lcc-2015-07-24.Rdata",
-        "analysis_package_fire-nalc-2015-07-24.Rdata")
+    fl <- c("analysis_package_gfwfire-nalc-2015-08-11.Rdata",
+        "analysis_package_gfwfire-eosd-2015-08-11.Rdata",
+        "analysis_package_gfwfire-lcc-2015-08-11.Rdata",
+        "analysis_package_fire-nalc-2015-08-11.Rdata")
     e <- new.env()
     load(file.path(ROOT, "out", "data", fl[fid]), envir=e)
     mods <- e$mods
@@ -38,57 +38,80 @@ rm(xn, Xn)
 
 spp <- "CAWA"
 wid <- 0
+fid <- 4
 #Stage <- which(names(mods) == "HS")
 Stage <- which(names(mods) == "Dist")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2015
-regs <- gsub(".Rdata", "",
-    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks"))))
 
+
+## fid 1,2,3
+if (fid < 4) {
+    regs <- gsub(".Rdata", "",
+        gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks"))))
+
+    fn <- paste0("bam-", 1, "_", spp, ".Rdata", sep="")
+    load(file.path(ROOT, "out", "results", fn))
+    sres <- list(nalc=res)
+    fn <- paste0("bam-", 2, "_", spp, ".Rdata", sep="")
+    load(file.path(ROOT, "out", "results", fn))
+    sres$eosd <- res
+    fn <- paste0("bam-", 3, "_", spp, ".Rdata", sep="")
+    load(file.path(ROOT, "out", "results", fn))
+    sres$lcc <- res
+    rm(res)
+
+    if (FALSE) {
+    Aic <- list()
+    for (Stage in 1:8) {
+        Aic[[names(mods)[Stage]]] <- cbind(nalc=getCaic(sres$nalc, stage = Stage),
+            eosd=getCaic(sres$eosd, stage = Stage), lcc=getCaic(sres$lcc, stage = Stage))
+    }
+    lapply(Aic, function(aic) table(colnames(aic)[apply(aic, 1, which.min)]))
+    }
+
+    est <- list(nalc=getEst(sres$nalc, stage = Stage, X=Xnlist$nalc),
+        eosd=getEst(sres$eosd, stage = Stage, X=Xnlist$eosd),
+        lcc=getEst(sres$lcc, stage = Stage, X=Xnlist$lcc))
+    aic <- cbind(nalc=getCaic(sres$nalc, stage = Stage),
+        eosd=getCaic(sres$eosd, stage = Stage),
+        lcc=getCaic(sres$lcc, stage = Stage))
+    table(colnames(aic)[apply(aic, 1, which.min)])
+}
+## fid 4
+if (fid == 4) {
+    wid <- 1 # NALC only
+    regs <- gsub(".Rdata", "",
+        gsub("pgdat-full-", "", list.files(file.path(ROOT2, "chunks2"))))
+
+    fn <- paste0("bam-", 4, "_", spp, ".Rdata", sep="")
+    load(file.path(ROOT, "out", "results", fn))
+    res4 <- res
+    rm(res)
+
+    est <- getEst(res4, stage = Stage, X=Xnlist$nalc)
+    aic <- getCaic(res4, stage = Stage)
+}
 ######
 
-fn <- paste0("bam-", 1, "_", spp, ".Rdata", sep="")
-load(file.path(ROOT, "out", "results", fn))
-sres <- list(nalc=res)
-fn <- paste0("bam-", 2, "_", spp, ".Rdata", sep="")
-load(file.path(ROOT, "out", "results", fn))
-sres$eosd <- res
-fn <- paste0("bam-", 3, "_", spp, ".Rdata", sep="")
-load(file.path(ROOT, "out", "results", fn))
-sres$lcc <- res
-rm(res)
-
-if (FALSE) {
-Aic <- list()
-for (Stage in 1:8) {
-    Aic[[names(mods)[Stage]]] <- cbind(nalc=getCaic(sres$nalc, stage = Stage),
-        eosd=getCaic(sres$eosd, stage = Stage), lcc=getCaic(sres$lcc, stage = Stage))
-}
-lapply(Aic, function(aic) table(colnames(aic)[apply(aic, 1, which.min)]))
-}
-
-est <- list(nalc=getEst(sres$nalc, stage = Stage, X=Xnlist$nalc),
-    eosd=getEst(sres$eosd, stage = Stage, X=Xnlist$eosd),
-    lcc=getEst(sres$lcc, stage = Stage, X=Xnlist$lcc))
-aic <- cbind(nalc=getCaic(sres$nalc, stage = Stage),
-    eosd=getCaic(sres$eosd, stage = Stage),
-    lcc=getCaic(sres$lcc, stage = Stage))
-table(colnames(aic)[apply(aic, 1, which.min)])
 
 #for (BASE_YEAR in c(2001, 2005, 2009, 2013)) {
-for (wid in 3:2) {
+#for (wid in 3:2) {
 
 #regi <- "6_AB"
 for (regi in regs) {
-
 
 cat(spp, "--- Stage:", Stage, "--- setup:", 
     wid, "--- base yr:", BASE_YEAR, "--- region:", regi, "\n")
 flush.console()
 
-load(file.path(ROOT2, "chunks", paste0("pgdat-", regi, ".Rdata")))
-if (Stage <= 6)
-    rm(pg4x4)
+if (fid < 4) {
+    load(file.path(ROOT2, "chunks", paste0("pgdat-", regi, ".Rdata")))
+    if (Stage <= 6)
+        rm(pg4x4)
+}
+if (fid == 4)
+    load(file.path(ROOT2, "chunks2", paste0("pgdat-full-", regi, ".Rdata")))
 gc()
 
 ## placeholders: HSH, HSH2, isDM, isNF
@@ -140,9 +163,11 @@ lamfun <- function(mu, tr=0.99) {
 }
 
 ## fid != 4 because that is not a combo
+if (fid < 4) {
 
     dat0 <- dat[rowSums(is.na(dat)) == 0,]
-    aa <- nrow(dat0) / AA
+    #aa <- nrow(dat0) / AA
+    aa <- 1
 
     dat1 <- dat0
     dat1$HAB <- dat0$HAB_NALC
@@ -206,17 +231,62 @@ lamfun <- function(mu, tr=0.99) {
     rownames(lam) <- rownames(dat0)
     rm(mu4, dat0)
 
-attr(lam, "spp") <- spp
-attr(lam, "stage") <- Stage
-attr(lam, "base-year") <- BASE_YEAR
-attr(lam, "bcr-jurs") <- regi
-gc()
+    attr(lam, "spp") <- spp
+    attr(lam, "stage") <- Stage
+    attr(lam, "base-year") <- BASE_YEAR
+    attr(lam, "bcr-jurs") <- regi
+    gc()
 
-save(lam, file=file.path(ROOT2, "species", spp, 
-    paste0(paste(spp, wid, Stage, BASE_YEAR, regi, sep="-"), ".Rdata")))
-rm(lam)
+    save(lam, file=file.path(ROOT2, "species", spp, 
+        paste0(paste(spp, wid, Stage, BASE_YEAR, regi, sep="-"), ".Rdata")))
+    rm(lam)
+}
+if (fid == 4) {
+    dat1 <- dat
+    dat1$HAB_EOSD2 <- NULL
+    dat1$HAB_LCC2 <- NULL
+    dat1$isDM_LCC <- NULL
+    dat1$isDM_EOSD <- NULL
+    dat1$isNF_LCC <- NULL
+    dat1$isNF_EOSD <- NULL
+    dat1 <- dat1[rowSums(is.na(dat)) == 0,]
+    if (nrow(dat1) > 0) {
+        #aa <- nrow(dat0) / AA
+        aa <- 1
+
+        dat1$HAB <- dat1$HAB_NALC
+        dat1$isDM <- dat1$isDM_NALC
+        dat1$isNF <- dat1$isNF_NALC
+        Xn1 <- model.matrix(getTerms(mods, "formula"), dat1)
+        colnames(Xn1) <- fixNames(colnames(Xn1))
+        #rm(dat1)
+        if (Stage > 6)
+            stop("no 4x4 processed for full extent")
+        mu4 <- matrix(0, nrow(Xn1), nrow(est))
+        for (j in 1:nrow(est)) {
+            mu4[,j] <- drop(Xn1[,colnames(est)] %*% est[j,])
+        }
+        rm(Xn1)
+        lam <- lamfun(mu4)
+        rownames(lam) <- rownames(dat1)
+        rm(mu4, dat1)
+
+    } else {
+        #lam <- matrix(0, 0, 0)
+        lam <- structure(numeric(0), .Dim = c(0L, 5L), .Dimnames = list(NULL, 
+            c("Mean", "SD", "Median", "IQR", "One")))
+    }
+    attr(lam, "spp") <- spp
+    attr(lam, "stage") <- Stage
+    attr(lam, "base-year") <- BASE_YEAR
+    attr(lam, "bcr-jurs") <- regi
+    gc()
+    save(lam, file=file.path(ROOT2, "species", paste0(spp, "-4"), 
+        paste0(paste(spp, wid, Stage, BASE_YEAR, regi, sep="-"), ".Rdata")))
+    rm(lam)
 }
 }
+#}
 
 as.matrix(rev(sort(sapply(ls(), function(x) object.size(get(x)))))[1:10])
 sum(sapply(ls(), function(x) object.size(get(x))))
@@ -453,3 +523,5 @@ for (fn in c("CMIJJA", "CMI", "TD", "DD0",
     dev.off()
 
 }
+
+
