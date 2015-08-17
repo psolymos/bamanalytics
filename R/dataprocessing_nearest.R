@@ -8,19 +8,36 @@ YYSS <- YYSS[rownames(XYSS),]
 
 #spp <- "CAWA"
 
-getDist <- function(spp) {
+getDist <- function(spp, self=FALSE) {
     xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
-    fd <- function(i) {
+    fdself <- function(i) {
         xy <- XYSS[i, c("Xcl","Ycl")]
         min(sqrt((xy[1] - xy1[,1])^2 + (xy[2] - xy1[,2])^2)) / 1000
     }
-    nd <- numeric(nrow(YYSS))
-    i0 <- which(YYSS[,spp] == 0)
-    d0 <- pbsapply(i0, fd)
-    nd[i0] <- d0
+    fd <- function(i) {
+        xy <- XYSS[i, c("Xcl","Ycl")]
+        ok <- j != i
+        tmp <- sqrt((xy[1] - xy1[ok,1])^2 + (xy[2] - xy1[ok,2])^2) / 1000
+        min(tmp)
+    }
+    ## self is 0 distance
+    if (self) {
+        nd <- numeric(nrow(YYSS))
+        i0 <- which(YYSS[,spp] == 0)
+        d0 <- pbsapply(i0, fdself)
+        nd[i0] <- d0
+    ## self is not counted
+    } else {
+        j <- which(YYSS[,spp] > 0)
+        nd <- pbsapply(seq_len(nrow(YYSS)), fd)
+        nd[nd == 0] <- min(nd[nd > 0])
+    }
     nd
 }
-#d_cawa <- getDist("CAWA")
+d_cawa <- getDist("CAWA", self=FALSE)
+summary(d_cawa)
+d_cawa[d_cawa < 1] <- 1
+d_all[,"CAWA"] <- d_cawa
 
 #SPP <- colnames(YYSS)
 SPP <- c("CAWA","OSFL","WEWP","RUBL")

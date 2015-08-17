@@ -39,16 +39,16 @@ if (interactive())
     setwd("c:/bam/May2015/out")
 fid <- if (interactive())
     1 else as.numeric(args[2])
-fl <- c("analysis_package_gfwfire-nalc-2015-08-14.Rdata",
-    "analysis_package_gfwfire-eosd-2015-08-14.Rdata",
-    "analysis_package_gfwfire-lcc-2015-08-14.Rdata",
-    "analysis_package_fire-nalc-2015-08-14.Rdata")
+fl <- paste0(c("analysis_package_gfwfire-nalc-",
+    "analysis_package_gfwfire-eosd-",
+    "analysis_package_gfwfire-lcc-",
+    "analysis_package_fire-nalc-"), "2015-08-17.Rdata")
 fn <- fl[fid]
 load(file.path("data", fn))
 if (TEST)
     mods <- mods[1:3]
 
-load(file.path("data", "analysis_package_distances.Rdata"))
+#load(file.path("data", "analysis_package_distances.Rdata"))
 
 #### spawning the slaves ####
 
@@ -71,7 +71,7 @@ if (interactive())
     tmpcl <- clusterEvalQ(cl, setwd("c:/bam/May2015/out"))
 tmpcl <- clusterEvalQ(cl, load(file.path("data", fn)))
 
-tmpcl <- clusterEvalQ(cl, load(file.path("data", "analysis_package_distances.Rdata")))
+#tmpcl <- clusterEvalQ(cl, load(file.path("data", "analysis_package_distances.Rdata")))
 
 #### project identifier ####
 
@@ -104,12 +104,12 @@ CAICalpha <- 1
 spp <- if (interactive()) # CAWA OSFL RUBL WEWP
     "CAWA" else as.character(args[3])
 
-DAT$ND2 <- -(d_all[match(DAT$SS, rownames(d_all)),spp] / 1000)^2
-nd2 <- DAT$ND2
-tmpcl <- clusterExport(cl, "nd2")
-#clusterEvalQ(cl, summary(DAT$ND2))
-tmpcl <- clusterEvalQ(cl, DAT$ND2 <- nd2)
-#clusterEvalQ(cl, summary(DAT$ND2))
+#DAT$ND2 <- -(d_all[match(DAT$SS, rownames(d_all)),spp] / 1000)^2
+#nd2 <- DAT$ND2
+#tmpcl <- clusterExport(cl, "nd2")
+##clusterEvalQ(cl, summary(DAT$ND2))
+#tmpcl <- clusterEvalQ(cl, DAT$ND2 <- nd2)
+##clusterEvalQ(cl, summary(DAT$ND2))
 
 #system.time(aaa <- do_1spec1run_noW(1, i=spp, mods=mods, hsh_name=hsh_name, CAICalpha=CAICalpha))
 

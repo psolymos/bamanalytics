@@ -3,12 +3,13 @@ ROOT <- "c:/bam/May2015"
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/analysis_functions.R")
 
-fid <- 4
-fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
-    "analysis_package_gfwfire-eosd-2015-07-24.Rdata",
-    "analysis_package_gfwfire-lcc-2015-07-24.Rdata",
-    "analysis_package_fire-nalc-2015-07-24.Rdata")
+fid <- 1
+fl <- c("analysis_package_gfwfire-nalc-2015-08-14.Rdata",
+    "analysis_package_gfwfire-eosd-2015-08-14.Rdata",
+    "analysis_package_gfwfire-lcc-2015-08-14.Rdata",
+    "analysis_package_fire-nalc-2015-08-14.Rdata")
 load(file.path(ROOT, "out", "data", fl[fid]))
+load(file.path(ROOT, "out", "analysis_package_distances.Rdata"))
 
 
 
@@ -21,6 +22,22 @@ hsh_name="HAB"
 silent=FALSE
 }
 
+DAT$ND2 <- -(pmax(1, d_all[match(DAT$SS, rownames(d_all)),"CAWA"]) / 1000)^2
+boxplot(DAT$ND2 ~ YY[,"CAWA"])
+DAT$D <- pmax(1, d_all[match(DAT$SS, rownames(d_all)),"CAWA"]) / 1000
+boxplot(DAT$D ~ YY[,"CAWA"])
+
+m0 <- glm(YY[BB[,1],"CAWA"] ~ 1, DAT[BB[,1],], 
+    offset=OFF[BB[,1],"CAWA"], family=poisson)
+m1 <- glm(YY[BB[,1],"CAWA"] ~ ND2, DAT[BB[,1],], 
+    offset=OFF[BB[,1],"CAWA"], family=poisson)
+summary(m1)
+AIC(m0,m1)
+
+library(pscl)
+
+m2 <- zeroinfl(YY[BB[,1],"CAWA"] ~ HAB | D, DAT[BB[,1],], 
+    offset=OFF[BB[,1],"CAWA"], link="logit")
 
 system.time(res <- do_1spec1run_noW(1, "CAWA", mods, 
     hsh_name="HAB", CAICalpha=1))

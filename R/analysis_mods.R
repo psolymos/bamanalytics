@@ -28,10 +28,14 @@ mod_Wet <- list(
     . ~ . + SLP,
     . ~ . + SLP + SLP2)
 mod_Climate <- list(
-    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD,
-    . ~ . + CMI + DD0 + DD5 + EMT + TD,
-    . ~ . + CMI + CMIJJA + DD5 + MSP + TD,
-    . ~ . + CMI + CMIJJA + DD0 + DD5 + MSP)
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + DD52,
+    . ~ . + CMI + CMIJJA + DD0 + DD5 + MSP + DD02 + DD52,
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + CMIJJA:DD0 + CMIJJA:DD5,
+    . ~ . + CMI + DD0 + DD5 + EMT + TD + CMI:DD0 + CMI:DD5,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + CMI:DD5,
+    . ~ . + CMI + CMIJJA + DD0 + DD5 + MSP + CMI:DD0 + CMI:DD5)
 ## all years
 mod_DisturbFire <- list(
     ## 10 yrs post disturbance
@@ -77,11 +81,11 @@ mods_fire <- list(Hab=mod_Hab,
     Road=mod_Road, ARU=mod_ARU, Wet=mod_Wet, Clim=mod_Climate,
     Dist=mod_DisturbFire,
 #    HS=mod_HS,
-    ND=mod_ND,
+#    ND=mod_ND,
     Year=mod_Year)
 mods_gfw <- list(Hab=mod_Hab, 
     Road=mod_Road, ARU=mod_ARU, Wet=mod_Wet, Clim=mod_Climate,
     Dist=mod_DisturbGFWFire,
 #    HS=mod_HS,
-    ND=mod_ND,
+#    ND=mod_ND,
     Year=mod_Year)

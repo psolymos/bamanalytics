@@ -973,6 +973,9 @@ SS$DD5 <- (SS$DD51 - 1600) / 1000
 SS$EMT <- (SS$EMT + 400) / 100
 SS$MSP <- (SS$MSP - 400) / 200
 
+SS$DD02 <- SS$DD0^2
+SS$DD52 <- SS$DD5^2
+
 SS$CMD <- NULL
 #CMI
 #CMIJJA
@@ -1294,9 +1297,10 @@ YY0 <- YY
 OFF0 <- OFF
 #Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y", "Xcl", "Ycl")
 Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
+Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
 
-save(YYSS, XYSS,
-    file=file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
+#save(YYSS, XYSS,
+#    file=file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
 
 DAT <- DAT2
 pk <- rownames(DAT)
@@ -1309,8 +1313,8 @@ HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB2
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-08-14.Rdata"))
+save(list = Save,
+    file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-08-17.Rdata"))
 #plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
 
 DAT <- DAT1_LCC
@@ -1324,8 +1328,8 @@ HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-08-14.Rdata"))
+save(list = Save,
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-08-17.Rdata"))
 
 DAT <- DAT1_EOSD
 pk <- rownames(DAT)
@@ -1338,8 +1342,8 @@ HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-08-14.Rdata"))
+save(list = Save,
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-08-17.Rdata"))
 
 DAT <- DAT1_NALC
 pk <- rownames(DAT)
@@ -1352,7 +1356,7 @@ HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-save(DAT, YY, OFF, TAX, mods, HSH, BB,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-08-14.Rdata"))
+save(list = Save,
+    file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-08-17.Rdata"))
 
 

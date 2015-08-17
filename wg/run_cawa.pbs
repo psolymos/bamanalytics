@@ -24,7 +24,7 @@ echo "Starting run at: `date`"
 
 ## arg1: nodes, arg2: fid, arg3: species
 mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 CAWA
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 CAWA
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 CAWA
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 CAWA
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 CAWA
 
 echo "Program finished with exit code $? at: `date`"

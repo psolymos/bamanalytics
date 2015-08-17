@@ -4,12 +4,13 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
 spp <- "CAWA"
-fid <- 3
+folder <- "results2"
+fid <- 1
 
-fl <- c("analysis_package_gfwfire-nalc-2015-07-24.Rdata",
-    "analysis_package_gfwfire-eosd-2015-07-24.Rdata",
-    "analysis_package_gfwfire-lcc-2015-07-24.Rdata",
-    "analysis_package_fire-nalc-2015-07-24.Rdata")
+fl <- c("analysis_package_gfwfire-nalc-2015-08-14.Rdata",
+    "analysis_package_gfwfire-eosd-2015-08-14.Rdata",
+    "analysis_package_gfwfire-lcc-2015-08-14.Rdata",
+    "analysis_package_fire-nalc-2015-08-14.Rdata")
 e <- new.env()
 load(file.path(ROOT, "out", "data", fl[fid]), envir=e)
 mods <- e$mods
@@ -23,13 +24,13 @@ rm(e)
 #mods <- if (fid == 4)
 #    mods_fire else mods_gfw
 fn <- paste0("bam-", fid, "_", spp, ".Rdata", sep="")
-load(file.path(ROOT, "out", "results", fn))
+load(file.path(ROOT, "out", folder, fn))
 
 sum(getOK(res)) / length(res)
 
 ## need to load data for xn, Xn
 
-est <- getEst(res, stage=6)
+est <- getEst(res, stage=NULL)
 
 getCaic(res)
 printCoefmat(getSummary(res))

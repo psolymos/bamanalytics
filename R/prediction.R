@@ -365,6 +365,7 @@ getDistPred <- function(spp) {
 }
 
 dp_cawa <- getDistPred("CAWA")
+save(dp_cawa, file=file.path(ROOT2, "dp-cawa.Rdata"))
 
 
 png(file.path(ROOT, "out", "figs", "CAWA-d-2015.png"), width = 2000, height = 1000)
@@ -425,3 +426,30 @@ for (i in 1:3) {
 
 par(op)
 dev.off()
+
+
+library(RColorBrewer)
+ROOT <- "c:/bam/May2015"
+load("e:/peter/bam/pred-2015/pg-clim.Rdata")
+load("e:/peter/bam/pred-2015/pg-loss.Rdata")
+clim$YearFire <- loss$YearFire[match(clim$pointid, loss$pointid)]
+clim$YearLoss <- loss$YearLoss[match(clim$pointid, loss$pointid)]
+
+for (fn in c("CMIJJA", "CMI", "TD", "DD0", 
+    "DD5", "EMT", "MSP", "CTI", "SLP")) {
+
+    png(file.path(ROOT, "out", "figs", paste0("x-", fn,".png")), width = 2000, height = 1000)
+    op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+
+    Col <- brewer.pal(5, "OrRd")
+    z <- cut(clim[,fn], breaks=quantile(clim[,fn], seq(0,1,0.2), na.rm=TRUE))
+    plot(clim[,c("POINT_X","POINT_Y")], col = Col[z], pch=".",
+        ann=FALSE, axes=FALSE)
+    title(main=fn)
+    legend("bottomleft", bty = "n", legend=rev(levels(z)), fill=rev(Col))
+    
+
+    par(op)
+    dev.off()
+
+}
