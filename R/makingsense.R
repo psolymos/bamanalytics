@@ -4,13 +4,13 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
 spp <- "CAWA"
-folder <- "results2"
+folder <- "results3"
 fid <- 1
 
-fl <- c("analysis_package_gfwfire-nalc-2015-08-14.Rdata",
-    "analysis_package_gfwfire-eosd-2015-08-14.Rdata",
-    "analysis_package_gfwfire-lcc-2015-08-14.Rdata",
-    "analysis_package_fire-nalc-2015-08-14.Rdata")
+fl <- c("analysis_package_gfwfire-nalc-2015-08-17.Rdata",
+    "analysis_package_gfwfire-eosd-2015-08-17.Rdata",
+    "analysis_package_gfwfire-lcc-2015-08-17.Rdata",
+    "analysis_package_fire-nalc-2015-08-17.Rdata")
 e <- new.env()
 load(file.path(ROOT, "out", "data", fl[fid]), envir=e)
 mods <- e$mods
@@ -43,8 +43,19 @@ getFancyModsTab(mods)
 
 plotMid(res, mods, web=TRUE)
 
+## ARU effect
+est6 <- getEst(res, stage=6)
+aru <- est6[,"ARU"]
+## exclude very small values (bimodal!)
+## those came from (?) 0 obs per bootstrap run ???
+summary(sqrt(exp(aru[aru > -10])))
+#summary(sqrt(exp(aru)))
 
-## --
+## year effect
+est <- getEst(res, stage=NULL)
+tw <- 100 * (exp(est[,"YR"]) - 1)
+te <- 100 * (exp(est[,"YR"] + est[,"EWE:YR"]) - 1)
 
-aic <- cbind(aic1, aic2, aic3)
-table(apply(aic, 1, which.min))
+summary(tw)
+summary(te)
+

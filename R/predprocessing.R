@@ -53,7 +53,8 @@ clim$EMT <- (clim$NORM_6190_EMT + 400) / 100
 clim$NORM_6190_EMT <- NULL
 clim$MSP <- (clim$NORM_6190_MSP - 400) / 200
 clim$NORM_6190_MSP <- NULL
-
+#clim$DD02 <- clim$DD0^2
+#clim$DD52 <- clim$DD5^2
 
 ## loading CTI
 pg2 <- fread(file.path(ROOT, "cti", "EC1kclip_cti90.csv"))
@@ -132,9 +133,13 @@ x$BCR_JURS0 <- x$BCR_JURS
 levels(x$BCR_JURS)[grepl("_AK", levels(x$BCR_JURS))] <- "AK"
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("9_BC","9_ID","9_WA",
     "5_BC","5_WA","10_AB","10_BC","10_ID","10_MT","10_WA")] <- "Mtn"
-levels(x$BCR_JURS)[grepl("11_", levels(x$BCR_JURS))] <- "Pra" # Prairies
-levels(x$BCR_JURS)[grepl("17_", levels(x$BCR_JURS))] <- "Pra"
-levels(x$BCR_JURS)[grepl("22_", levels(x$BCR_JURS))] <- "Pra"
+#levels(x$BCR_JURS)[grepl("11_", levels(x$BCR_JURS))] <- "Pra" # Prairies
+#levels(x$BCR_JURS)[grepl("17_", levels(x$BCR_JURS))] <- "Pra"
+#levels(x$BCR_JURS)[grepl("22_", levels(x$BCR_JURS))] <- "Pra"
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("11_AB", "11_MB", "11_MT", "11_SK",
+    "17_MT", "17_ND", "17_SD", "11_ND", "11_SD")] <- "Pra_west" # Prairies
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("11_MN", 
+    "22_IL", "22_IN", "22_MI", "22_MN", "22_OH", "22_WI")] <- "Pra_east"
 
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("4_BC","4_NT","4_YK")] <- "4_all"
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB",
@@ -143,8 +148,8 @@ levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB",
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB")] <- "6_south"
 
 ## keep northern points in
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_NT","7_MB","7_NT")] <- "3+7_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_NU","7_ON","7_QC","7_NL")] <- "3+7_east"
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_NT","7_MB","7_NT","3_NU")] <- "3+7_west"
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_ON","7_QC","7_NL")] <- "3+7_east"
 
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("8_MB","8_SK")] <- "8_west"
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("8_NL","8_ON","8_QC")] <- "8_east"
@@ -156,10 +161,10 @@ levels(x$BCR_JURS)[grepl("23_", levels(x$BCR_JURS))] <- "Grl"
 levels(x$BCR_JURS)[grepl("14_", levels(x$BCR_JURS))] <- "Mar" # Maritimes
 levels(x$BCR_JURS)[grepl("30_", levels(x$BCR_JURS))] <- "Mar"
 
-levels(x$BCR_JURS)[grepl("24_", levels(x$BCR_JURS))] <- "Seus" # SE US
-levels(x$BCR_JURS)[grepl("26_", levels(x$BCR_JURS))] <- "Seus"
-levels(x$BCR_JURS)[grepl("28_", levels(x$BCR_JURS))] <- "Seus"
-levels(x$BCR_JURS)[grepl("29_", levels(x$BCR_JURS))] <- "Seus"
+levels(x$BCR_JURS)[grepl("24_", levels(x$BCR_JURS))] <- "SEus" # SE US
+levels(x$BCR_JURS)[grepl("26_", levels(x$BCR_JURS))] <- "SEus"
+levels(x$BCR_JURS)[grepl("28_", levels(x$BCR_JURS))] <- "SEus"
+levels(x$BCR_JURS)[grepl("29_", levels(x$BCR_JURS))] <- "SEus"
 
 sort(levels(x$BCR_JURS))
 table(x$BCR_JURS)
@@ -177,7 +182,7 @@ levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("8_AB")] <- "8_west"
 
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_SK")] <- "3+7_west"
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_AB")] <- "3+7_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_NU")] <- "3+7_east"
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_NU")] <- "3+7_west"
 
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_MN")] <- "6_all"
 
@@ -186,8 +191,12 @@ levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("5_CA",  "5_OR" ,
     "10_OR", "10_UT", "10_WY",
     "16_ID",  "16_UT", "16_WY")] <- "Mtn"
 
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("18_NE", "18_SD", "18_WY",
-    "19_NE", "19_SD")] <- "Pra"      
+#levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("18_NE", "18_SD", "18_WY",
+#    "19_NE", "19_SD")] <- "Pra"      
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("18_SD", "18_WY",
+    "19_SD", "11_NE", "17_NE", "17_WY",
+    "18_NE", "19_NE", "22_NE", "22_SD")] <- "Pra_west"      
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("22_IA", "22_MO", "11_IA")] <- "Pra_east"      
 
 levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("0_",   "100_"  )] <- "UNKNOWN"
 
@@ -196,15 +205,25 @@ levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("0_",   "100_"  )] <- "UNKNOWN"
 x$REG <- x$BCR_JURS
 levels(x$REG)[levels(x$REG) %in% c("Mtn", "AK")] <- "Coast"
 levels(x$REG)[levels(x$REG) %in% c("4_all", "3+7_west", "3+7_east")] <- "North"
-levels(x$REG)[levels(x$REG) %in% c("Pra")] <- "South"
+levels(x$REG)[levels(x$REG) %in% c("Pra_west","Pra_east")] <- "South"
 levels(x$REG)[levels(x$REG) %in% c("8_west","6_all")] <- "West"
-levels(x$REG)[levels(x$REG) %in% c("Mar","Seus","8_east","Grl")] <- "East"
+levels(x$REG)[levels(x$REG) %in% c("Mar","SEus","8_east","Grl")] <- "East"
 
 table(x$BCR_JURS, x$REG)
 table(x$BCR_JURS0, x$REG)
 x$REG <- relevel(x$REG, "West")
 table(x$REG)
 #plot(x[,2:3],pch=".",col=x$REG)
+
+x$EW <- x$BCR_JURS
+levels(x$EW)[levels(x$EW) %in% c("Mtn", "AK", "4_all", "3+7_west", 
+    "Pra_west", "8_west","6_all")] <- "W"
+levels(x$EW)[levels(x$EW) %in% c("3+7_east", "Pra_east",
+    "Mar","SEus","8_east","Grl")] <- "E"
+table(x$BCR_JURS, x$EW)
+table(x$EW)
+x$EW <- relevel(x$EW, "W")
+#plot(x[,2:3],pch=".",col=x$EW)
 
 ## EOSC/LCC/NALC skeleton: gridcode and eosd extent definition !!!
 
@@ -471,7 +490,11 @@ clim <- clim[match(x$pointid, clim$pointid),4:14]
 x <- data.frame(x, clim)
 rm(clim)
 
-x <- x[!is.na(x$CTI) & ! is.na(x$TD),]
+ii <- !is.na(x$CTI) & ! is.na(x$TD)
+x <- x[ii,]
+
+x$DD02 <- x$DD0^2
+x$DD52 <- x$DD5^2
 
 load(file.path(ROOT, "pg-4x4.Rdata"))
 tmp <- setdiff(rownames(x), rownames(lcc4x4))
@@ -499,8 +522,9 @@ for (i in reg) {
     cat(i, "\n");flush.console()
     ii <- x$BCR_JURS0 == i
     dat <- x[ii,]
-    pg4x4 <- list(lcc=lcc4x4[ii,], eosd=eosd4x4[ii,], nalc=nalc4x4[ii,])
-    save(dat, pg4x4, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
+    #pg4x4 <- list(lcc=lcc4x4[ii,], eosd=eosd4x4[ii,], nalc=nalc4x4[ii,])
+    #save(dat, pg4x4, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
+    save(dat, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
 }
 
 ## packaging: NALC full extent

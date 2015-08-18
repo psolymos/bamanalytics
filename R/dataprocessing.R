@@ -1088,8 +1088,8 @@ levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB",
     "6_YK","6_NT")] <- "6_all"
 
 ## keep northern points in
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NT","7_MB","7_NT")] <- "3+7_west"
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NU","7_ON","7_QC","7_NL")] <- "3+7_east"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NT","7_MB","7_NT","3_NU","7_NU")] <- "3+7_west"
+levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("7_ON","7_QC","7_NL")] <- "3+7_east"
 
 levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_MB","8_SK")] <- "8_west"
 levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_NL","8_ON","8_QC")] <- "8_east"

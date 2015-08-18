@@ -12,10 +12,10 @@ source("~/repos/bamanalytics/R/analysis_mods.R")
 #fid <- 1
 Xnlist <- list()
 for (fid in 1:3) {
-    fl <- c("analysis_package_gfwfire-nalc-2015-08-11.Rdata",
-        "analysis_package_gfwfire-eosd-2015-08-11.Rdata",
-        "analysis_package_gfwfire-lcc-2015-08-11.Rdata",
-        "analysis_package_fire-nalc-2015-08-11.Rdata")
+    fl <- c("analysis_package_gfwfire-nalc-2015-08-17.Rdata",
+        "analysis_package_gfwfire-eosd-2015-08-17.Rdata",
+        "analysis_package_gfwfire-lcc-2015-08-17.Rdata",
+        "analysis_package_fire-nalc-2015-08-17.Rdata")
     e <- new.env()
     load(file.path(ROOT, "out", "data", fl[fid]), envir=e)
     mods <- e$mods
@@ -34,10 +34,10 @@ for (fid in 1:3) {
     if (fid == 3)
         Xnlist[["lcc"]] <- Xn
 }
-rm(xn, Xn)
+rm(xn, Xn, fid)
 
 spp <- "CAWA"
-wid <- 0
+wid <- 1
 fid <- 4
 #Stage <- which(names(mods) == "HS")
 Stage <- which(names(mods) == "Dist")
@@ -169,6 +169,7 @@ if (fid < 4) {
     #aa <- nrow(dat0) / AA
     aa <- 1
 
+    if (wid %in% c(0,1)) {
     dat1 <- dat0
     dat1$HAB <- dat0$HAB_NALC
     dat1$isDM <- dat0$isDM_NALC
@@ -176,7 +177,10 @@ if (fid < 4) {
     Xn1 <- model.matrix(getTerms(mods, "formula"), dat1)
     colnames(Xn1) <- fixNames(colnames(Xn1))
     rm(dat1)
+    NR <- nrow(Xn1)
+    }
 
+    if (wid %in% c(0,2)) {
     dat2 <- dat0
     dat2$HAB <- dat0$HAB_EOSD
     dat2$isDM <- dat0$isDM_EOSD
@@ -184,7 +188,10 @@ if (fid < 4) {
     Xn2 <- model.matrix(getTerms(mods, "formula"), dat2)
     colnames(Xn2) <- fixNames(colnames(Xn2))
     rm(dat2)
+    NR <- nrow(Xn2)
+    }
 
+    if (wid %in% c(0,3)) {
     dat3 <- dat0
     dat3$HAB <- dat0$HAB_LCC
     dat3$isDM <- dat0$isDM_LCC
@@ -192,6 +199,8 @@ if (fid < 4) {
     Xn3 <- model.matrix(getTerms(mods, "formula"), dat3)
     colnames(Xn3) <- fixNames(colnames(Xn3))
     rm(dat3)
+    NR <- nrow(Xn3)
+    }
 
     aicv <- aic
     if (wid == 1)
@@ -201,7 +210,7 @@ if (fid < 4) {
     if (wid == 3)
         aicv[,3] <- -Inf
 
-    mu4 <- matrix(0, nrow(Xn3), 240)
+    mu4 <- matrix(0, NR, 240)
     for (j in 1:240) {
         best <- which.min(aicv[j,])
         if (best == 1) {
@@ -226,7 +235,7 @@ if (fid < 4) {
             mu4[,j] <- drop(Xn3 %*% est$lcc[j,])
         }
     }
-    rm(Xn1, Xn2, Xn3)
+    #rm(Xn1, Xn2, Xn3)
     lam <- lamfun(mu4)
     rownames(lam) <- rownames(dat0)
     rm(mu4, dat0)
@@ -237,7 +246,7 @@ if (fid < 4) {
     attr(lam, "bcr-jurs") <- regi
     gc()
 
-    save(lam, file=file.path(ROOT2, "species", spp, 
+    save(lam, file=file.path(ROOT2, "species", paste0(spp, "-ver3"), 
         paste0(paste(spp, wid, Stage, BASE_YEAR, regi, sep="-"), ".Rdata")))
     rm(lam)
 }
@@ -304,7 +313,7 @@ load(file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
 load(file.path(ROOT2, "XYeosd.Rdata"))
 
 spp <- "CAWA"
-wid <- 0
+wid <- 1
 Stage <- 6
 BASE_YEAR <- 2015
 regs <- gsub(".Rdata", "",
@@ -313,12 +322,12 @@ regs <- gsub(".Rdata", "",
 xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
 
 fl <- paste0(paste(spp, wid, Stage, BASE_YEAR, regs, sep="-"), ".Rdata")
-load(file.path(ROOT2, "species", spp, fl[1]))
+load(file.path(ROOT2, "species", paste0(spp, "-ver3"), fl[1]))
 plam <- lam
 tlam <- attr(lam, "total")
 for (fn in fl[-1]) {
     cat("loading", fn, "\n");flush.console()
-    load(file.path(ROOT2, "species", spp, fn))
+    load(file.path(ROOT2, "species", paste0(spp, "-ver3"), fn))
     plam <- rbind(plam, lam)
     tlam <- rbind(tlam, attr(lam, "total"))
 }
@@ -368,9 +377,10 @@ Lc_quantile <- function (xx, probs=seq(0, 1, 0.1), type=c("L","p")) {
     i
 }
 
-png(file.path(ROOT, "out", "figs", "CAWA-2015.png"), width = 2000, height = 2000)
+png(file.path(ROOT, "out", "figs", "CAWA-ver3-2015.png"), width = 2000, height = 2000)
 op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
 
+library(RColorBrewer)
 x <- plam[,"Mean"]
 probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
@@ -380,7 +390,7 @@ zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
 plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
-points(xy1, pch=19, cex=1.2)
+points(xy1, pch=19, cex=2)
 
 
 br <- c(0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, Inf)
@@ -389,7 +399,7 @@ CoV <- plam[,"SD"] / plam[,"Mean"]
 zval <- cut(CoV, breaks=br)
 plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
-points(xy1, pch=19, cex=1.2)
+points(xy1, pch=19, cex=2)
 
 par(op)
 dev.off()
@@ -595,3 +605,5 @@ points(xy1, pch=19, cex=1.2)
 
 par(op)
 dev.off()
+
+
