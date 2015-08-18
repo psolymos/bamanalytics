@@ -526,8 +526,11 @@ rownames(clim) <- clim$pointid
 clim <- clim[match(x$pointid, clim$pointid),4:14]
 x <- data.frame(x, clim)
 rm(clim)
+gc()
 
-x <- x[!is.na(x$CTI) & ! is.na(x$TD),]
+ii <- !is.na(x$CTI) & ! is.na(x$TD)
+x <- x[ii,]
+
 x$DD02 <- x$DD0^2
 x$DD52 <- x$DD5^2
 
@@ -539,8 +542,17 @@ x$TR3[is.na(x$TR3)] <- "Open" # this is global
 x$pointid <- NULL
 
 XYfull <- as.matrix(x[,c("POINT_X","POINT_Y")])
-rownames(XYfull) <- x[,1]
-save(XYfull, file=file.path(ROOT, "XYfull.Rdata"))
+rownames(XYfull) <- rownames(x)
+
+br <- read.csv(file.path(ROOT2, "brandt", "Pred_BrandtBoreal.csv"))
+levels(br$pointid) <- gsub(",", "", levels(br$pointid))
+br <- br[!duplicated(br$pointid),]
+rownames(br) <- br$pointid
+table(br$TYPE)
+Brandt <- br$TYPE
+names(Brandt) <- rownames(br)
+
+save(XYfull, Brandt, file=file.path(ROOT, "XYfull.Rdata"))
 
 reg <- levels(x$BCR_JURS0)
 for (i in reg) {

@@ -243,13 +243,13 @@ if (fid < 4) {
 }
 if (fid == 4) {
     dat1 <- dat
-    dat1$HAB_EOSD2 <- NULL
     dat1$HAB_LCC2 <- NULL
+    dat1$HAB_EOSD2 <- NULL
     dat1$isDM_LCC <- NULL
     dat1$isDM_EOSD <- NULL
     dat1$isNF_LCC <- NULL
     dat1$isNF_EOSD <- NULL
-    dat1 <- dat1[rowSums(is.na(dat)) == 0,]
+    dat1 <- dat1[rowSums(is.na(dat1)) == 0,]
     if (nrow(dat1) > 0) {
         #aa <- nrow(dat0) / AA
         aa <- 1
@@ -525,3 +525,73 @@ for (fn in c("CMIJJA", "CMI", "TD", "DD0",
 }
 
 
+## mapping, fid = 4
+
+library(RColorBrewer)
+library(mefa4)
+library(pbapply)
+ROOT <- "c:/bam/May2015"
+ROOT2 <- "e:/peter/bam/pred-2015"
+source("~/repos/bamanalytics/R/makingsense_functions.R")
+source("~/repos/bamanalytics/R/analysis_mods.R")
+load(file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
+load(file.path(ROOT2, "XYfull.Rdata"))
+
+spp <- "CAWA"
+wid <- 1
+Stage <- 6
+BASE_YEAR <- 2015
+regs <- gsub(".Rdata", "",
+    gsub("pgdat-full-", "", list.files(file.path(ROOT2, "chunks2"))))
+
+xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
+
+fl <- paste0(paste(spp, wid, Stage, BASE_YEAR, regs, sep="-"), ".Rdata")
+load(file.path(ROOT2, "species", paste0(spp, "-4"), fl[1]))
+plam <- lam
+tlam <- attr(lam, "total")
+for (fn in fl[-1]) {
+    cat("loading", fn, "\n");flush.console()
+    load(file.path(ROOT2, "species", paste0(spp, "-4"), fn))
+    plam <- rbind(plam, lam)
+    tlam <- rbind(tlam, attr(lam, "total"))
+}
+dim(plam)
+sum(duplicated(rownames(plam)))
+
+
+hist(colSums(tlam)/10^6, col=3)
+sum(tlam[,1])/10^6
+median(colSums(tlam)/10^6)
+mean(colSums(tlam)/10^6)
+
+z <- ifelse(rownames(XYfull) %in% names(Brandt), 2, 1)
+plot(XYfull, col = z, pch=".", ann=FALSE, axes=FALSE)
+
+z <- plam[,"Median"]
+z[z >= 100] <- max(z[z < 100])
+probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
+Col <- rev(brewer.pal(5, "RdYlBu"))
+br <- Lc_quantile(z, probs=probs, type="L")
+
+png(file.path(ROOT, "out", "figs", "CAWAfid4-2015.png"), width = 2000, height = 2000)
+op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
+
+zval <- if (length(unique(round(br,10))) < 5)
+    rep(1, length(z)) else as.integer(cut(z, breaks=br))
+plot(XYfull[rownames(plam),], col = Col[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+points(xy1, pch=19, cex=1.2)
+
+
+br2 <- c(0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, Inf)
+Col2 <- rev(brewer.pal(10, "RdYlGn"))
+CoV <- plam[,"SD"] / plam[,"Mean"]
+zval <- cut(CoV, breaks=br2)
+plot(XYfull[rownames(plam),], col = Col2[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+points(xy1, pch=19, cex=1.2)
+
+par(op)
+dev.off()

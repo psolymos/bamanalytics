@@ -5,7 +5,7 @@
 #PBS -e run4.err
 #PBS -M solymos@ualberta.ca
 #PBS -m bea
-#PBS -l walltime=12:00:00
+#PBS -l walltime=10:00:00
 #PBS -l nodes=5:ppn=12
 #PBS -l pmem=4000mb
 
@@ -23,8 +23,8 @@ export OMPI_MCA_mpi_paffinity_alone=0
 echo "Starting run at: `date`"
 
 mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 CAWA
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 OSFL
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 RUBL
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 WEWP
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 OSFL
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 RUBL
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 4 WEWP
 
 echo "Program finished with exit code $? at: `date`"
