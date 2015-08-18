@@ -736,6 +736,10 @@ levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
 dat <- rbind(dat, dat2)
 pc <- rbind(pc, pc2)
 
+save(dat2, pc2, 
+    file=file.path(ROOT, "out",
+    paste0("abmi_data_package_", Sys.Date(), ".Rdata")))
+
 durmat <- as.matrix(Xtab(~ DURMETH + dur, pc))
 durmat[durmat > 0] <- 1
 dismat <- as.matrix(Xtab(~ DISMETH + dis, pc))
