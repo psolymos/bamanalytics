@@ -606,4 +606,49 @@ points(xy1, pch=19, cex=1.2)
 par(op)
 dev.off()
 
+## marginal plots
 
+ROOT <- "e:/peter/bam/pred-2015"
+library(mefa4)
+
+load(file.path(ROOT, "pg-main.Rdata"))
+x <- x[x$EOSD_COVER == 1,]
+rownames(x) <- x$pointid
+
+x <- x[rownames(plam),]
+load(file.path(ROOT, "pg-loss.Rdata"))
+ii <- loss$YearFire >= 9000 & !is.na(loss$YearFire)
+loss$YearFire[ii] <- loss$YearFire[ii] - 8000
+x$YearFire <- loss$YearFire[match(x$pointid, loss$pointid)]
+x$YearLoss <- loss$YearLoss[match(x$pointid, loss$pointid)]
+
+i <- sample.int(nrow(x), 5000)
+tc <- c(rgb(1,0,0,alpha=0.2), rgb(0,0,1,alpha=0.2), rgb(0,1,0,alpha=0.2), rgb(0,0,0,alpha=0.2))
+j <- as.integer(x$HAB_NALC2[i])
+j[] <- 4
+j[x$HAB_NALC2[i] == "Decid"] <- 1
+j[x$HAB_NALC2[i] == "Mixed"] <- 2
+j[x$HAB_NALC2[i] == "Conif"] <- 3
+
+boxplot(plam[i,"Mean"] ~ x$HAB_NALC2[i], col="gold", range=0, main="Habitat", ylab="D")
+boxplot(plam[i,"Mean"] ~ x$TR3[i], col="gold", range=0, main="Tree", ylab="D")
+plot(plam[i,"Mean"] ~ jitter(x$HGT[i]), pch=19, cex=1, col=tc[j], main="Height", ylab="D")
+legend("topleft", pch=19, col=tc, legend=c("Dec","Mix","Con","Else"))
+
+par(mfrow=c(2,1))
+plot(plam[i,"Mean"] ~ jitter(x$LIN[i]), pch=19, cex=1, col=tc[j], ylab="D")
+plot(plam[i,"Mean"] ~ jitter(x$POL[i]), pch=19, cex=1, col=tc[j], ylab="D")
+
+
+load(file.path(ROOT, "pg-clim.Rdata"))
+rownames(clim) <- clim$pointid
+clim <- clim[match(x$pointid, clim$pointid),4:14]
+clim <- clim[rownames(plam),]
+
+par(mfrow=c(2,1))
+plot(plam[i,"Mean"] ~ jitter(clim$CTI[i]), pch=19, cex=1, col=tc[j], ylab="D")
+plot(plam[i,"Mean"] ~ jitter(clim$SLP[i]), pch=19, cex=1, col=tc[j], ylab="D")
+
+par(mfrow=c(2,1))
+plot(plam[i,"Mean"] ~ jitter(2015-x$YearFire[i]), pch=19, cex=1, col=tc[j], ylab="D")
+plot(plam[i,"Mean"] ~ jitter(2015-x$YearLoss[i]), pch=19, cex=1, col=tc[j], ylab="D")

@@ -54,6 +54,9 @@ getEst <- function(res, stage=NULL, na.out=TRUE, X) {
         for (i in 1:length(ii)) {
             tmp <- res[[ii[i]]]$coef[[stage]]
             names(tmp) <- fixNames(names(tmp))
+            sdiff <- setdiff(names(tmp), colnames(est))
+            if (length(sdiff) > 0)
+                stop(paste(sdiff, collapse=" "))
             est[i,match(names(tmp), colnames(est))] <- tmp
         }
     } else {

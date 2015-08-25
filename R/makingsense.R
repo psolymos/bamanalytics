@@ -53,9 +53,14 @@ summary(sqrt(exp(aru[aru > -10])))
 
 ## year effect
 est <- getEst(res, stage=NULL)
+## decadal
 tw <- 100 * (exp(est[,"YR"]) - 1)
 te <- 100 * (exp(est[,"YR"] + est[,"EWE:YR"]) - 1)
+## yearly
+tw <- 100 * (exp(0.1*est[,"YR"]) - 1)
+te <- 100 * (exp(0.1*(est[,"YR"] + est[,"EWE:YR"])) - 1)
 
 summary(tw)
 summary(te)
-
+round(cbind(West=c(Mean=mean(tw), quantile(tw, c(0.025, 0.975))),
+    East=c(Mean=mean(te), quantile(te, c(0.025, 0.975)))),2)
