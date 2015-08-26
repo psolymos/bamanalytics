@@ -92,9 +92,10 @@ getCaic <- function(res, stage=NULL, na.out=TRUE) {
     caic
 }
 
-getSummary <- function(res, stage=NULL) {
+getSummary <- function(res, stage=NULL, show0=FALSE) {
     est <- getEst(res, stage=stage)
-    est <- est[,colSums(abs(est), na.rm=TRUE) > 0]
+    if (!show0)
+        est <- est[,colSums(abs(est), na.rm=TRUE) > 0]
     fr <- colMeans(abs(est) > 0, na.rm=TRUE)
     cf <- colMeans(est, na.rm=TRUE)
     se <- apply(est, 2, sd, na.rm=TRUE)
@@ -106,16 +107,18 @@ getSummary <- function(res, stage=NULL) {
 }
 #printCoefmat(getSummary(res))
 
-getVcov <- function(res) {
-    est <- getEst(res)
-    est <- est[,colSums(abs(est), na.rm=TRUE) > 0]
+getVcov <- function(res, stage=NULL, show0=FALSE) {
+    est <- getEst(res, stage=stage)
+    if (!show0)
+        est <- est[,colSums(abs(est), na.rm=TRUE) > 0]
     cov(est)
 }
-getConfint <- function(res, level=0.95, type=c("tboot","quantile")) {
+getConfint <- function(res, level=0.95, type=c("tboot","quantile"),
+stage=NULL, show0=FALSE) {
     type <- match.arg(type)
     a <- (1 - level)/2
     a <- c(a, 1 - a)
-    s <- getSummary(res)
+    s <- getSummary(res, stage=stage, show0=show0)
     parm <- rownames(s)
     pct <- paste(format(100 * a, trim = TRUE, scientific = FALSE, digits = 3), "%", sep="")
     ci <- array(NA, dim = c(length(parm), 2), dimnames = list(parm, pct))
@@ -124,7 +127,8 @@ getConfint <- function(res, level=0.95, type=c("tboot","quantile")) {
         ci[] <- s[,1] + s[,2] %o% fac
     } else {
         est <- getEst(res)
-        est <- est[,colSums(abs(est)) > 0]
+        if (!show0)
+            est <- est[,colSums(abs(est)) > 0]
         cii <- t(apply(est, 2, quantile, probs=a))
         rownames(cii) <- parm
         ci[] <- cii[parm,,drop=FALSE]

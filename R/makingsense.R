@@ -35,6 +35,14 @@ est <- getEst(res, stage=NULL)
 getCaic(res)
 printCoefmat(getSummary(res))
 
+round(cbind(getSummary(res, show0=TRUE)[,c(1,3)], 
+    getConfint(res, 0.9, "quantile", show0=TRUE))[c("CTI","CTI2",
+    "SLP","SLP2"),], 3)
+
+round(cbind(getSummary(res, show0=TRUE)[,c(1,3)], 
+    getConfint(res, 0.9, "quantile", show0=TRUE))[c("LIN","POL",
+    "BRN","LSS","DTB",  "YSD","YSL","YSF"),], 3)
+
 getMidPure(res, mods)
 getFancyMid(res, mods)
 getFancyMidTab(res, mods)
