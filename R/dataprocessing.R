@@ -1188,7 +1188,8 @@ B <- 239
 
 keep <- rep(TRUE, nrow(DAT))
 keep[DAT$ROAD_OK < 1] <- FALSE
-keep[DAT$YEAR < 2001] <- FALSE
+keep[DAT$YEAR < 2001] <- FALSE # GFW years
+keep[DAT$YEAR > 2013] <- FALSE # GFW years
 keep[is.na(DAT$HAB_LCC2)] <- FALSE
 keep[is.na(DAT$HAB_NALC2)] <- FALSE
 keep[is.na(DAT$HAB_EOSD2)] <- FALSE
@@ -1306,6 +1307,9 @@ Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
 #save(YYSS, XYSS,
 #    file=file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
 
+## ----------------------------------------------- FIXME
+## full extent needs gfw year and all years with different mods list
+## needs separate BB matrix --> best refine DAT1 post NMBCA
 DAT <- DAT2
 pk <- rownames(DAT)
 YY <- YY0[pk,]
@@ -1313,13 +1317,15 @@ YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
 mods <- mods_fire
+#mods <- mods_gfw
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB2
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-save(list = Save,
-    file=file.path(ROOT, "out", "analysis_package_fire-nalc-2015-08-17.Rdata"))
+#save(list = Save,
+#    file=file.path(ROOT, "out", "data", "analysis_package_fire-nalc-2015-08-17.Rdata"))
 #plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
+## ----------------------------------------------- FIXME
 
 DAT <- DAT1_LCC
 pk <- rownames(DAT)
@@ -1333,7 +1339,7 @@ colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(list = Save,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-lcc-2015-08-17.Rdata"))
+    file=file.path(ROOT, "out", "data", "analysis_package_gfwfire-lcc-2015-08-26.Rdata"))
 
 DAT <- DAT1_EOSD
 pk <- rownames(DAT)
@@ -1347,7 +1353,7 @@ colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(list = Save,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-eosd-2015-08-17.Rdata"))
+    file=file.path(ROOT, "out", "data", "analysis_package_gfwfire-eosd-2015-08-26.Rdata"))
 
 DAT <- DAT1_NALC
 pk <- rownames(DAT)
@@ -1361,6 +1367,6 @@ colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 save(list = Save,
-    file=file.path(ROOT, "out", "analysis_package_gfwfire-nalc-2015-08-17.Rdata"))
+    file=file.path(ROOT, "out", "data", "analysis_package_gfwfire-nalc-2015-08-26.Rdata"))
 
 

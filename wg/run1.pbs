@@ -1,13 +1,13 @@
 #!/bin/bash
 #PBS -S /bin/bash
-#PBS -N run_cawa
-#PBS -o run_cawa.out
-#PBS -e run_cawa.err
+#PBS -N run1
+#PBS -o run1.out
+#PBS -e run1.err
 #PBS -M solymos@ualberta.ca
 #PBS -m bea
-#PBS -l walltime=6:00:00
+#PBS -l walltime=10:00:00
 #PBS -l nodes=5:ppn=12
-#PBS -l pmem=2000mb
+#PBS -l pmem=4000mb
 
 cd $PBS_O_WORKDIR
 echo "Current working directory is `pwd`"
@@ -22,9 +22,9 @@ export OMPI_MCA_mpi_paffinity_alone=0
 
 echo "Starting run at: `date`"
 
-## arg1: nodes, arg2: fid, arg3: species
 mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 CAWA
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 CAWA
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 CAWA
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 OSFL
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 RUBL
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 WEWP
 
 echo "Program finished with exit code $? at: `date`"

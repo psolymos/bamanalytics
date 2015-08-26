@@ -42,7 +42,7 @@ fid <- if (interactive())
 fl <- paste0(c("analysis_package_gfwfire-nalc-",
     "analysis_package_gfwfire-eosd-",
     "analysis_package_gfwfire-lcc-",
-    "analysis_package_fire-nalc-"), "2015-08-17.Rdata")
+    "analysis_package_fire-nalc-"), "2015-08-26.Rdata")
 fn <- fl[fid]
 load(file.path("data", fn))
 if (TEST)
