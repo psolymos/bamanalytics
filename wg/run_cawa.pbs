@@ -22,9 +22,14 @@ export OMPI_MCA_mpi_paffinity_alone=0
 
 echo "Starting run at: `date`"
 
-## arg1: nodes, arg2: fid, arg3: species
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 1 CAWA
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 2 CAWA
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 3 CAWA
+## arg1: nodes, arg2: species, arg3: text, arg4: sext, arg5: lctu
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can nlc
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can lcc
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can eos
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can nlc
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can lcc
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can eos
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw nam nlc
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre nam nlc
 
 echo "Program finished with exit code $? at: `date`"

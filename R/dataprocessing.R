@@ -1177,33 +1177,72 @@ DAT$ARU <- ifelse(DAT$PCODE %in% levels(DAT$PCODE)[grep("EMC", levels(DAT$PCODE)
 stopifnot(all(!is.na(DAT$PKEY)))
 
 ## placeholder for distance to nearest detection
-DAT$ND2 <- 0
+#DAT$ND2 <- 0
+
+summary(DAT$YSD)
+summary(DAT$YSF)
+summary(DAT$YSL)
+AGEMAX <- 50
+DAT$YSD <- pmax(0, 1 - (DAT$YSD / AGEMAX))
+DAT$YSF <- pmax(0, 1 - (DAT$YSF / AGEMAX))
+DAT$YSL <- pmax(0, 1 - (DAT$YSL / AGEMAX))
+plot(DAT$YSD ~ DAT0$YSD)
 
 source("~/repos/bamanalytics/R/analysis_mods.R")
 source("~/repos/detect/R/hbootindex.R")
+hbootindex2 <- hbootindex
 
 nmin <- 25
 B <- 239
 
+## ---------------------------------- data packages below -----------
+## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
+## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
+## LCTU: "nlc", "lcc", "eos" # land cover to use
 
-keep <- rep(TRUE, nrow(DAT))
-keep[DAT$ROAD_OK < 1] <- FALSE
-keep[DAT$YEAR < 2001] <- FALSE # GFW years
-keep[DAT$YEAR > 2013] <- FALSE # GFW years
-keep[is.na(DAT$HAB_LCC2)] <- FALSE
-keep[is.na(DAT$HAB_NALC2)] <- FALSE
-keep[is.na(DAT$HAB_EOSD2)] <- FALSE
-keep[DAT$COUNTRY != "CAN"] <- FALSE
-keep[is.na(DAT$TREE)] <- FALSE
-keep[is.na(DAT$CMI)] <- FALSE
-keep[is.na(DAT$HGT)] <- FALSE
-keep[is.na(DAT$SLP)] <- FALSE
-keep[DAT$REG == "South"] <- FALSE
+source("~/repos/bragging/R/glm_skeleton.R")
+DAT0 <- DAT
+TAX0 <- TAX
+YY0 <- YY
+OFF0 <- OFF
+#Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y", "Xcl", "Ycl")
+Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
+Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
+Date <- "2015-08-27"
 
+for (TEXT in c("gfw", "fre")) {
 
-DAT1 <- droplevels(DAT[keep,])
+rm(DAT, TAX, YY, OFF)
+gc()
+modsx <- if (TEXT == "gfw")
+    mods_gfw else mods_fire
+
+keep <- rep(TRUE, nrow(DAT0))
+keep[DAT0$ROAD_OK < 1] <- FALSE
+keep[is.na(DAT0$TREE)] <- FALSE
+keep[is.na(DAT0$CMI)] <- FALSE
+keep[is.na(DAT0$HGT)] <- FALSE
+keep[is.na(DAT0$SLP)] <- FALSE
+keep[is.na(DAT0$HAB_NALC2)] <- FALSE
+keep2 <- keep
+keep[is.na(DAT0$HAB_LCC2)] <- FALSE
+keep[is.na(DAT0$HAB_EOSD2)] <- FALSE
+keep[DAT0$COUNTRY != "CAN"] <- FALSE
+keep[DAT0$REG == "South"] <- FALSE
+#keep2[DAT0$YEAR < 1997] <- FALSE
+if (TEXT == "gfw") {
+    keep[DAT0$YEAR < 2001] <- FALSE # GFW years
+    keep[DAT0$YEAR > 2013] <- FALSE # GFW years
+    keep2[DAT0$YEAR < 2001] <- FALSE # GFW years
+    keep2[DAT0$YEAR > 2013] <- FALSE # GFW years
+}
+
+#save(YYSS, XYSS,
+#    file=file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
+
+DAT1 <- droplevels(DAT0[keep,])
 rownames(DAT1) <- DAT1$PKEY
-DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY)),])
+DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY0)),])
 dim(DAT1)
 data.frame(n=colSums(is.na(DAT1)))
 ## data specific 0 year and decadal change
@@ -1224,7 +1263,7 @@ HOLDOUT_ID <- setdiff(seq_len(nrow(DAT1)), KEEP_ID)
 DAT1k <- DAT1[KEEP_ID,]
 DAT1 <- DAT1[c(KEEP_ID, HOLDOUT_ID),]
 DAT1k$SITE <- droplevels(DAT1k$SITE)
-BB1 <- hbootindex(DAT1k$SITE, DAT1k$bootg, B=B)
+BB1 <- hbootindex2(DAT1k$SITE, DAT1k$bootg, B=B)
 
 DAT1_LCC <- DAT1
 DAT1_LCC$HAB <- DAT1$HAB_LCC2
@@ -1253,17 +1292,7 @@ DAT1_NALC <- DAT1_NALC[,!grepl("_EOSD", colnames(DAT1_NALC))]
 colnames(DAT1_NALC) <- gsub("_NALC_", "_", colnames(DAT1_NALC))
 DAT1_NALC <- DAT1_NALC[,!grepl("_NALC", colnames(DAT1_NALC))]
 
-
-keep2 <- rep(TRUE, nrow(DAT))
-keep2[DAT$ROAD_OK < 1] <- FALSE
-#keep2[DAT$YEAR < 1997] <- FALSE
-keep2[is.na(DAT$HAB_NALC2)] <- FALSE
-keep2[is.na(DAT$TREE)] <- FALSE
-keep2[is.na(DAT$CMI)] <- FALSE
-keep2[is.na(DAT$HGT)] <- FALSE
-keep2[is.na(DAT$SLP)] <- FALSE
-
-DAT2 <- droplevels(DAT[keep2,])
+DAT2 <- droplevels(DAT0[keep2,])
 DAT2$HAB <- DAT2$HAB_NALC2
 DAT2$isDM <- DAT2$isDM_NALC
 DAT2$isNF <- DAT2$isNF_NALC
@@ -1273,7 +1302,7 @@ colnames(DAT2) <- gsub("_NALC_", "_", colnames(DAT2))
 DAT2 <- DAT2[,!grepl("_NALC", colnames(DAT2))]
 data.frame(n=colSums(is.na(DAT2)))
 rownames(DAT2) <- DAT2$PKEY
-DAT2 <- droplevels(DAT2[intersect(rownames(DAT2), rownames(YY)),])
+DAT2 <- droplevels(DAT2[intersect(rownames(DAT2), rownames(YY0)),])
 dim(DAT2)
 ## data specific 0 year and decadal change
 DAT2$YR <- (DAT2$YR - min(DAT2$YR)) / 10
@@ -1293,39 +1322,9 @@ HOLDOUT_ID <- setdiff(seq_len(nrow(DAT2)), KEEP_ID)
 DAT2k <- DAT2[KEEP_ID,]
 DAT2 <- DAT2[c(KEEP_ID, HOLDOUT_ID),]
 DAT2k$SITE <- droplevels(DAT2k$SITE)
-BB2 <- hbootindex(DAT2k$SITE, DAT2k$bootg, B=B)
+BB2 <- hbootindex2(DAT2k$SITE, DAT2k$bootg, B=B)
 
-source("~/repos/bragging/R/glm_skeleton.R")
-DAT0 <- DAT
-TAX0 <- TAX
-YY0 <- YY
-OFF0 <- OFF
-#Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y", "Xcl", "Ycl")
-Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
-Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
-
-#save(YYSS, XYSS,
-#    file=file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
-
-## ----------------------------------------------- FIXME
-## full extent needs gfw year and all years with different mods list
-## needs separate BB matrix --> best refine DAT1 post NMBCA
-DAT <- DAT2
-pk <- rownames(DAT)
-YY <- YY0[pk,]
-YY <- YY[,colSums(YY) >= nmin]
-OFF <- OFF0[pk,colnames(YY)]
-TAX <- TAX0[colnames(YY),]
-mods <- mods_fire
-#mods <- mods_gfw
-HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
-BB <- BB2
-DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-#save(list = Save,
-#    file=file.path(ROOT, "out", "data", "analysis_package_fire-nalc-2015-08-17.Rdata"))
-#plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
-## ----------------------------------------------- FIXME
+## ---------------- save output -----------------------------------------
 
 DAT <- DAT1_LCC
 pk <- rownames(DAT)
@@ -1333,13 +1332,15 @@ YY <- YY0[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
-mods <- mods_gfw
+mods <- modsx
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
+cat("\n---\t", TEXT, "can", "lcc", nrow(DAT), "\n")
 save(list = Save,
-    file=file.path(ROOT, "out", "data", "analysis_package_gfwfire-lcc-2015-08-26.Rdata"))
+    file=file.path(ROOT, "out", "data", 
+    paste0("pack_", TEXT, "_can_lcc_", Date, ".Rdata")))
 
 DAT <- DAT1_EOSD
 pk <- rownames(DAT)
@@ -1347,13 +1348,15 @@ YY <- YY0[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
-mods <- mods_gfw
+mods <- modsx
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
+cat("\n---\t", TEXT, "can", "eos", nrow(DAT), "\n")
 save(list = Save,
-    file=file.path(ROOT, "out", "data", "analysis_package_gfwfire-eosd-2015-08-26.Rdata"))
+    file=file.path(ROOT, "out", "data", 
+    paste0("pack_", TEXT, "_can_eos_", Date, ".Rdata")))
 
 DAT <- DAT1_NALC
 pk <- rownames(DAT)
@@ -1361,12 +1364,31 @@ YY <- YY0[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 OFF <- OFF0[pk,colnames(YY)]
 TAX <- TAX0[colnames(YY),]
-mods <- mods_gfw
+mods <- modsx
 HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
 colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
 BB <- BB1
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
+cat("\n---\t", TEXT, "can", "nlc", nrow(DAT), "\n")
 save(list = Save,
-    file=file.path(ROOT, "out", "data", "analysis_package_gfwfire-nalc-2015-08-26.Rdata"))
+    file=file.path(ROOT, "out", "data", 
+    paste0("pack_", TEXT, "_can_nlc_", Date, ".Rdata")))
 
+DAT <- DAT2
+pk <- rownames(DAT)
+YY <- YY0[pk,]
+YY <- YY[,colSums(YY) >= nmin]
+OFF <- OFF0[pk,colnames(YY)]
+TAX <- TAX0[colnames(YY),]
+mods <- modsx
+HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
+colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
+BB <- BB2
+DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
+cat("\n---\t", TEXT, "nam", "nlc", nrow(DAT), "\n")
+save(list = Save,
+    file=file.path(ROOT, "out", "data", 
+    paste0("pack_", TEXT, "_nam_nlc_", Date, ".Rdata")))
+#plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
 
+}
