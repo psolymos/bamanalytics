@@ -41,11 +41,11 @@ if (interactive())
 
 Date <- "2015-08-27"
 TEXT <- if (interactive())
-    "gfw" else as.numeric(args[3])
+    "gfw" else as.character(args[3])
 SEXT <- if (interactive())
-     "can" else as.numeric(args[4])
+     "can" else as.character(args[4])
 LCTU <- if (interactive())
-    "nlc" else as.numeric(args[5])
+    "nlc" else as.character(args[5])
 
 fn <- paste0("pack_", TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata")
 load(file.path("data", fn))
