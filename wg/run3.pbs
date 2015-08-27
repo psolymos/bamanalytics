@@ -1,13 +1,13 @@
 #!/bin/bash
 #PBS -S /bin/bash
-#PBS -N run1
-#PBS -o run1.out
-#PBS -e run1.err
+#PBS -N run3
+#PBS -o run3.out
+#PBS -e run3.err
 #PBS -M solymos@ualberta.ca
 #PBS -m bea
 #PBS -l walltime=10:00:00
 #PBS -l nodes=5:ppn=12
-#PBS -l pmem=2000mb
+#PBS -l pmem=4000mb
 
 cd $PBS_O_WORKDIR
 echo "Current working directory is `pwd`"
@@ -23,13 +23,13 @@ export OMPI_MCA_mpi_paffinity_alone=0
 echo "Starting run at: `date`"
 
 ## arg1: nodes, arg2: species, arg3: text, arg4: sext, arg5: lctu
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can nlc
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can lcc
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can eos
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can nlc
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can lcc
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can eos
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can nlc
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can lcc
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can eos
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw nam nlc
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre nam nlc
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw nam nlc
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre nam nlc
 
 echo "Program finished with exit code $? at: `date`"
