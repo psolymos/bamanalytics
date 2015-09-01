@@ -28,10 +28,14 @@ mod_Wet <- list(
     . ~ . + SLP,
     . ~ . + SLP + SLP2)
 mod_Climate <- list(
-    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52 + CMIJJA:DD0 + CMIJJA:DD5,
-    . ~ . + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52 + CMI:DD0 + CMI:DD5,
-    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02 + CMI:DD0 + MSP:DD0,
-    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + DD52 + CMI:DD5 + MSP:DD5)
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + DD52,
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
+    . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52)
 ## all years
 mod_DisturbFire <- list(
     . ~ . + BRN,
