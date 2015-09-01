@@ -353,3 +353,20 @@ predStat <- function(X, est, level=0.95, n=0, ci=TRUE, raw=FALSE) {
     }
     out
 }
+
+lamfun <- function(mu, tr=0.99) {
+    lam <- exp(mu)
+    q <- quantile(lam, tr)
+    lam[lam > q] <- q
+    Mean <- rowMeans(lam)
+    SD <- apply(lam, 1, sd)
+    qq <- apply(lam, 1, quantile, c(0.25, 0.5, 0.75))
+#    qq <- apply(lam, 1, quantile, c(0, 0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975, 1))
+    IQR <- qq[3,] - qq[1,]
+    out <- cbind(Mean=Mean, SD=SD, Median=qq[2,], IQR=IQR, One=lam[,1])
+    ## km^2 vs ha diff is 100
+    ## division by something <1 is to bump it back to original extent
+    ## which might not be needed after all
+    attr(out, "total") <- colSums(lam) * 100
+    out
+}
