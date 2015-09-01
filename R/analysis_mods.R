@@ -59,11 +59,19 @@ mod_Year <- list(
     . ~ . + YR,
     . ~ . + YR + YR:EW)
 
-mods_fire <- list(Hab=mod_Hab, 
-    Road=mod_Road, ARU=mod_ARU, Wet=mod_Wet, Clim=mod_Climate,
+mods_fire <- list(
+    Hab=mod_Hab, 
+    Road=mod_Road, 
+    ARU=mod_ARU, 
+    Wet=mod_Wet, 
     Dist=mod_DisturbFire,
+    Clim=mod_Climate,
     Year=mod_Year)
-mods_gfw <- list(Hab=mod_Hab, 
-    Road=mod_Road, ARU=mod_ARU, Wet=mod_Wet, Clim=mod_Climate,
+mods_gfw <- list(
+    Hab=mod_Hab, 
+    Road=mod_Road, 
+    ARU=mod_ARU, 
+    Wet=mod_Wet, 
     Dist=mod_DisturbGFWFire,
+    Clim=mod_Climate,
     Year=mod_Year)

@@ -39,7 +39,7 @@ ncl <- if (TEST) 2 else nodes*12
 if (interactive())
     setwd("c:/bam/May2015/out")
 
-Date <- "2015-08-27"
+Date <- "2015-09-02"
 TEXT <- if (interactive())
     "gfw" else as.character(args[3])
 SEXT <- if (interactive())

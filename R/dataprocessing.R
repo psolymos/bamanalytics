@@ -1208,7 +1208,7 @@ OFF0 <- OFF
 #Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y", "Xcl", "Ycl")
 Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
 Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
-Date <- "2015-08-27"
+Date <- "2015-09-02"
 
 for (TEXT in c("gfw", "fre")) {
 
