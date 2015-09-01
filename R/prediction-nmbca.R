@@ -1,8 +1,8 @@
 library(RColorBrewer)
 library(mefa4)
 library(pbapply)
-ROOT <- "c:/bam/May2015"
-ROOT2 <- "e:/peter/bam/pred-2015"
+ROOT <- "c:/Users/Peter/bam"
+ROOT2 <- "c:/Users/Peter/bam/pred-2015"
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
@@ -27,9 +27,11 @@ rownames(ids) <- 1:8
 
 fid <- 1
 #Stage <- which(names(mods) == "HS")
-Stage <- which(names(mods) == "Dist")
+Stage <- 6 # which(names(mods) == "Dist")
 # 2001, 2005, 2009, 2013
-BASE_YEAR <- 2015
+BASE_YEAR <- 2013
+
+#for (fid in 1:6) {
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
@@ -45,8 +47,6 @@ load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
 100 * sum(getOK(res)) / length(res)
 est <- getEst(res, stage = Stage, X=Xn)
 
-
-
 if (ids$SEXT[fid] == "can")
     regs <- gsub(".Rdata", "",
         gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks"))))
@@ -56,7 +56,6 @@ if (ids$SEXT[fid] == "nam")
 
 
 #for (BASE_YEAR in c(2001, 2013)) {
-#for (fid in 1:6) {
 
 #regi <- "6_AB"
 for (regi in regs) {
@@ -82,7 +81,10 @@ dat$ROAD <- 0L
 dat$ARU <- 0L
 
 ## YR
-dat$YR <- BASE_YEAR - 1997
+if (ids$TEXT[fid] == "gfw")
+    dat$YR <- BASE_YEAR - 2001
+if (ids$TEXT[fid] == "fre")
+    dat$YR <- BASE_YEAR - 1997
 
 ## disturbance
 dat$YearFire[is.na(dat$YearFire)] <- BASE_YEAR - 200
@@ -154,6 +156,7 @@ save(lam, file=fout)
 rm(lam)
 
 }
+
 
 #}
 #}
