@@ -27,7 +27,7 @@ rownames(ids) <- 1:8
 
 fid <- 1
 #Stage <- which(names(mods) == "HS")
-Stage <- 6 # which(names(mods) == "Dist")
+Stage <- 7 # which(names(mods) == "Dist")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2013
 
@@ -84,9 +84,9 @@ dat$ARU <- 0L
 
 ## YR
 if (ids$TEXT[fid] == "gfw")
-    dat$YR <- BASE_YEAR - 2001
+    dat$YR <- (BASE_YEAR - 2001) / 10
 if (ids$TEXT[fid] == "fre")
-    dat$YR <- BASE_YEAR - 1997
+    dat$YR <- (BASE_YEAR - 1997) / 10
 
 ## disturbance
 dat$YearFire[is.na(dat$YearFire)] <- BASE_YEAR - 200
