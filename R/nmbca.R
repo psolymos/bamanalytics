@@ -22,7 +22,14 @@ ids$data <- with(ids, paste0("pack_",
     TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
 rownames(ids) <- 1:8
 
-fid <- 1
+#fid <- 1
+Est <- list()
+Aic <- list()
+Mid <- list()
+
+for (fid in 1:6) {
+
+cat(fid, "\n");flush.console()
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
@@ -38,9 +45,29 @@ load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
 100 * sum(getOK(res)) / length(res)
 
 ## need to load data for xn, Xn
-est <- getEst(res, stage=NULL)
+Est[[fid]] <- getEst(res, stage=NULL)
 
-getCaic(res)
+Aic[[fid]] <- sapply(1:7, function(z) getCaic(res, stage=z))
+colnames(Aic[[fid]]) <- names(mods)
+
+Mid[[fid]] <- getFancyMid(res, mods)
+
+}
+
+
+Aic7 <- sapply(Aic, function(z) z[,"Year"])
+t(apply(Aic7, 1, function(z) z - min(z)))
+table(apply(Aic7, 1, which.min))
+
+lapply(Est, function(est) {
+    tw <- 100 * (exp(est[,"YR"]) - 1)
+    te <- 100 * (exp(est[,"YR"] + est[,"EWE:YR"]) - 1)
+    round(cbind(West=c(Mean=mean(tw), quantile(tw, c(0.025, 0.5, 0.975))),
+        East=c(Mean=mean(te), quantile(te, c(0.025, 0.5, 0.975)))),2)
+})
+
+lapply(Mid, "[[", "Clim")
+
 printCoefmat(getSummary(res))
 
 round(cbind(getSummary(res, show0=TRUE)[,c(1,3)], 
@@ -80,3 +107,4 @@ summary(tw)
 summary(te)
 round(cbind(West=c(Mean=mean(tw), quantile(tw, c(0.025, 0.975))),
     East=c(Mean=mean(te), quantile(te, c(0.025, 0.975)))),2)
+

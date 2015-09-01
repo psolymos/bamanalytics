@@ -370,3 +370,16 @@ lamfun <- function(mu, tr=0.99) {
     attr(out, "total") <- colSums(lam) * 100
     out
 }
+
+Lc_quantile <- function (xx, probs=seq(0, 1, 0.1), type=c("L","p")) {
+    xx <- xx[!is.na(xx)]
+    o <- order(xx)
+    x <- cumsum(xx[o]) / sum(xx)
+    if (type=="L")
+        q <- probs
+    if (type=="p")
+        q <- quantile(x, probs=probs, na.rm=TRUE)
+    xxo <- xx[o]
+    i <- sapply(q, function(z) min(xxo[x >= z]))
+    i
+}

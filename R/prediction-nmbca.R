@@ -163,12 +163,10 @@ rm(lam)
 #}
 #}
 
-as.matrix(rev(sort(sapply(ls(), function(x) object.size(get(x)))))[1:10])
-sum(sapply(ls(), function(x) object.size(get(x))))
 
+## mapping starts here -----------------------------
 
-## mapping
-
+library(RColorBrewer)
 library(mefa4)
 library(pbapply)
 ROOT <- "c:/bam/May2015"
@@ -177,6 +175,118 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 load(file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
 load(file.path(ROOT2, "XYeosd.Rdata"))
+
+
+PROJECT <- "bam"
+spp <- "CAWA"
+Date <- "2015-08-27"
+
+## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
+## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
+## LCTU: "nlc", "lcc", "eos" # land cover to use
+ids <- expand.grid(
+    TEXT=c("gfw", "fre"),
+    SEXT=c("can", "nam"),
+    LCTU=c("nlc", "lcc", "eos"))
+ids <- ids[ids$SEXT == "can" | (ids$SEXT == "nam" & ids$LCTU == "nlc"),]
+ids <- ids[order(ids$SEXT),]
+ids$fn <- with(ids, paste0("bam_", spp, "_", 
+    TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
+ids$data <- with(ids, paste0("pack_", 
+    TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
+rownames(ids) <- 1:8
+
+fid <- 1
+#Stage <- which(names(mods) == "HS")
+Stage <- 7 # which(names(mods) == "Dist")
+# 2001, 2005, 2009, 2013
+BASE_YEAR <- 2013
+
+xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
+
+for (fid in 1:6) {
+for (BASE_YEAR in c(2003, 2013)) {
+
+cat(fid, BASE_YEAR, "\n");flush.console()
+
+e <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
+mods <- e$mods
+Terms <- getTerms(e$mods, "list")
+setdiff(Terms, colnames(e$DAT))
+xn <- e$DAT[1:500,Terms]
+Xn <- model.matrix(getTerms(mods, "formula"), xn)
+colnames(Xn) <- fixNames(colnames(Xn))
+rm(e)
+
+load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
+100 * sum(getOK(res)) / length(res)
+est <- getEst(res, stage = Stage, X=Xn)
+
+if (ids$SEXT[fid] == "can")
+    regs <- gsub(".Rdata", "",
+        gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks"))))
+if (ids$SEXT[fid] == "nam")
+    regs <- gsub(".Rdata", "",
+        gsub("pgdat-full-", "", list.files(file.path(ROOT2, "chunks2"))))
+
+
+fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regs, "-",
+        ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date, ".Rdata")
+
+load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), fl[1]))
+plam <- lam
+tlam <- attr(lam, "total")
+for (fn in fl[-1]) {
+    cat("loading", fn, "\n");flush.console()
+    load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), fn))
+    plam <- rbind(plam, lam)
+    tlam <- rbind(tlam, attr(lam, "total"))
+}
+rownames(tlam) <- regs
+dim(plam)
+sum(duplicated(rownames(plam)))
+
+fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", 
+        ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
+write.csv(tlam, file=file.path(ROOT, "out", "figs", "nmbca", paste0(fo, ".csv")))
+
+png(file.path(ROOT, "out", "figs", "nmbca", paste0(fo, ".png")), 
+    width = 2000, height = 2000)
+op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
+
+x <- plam[,"Mean"]
+probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
+Col <- rev(brewer.pal(5, "RdYlBu"))
+br <- Lc_quantile(x, probs=probs, type="L")
+zval <- if (length(unique(round(br,10))) < 5)
+    rep(1, length(x)) else as.integer(cut(x, breaks=br))
+plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+points(xy1, pch=19, cex=2)
+legend("topright", bty = "n", legend=rev(TEXT), 
+    fill=rev(Col), border=1, cex=2)
+
+br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
+Col <- rev(brewer.pal(5, "RdYlGn"))
+TEXT <- paste0(100*br[-length(br)], "-", 100*br[-1], "%")
+TEXT[length(TEXT)] <- paste0(">", 100*br[length(br)-1], "%") 
+CoV <- plam[,"SD"] / plam[,"Mean"]
+zval <- cut(CoV, breaks=br)
+plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+points(xy1, pch=19, cex=2)
+legend("topright", bty = "n", legend=rev(TEXT), 
+    fill=rev(Col), border=1, cex=2)
+
+par(op)
+dev.off()
+
+}
+}
+
+## -- old
 
 spp <- "CAWA"
 wid <- 1
@@ -230,18 +340,6 @@ table(unlist(lapply(sres$nalc, "[[", "hi")))
 
 
 
-Lc_quantile <- function (xx, probs=seq(0, 1, 0.1), type=c("L","p")) {
-    xx <- xx[!is.na(xx)]
-    o <- order(xx)
-    x <- cumsum(xx[o]) / sum(xx)
-    if (type=="L")
-        q <- probs
-    if (type=="p")
-        q <- quantile(x, probs=probs, na.rm=TRUE)
-    xxo <- xx[o]
-    i <- sapply(q, function(z) min(xxo[x >= z]))
-    i
-}
 
 png(file.path(ROOT, "out", "figs", "CAWA-ver3-2015.png"), width = 2000, height = 2000)
 op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
