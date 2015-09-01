@@ -60,9 +60,11 @@ if (ids$SEXT[fid] == "nam")
 #regi <- "6_AB"
 for (regi in regs) {
 
-cat(spp, "--- Stage:", Stage, 
-    "--- base yr:", BASE_YEAR, 
-    "--- region:", regi, "\n")
+cat(spp, 
+    paste0(ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date), 
+    "Stg:", Stage, 
+    "Bs yr:", BASE_YEAR, 
+    "Reg:", regi, "\n")
 flush.console()
 
 if (ids$SEXT[fid] == "can")
