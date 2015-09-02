@@ -273,9 +273,9 @@ zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
 plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
-points(xy1, pch=19, cex=3)
+points(xy1, pch=19, cex=2)
 legend("topright", bty = "n", legend=rev(TEXT), 
-    fill=rev(Col), border=1, cex=2, title="CAWA mean abundance")
+    fill=rev(Col), border=1, cex=3, title="CAWA mean abundance")
 
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
 Col <- rev(brewer.pal(5, "RdYlGn"))
