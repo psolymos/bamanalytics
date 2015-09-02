@@ -198,14 +198,16 @@ rownames(ids) <- 1:8
 
 fid <- 1
 #Stage <- which(names(mods) == "HS")
-Stage <- 7 # which(names(mods) == "Dist")
+Stage <- 6 # which(names(mods) == "Dist")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2013
 
 xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
 
+ttt <- list()
+
 for (fid in 1:6) {
-for (BASE_YEAR in c(2003, 2013)) {
+#for (BASE_YEAR in c(2003, 2013)) {
 
 cat(fid, BASE_YEAR, "\n");flush.console()
 
@@ -234,12 +236,12 @@ if (ids$SEXT[fid] == "nam")
 fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regs, "-",
         ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date, ".Rdata")
 
-load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), fl[1]))
+load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca2"), fl[1]))
 plam <- lam
 tlam <- attr(lam, "total")
 for (fn in fl[-1]) {
     cat("loading", fn, "\n");flush.console()
-    load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), fn))
+    load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca2"), fn))
     plam <- rbind(plam, lam)
     tlam <- rbind(tlam, attr(lam, "total"))
 }
@@ -247,11 +249,14 @@ rownames(tlam) <- regs
 dim(plam)
 sum(duplicated(rownames(plam)))
 
+ttt[[fid]] <- tlam
+
+if (FALSE) {
 fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", 
         ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
-write.csv(tlam, file=file.path(ROOT, "out", "figs", "nmbca", paste0(fo, ".csv")))
+write.csv(tlam, file=file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".csv")))
 
-png(file.path(ROOT, "out", "figs", "nmbca", paste0(fo, ".png")), 
+png(file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".png")), 
     width = 2000, height = 2000)
 op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
 
@@ -282,9 +287,17 @@ legend("topright", bty = "n", legend=rev(TEXT),
 
 par(op)
 dev.off()
+}
 
+#}
 }
-}
+
+data.frame(ids[1:6,1:3],
+    t(sapply(ttt, function(z) 
+        c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6)))))
+
+
+
 
 ## -- old
 
