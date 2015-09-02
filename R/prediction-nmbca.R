@@ -8,7 +8,7 @@ source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
 spp <- "CAWA"
-Date <- "2015-08-27"
+Date <- "2015-09-02"
 
 ## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
 ## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
@@ -25,11 +25,11 @@ ids$data <- with(ids, paste0("pack_",
     TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
 rownames(ids) <- 1:8
 
-fid <- 1
 #Stage <- which(names(mods) == "HS")
-Stage <- 7 # which(names(mods) == "Dist")
+Stage <- 6 # which(names(mods) == "Dist")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2013
+fid <- 1
 
 #for (fid in 1:6) {
 
@@ -55,7 +55,7 @@ if (ids$SEXT[fid] == "nam")
         gsub("pgdat-full-", "", list.files(file.path(ROOT2, "chunks2"))))
 
 
-#for (BASE_YEAR in c(2001, 2013)) {
+#for (BASE_YEAR in c(2013, 2003)) {
 
 #regi <- "6_AB"
 for (regi in regs) {
@@ -151,7 +151,7 @@ attr(lam, "base-year") <- BASE_YEAR
 attr(lam, "bcr-jurs") <- regi
 gc()
 
-fout <- file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), 
+fout <- file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca2"), 
     paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regi, "-",
         ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date, ".Rdata"))
 save(lam, file=fout)
@@ -169,8 +169,12 @@ rm(lam)
 library(RColorBrewer)
 library(mefa4)
 library(pbapply)
-ROOT <- "c:/bam/May2015"
-ROOT2 <- "e:/peter/bam/pred-2015"
+
+ROOT <- "c:/Users/Peter/bam"
+ROOT2 <- "c:/Users/Peter/bam/pred-2015"
+#ROOT <- "c:/bam/May2015"
+#ROOT2 <- "e:/peter/bam/pred-2015"
+
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 load(file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
@@ -179,7 +183,7 @@ load(file.path(ROOT2, "XYeosd.Rdata"))
 
 PROJECT <- "bam"
 spp <- "CAWA"
-Date <- "2015-08-27"
+Date <- "2015-09-02"
 
 ## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
 ## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
@@ -251,10 +255,10 @@ sum(duplicated(rownames(plam)))
 
 ttt[[fid]] <- tlam
 
-if (FALSE) {
 fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", 
         ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
-write.csv(tlam, file=file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".csv")))
+
+#write.csv(tlam, file=file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".csv")))
 
 png(file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".png")), 
     width = 2000, height = 2000)
@@ -269,9 +273,9 @@ zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
 plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
-points(xy1, pch=19, cex=2)
+points(xy1, pch=19, cex=3)
 legend("topright", bty = "n", legend=rev(TEXT), 
-    fill=rev(Col), border=1, cex=2)
+    fill=rev(Col), border=1, cex=2, title="CAWA mean abundance")
 
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
 Col <- rev(brewer.pal(5, "RdYlGn"))
@@ -283,11 +287,10 @@ plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
 points(xy1, pch=19, cex=2)
 legend("topright", bty = "n", legend=rev(TEXT), 
-    fill=rev(Col), border=1, cex=2)
+    fill=rev(Col), border=1, cex=3, title="CAWA coefficient of variation")
 
 par(op)
 dev.off()
-}
 
 #}
 }
