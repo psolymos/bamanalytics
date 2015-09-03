@@ -5,7 +5,7 @@ source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
 spp <- "CAWA"
-Date <- "2015-08-27"
+Date <- "2015-09-02"
 
 ## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
 ## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
@@ -59,12 +59,51 @@ Aic7 <- sapply(Aic, function(z) z[,"Year"])
 t(apply(Aic7, 1, function(z) z - min(z)))
 table(apply(Aic7, 1, which.min))
 
+Aic6 <- sapply(Aic, function(z) z[,"Clim"])
+t(apply(Aic6, 1, function(z) z - min(z)))
+table(apply(Aic6, 1, which.min))
+
+## percent annual change from year effect
+int <- 1/10
 lapply(Est, function(est) {
-    tw <- 100 * (exp(est[,"YR"]) - 1)
-    te <- 100 * (exp(est[,"YR"] + est[,"EWE:YR"]) - 1)
+    tw <- 100 * (exp(int*est[,"YR"]) - 1)
+    te <- 100 * (exp(int*(est[,"YR"] + est[,"EWE:YR"])) - 1)
     round(cbind(West=c(Mean=mean(tw), quantile(tw, c(0.025, 0.5, 0.975))),
         East=c(Mean=mean(te), quantile(te, c(0.025, 0.5, 0.975)))),2)
 })
+
+load("c:/bam/May2015/out/figs/nmbca2/popsize-CAWA-6-2013-2015-09-02.Rdata")
+ttt13 <- ttt
+load("c:/bam/May2015/out/figs/nmbca2/popsize-CAWA-6-2003-2015-09-02.Rdata")
+ttt03 <- ttt
+
+#i <- 1
+fun <- function(i) {
+int <- 1/10
+x <- colSums(ttt13[[i]]) / colSums(ttt03[[i]])
+yw <- exp(Est[[i]][,"YR"])
+ye <- exp(Est[[i]][,"YR"] + Est[[i]][,"EWE:YR"])
+t <- 100 * (exp(int*log(x)) - 1)
+tw <- 100 * (exp(int*log(yw)) - 1)
+te <- 100 * (exp(int*log(ye)) - 1)
+ttw <- 100 * (exp(int*log(x * yw)) - 1)
+tte <- 100 * (exp(int*log(x * ye)) - 1)
+colMeans(cbind(t=t, tw=tw, ttw=ttw, te=te, tte=tte))
+}
+
+## pop size & trend
+data.frame(ids[1:6,1:3],
+    round(cbind(N=sapply(ttt13, function(z) mean(colSums(z)/10^6)),
+    t(sapply(1:6, fun))), 3))
+
+
+summary(cbind(t, tw, ttw))
+summary(cbind(t, te, tte))s
+boxplot(cbind(t, tw, ttw, NA, t, te, tte))
+abline(h=0,col=2)
+
+
+
 
 lapply(Mid, "[[", "Clim")
 
