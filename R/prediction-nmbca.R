@@ -264,7 +264,8 @@ png(file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".png")),
     width = 2000, height = 2000)
 op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
 
-x <- plam[,"Mean"]
+#x <- plam[,"Mean"]
+x <- plam[,"Median"]
 probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
 Col <- rev(brewer.pal(5, "RdYlBu"))
@@ -275,19 +276,24 @@ plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
 points(xy1, pch=19, cex=2)
 legend("topright", bty = "n", legend=rev(TEXT), 
-    fill=rev(Col), border=1, cex=3, title="CAWA mean abundance")
+    fill=rev(Col), border=1, cex=3, 
+    #title=paste(spp, "mean abundance"))
+    title=paste(spp, "median abundance"))
 
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
 Col <- rev(brewer.pal(5, "RdYlGn"))
 TEXT <- paste0(100*br[-length(br)], "-", 100*br[-1], "%")
 TEXT[length(TEXT)] <- paste0(">", 100*br[length(br)-1], "%") 
-CoV <- plam[,"SD"] / plam[,"Mean"]
+#CoV <- plam[,"SD"] / plam[,"Mean"]
+CoV <- plam[,"IQR"] / plam[,"Median"]
 zval <- cut(CoV, breaks=br)
 plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
 points(xy1, pch=19, cex=2)
 legend("topright", bty = "n", legend=rev(TEXT), 
-    fill=rev(Col), border=1, cex=3, title="CAWA coefficient of variation")
+    fill=rev(Col), border=1, cex=3, 
+    #title=paste(spp, "SD / mean"))
+    title=paste(spp, "IQR / median"))
 
 par(op)
 dev.off()
@@ -295,9 +301,38 @@ dev.off()
 #}
 }
 
-data.frame(ids[1:6,1:3],
+pe <- data.frame(ids[1:6,1:3],
+    Year=BASE_YEAR,
     t(sapply(ttt, function(z) 
         c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6)))))
+save(ttt, file=file.path(ROOT, "out", "figs", "nmbca2", 
+    paste0(paste0("popsize-", spp, "-", Stage, "-", BASE_YEAR, "-", Date), ".Rdata")))
+
+## 2003
+
+pe03 <- structure(list(TEXT = structure(c(1L, 2L, 1L, 2L, 1L, 2L), .Label = c("gfw", 
+    "fre"), class = "factor"), SEXT = structure(c(1L, 1L, 1L, 1L, 
+    1L, 1L), .Label = c("can", "nam"), class = "factor"), LCTU = structure(c(1L, 
+    1L, 2L, 2L, 3L, 3L), .Label = c("nlc", "lcc", "eos"), class = "factor"), 
+        Year = c(2003, 2003, 2003, 2003, 2003, 2003), mean = c(7.04675889420143, 
+        8.1948604617475, 7.30885952161788, 8.12954353917993, 7.32127463952691, 
+        8.04625186575813), median = c(7.03908748814014, 7.90960556092234, 
+        7.28424257344771, 7.97434394721777, 7.29854788856675, 7.70893150271355
+        )), .Names = c("TEXT", "SEXT", "LCTU", "Year", "mean", "median"
+    ), row.names = c(NA, 6L), class = "data.frame")
+
+pe13 <- structure(list(TEXT = structure(c(1L, 2L, 1L, 2L, 1L, 2L), .Label = c("gfw", 
+    "fre"), class = "factor"), SEXT = structure(c(1L, 1L, 1L, 1L, 
+    1L, 1L), .Label = c("can", "nam"), class = "factor"), LCTU = structure(c(1L, 
+    1L, 2L, 2L, 3L, 3L), .Label = c("nlc", "lcc", "eos"), class = "factor"), 
+        Year = c(2013, 2013, 2013, 2013, 2013, 2013), mean = c(7.03823934905092, 
+        8.2201686110189, 7.29573582539286, 8.15710339698905, 7.2890423740622, 
+        8.0574300369338), median = c(7.02512525548913, 7.93361330635701, 
+        7.27357416838527, 7.98576510700306, 7.2667175762312, 7.70826606796275
+        )), .Names = c("TEXT", "SEXT", "LCTU", "Year", "mean", "median"
+    ), row.names = c(NA, 6L), class = "data.frame")
+
+
 
 
 
