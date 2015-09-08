@@ -29,7 +29,7 @@ echo "Starting run at: `date`"
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can nlc
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can lcc
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can eos
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw nam nlc
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre nam nlc
+mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw nam nlc
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre nam nlc
 
 echo "Program finished with exit code $? at: `date`"
