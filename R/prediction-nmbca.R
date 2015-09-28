@@ -1,8 +1,8 @@
 library(RColorBrewer)
 library(mefa4)
 library(pbapply)
-ROOT <- "c:/Users/Peter/bam"
-ROOT2 <- "c:/Users/Peter/bam/pred-2015"
+ROOT <- "c:/bam/May2015"
+ROOT2 <- "e:/peter/bam/pred-2015"
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
@@ -28,10 +28,10 @@ rownames(ids) <- 1:8
 #Stage <- which(names(mods) == "HS")
 Stage <- 6 # which(names(mods) == "Dist")
 # 2001, 2005, 2009, 2013
-BASE_YEAR <- 2013
+BASE_YEAR <- 2012
 fid <- 1
 
-#for (fid in 1:6) {
+for (fid in 1:8) {
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
@@ -55,7 +55,7 @@ if (ids$SEXT[fid] == "nam")
         gsub("pgdat-full-", "", list.files(file.path(ROOT2, "chunks2"))))
 
 
-#for (BASE_YEAR in c(2013, 2003)) {
+for (BASE_YEAR in c(2012, 2002)) { # consistent with BBS
 
 #regi <- "6_AB"
 for (regi in regs) {
@@ -151,7 +151,7 @@ attr(lam, "base-year") <- BASE_YEAR
 attr(lam, "bcr-jurs") <- regi
 gc()
 
-fout <- file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca2"), 
+fout <- file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), 
     paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regi, "-",
         ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date, ".Rdata"))
 save(lam, file=fout)
@@ -160,8 +160,8 @@ rm(lam)
 }
 
 
-#}
-#}
+}
+}
 
 
 ## mapping starts here -----------------------------
