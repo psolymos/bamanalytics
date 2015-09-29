@@ -115,6 +115,11 @@ dat$YSF <- pmax(0, 1 - (dat$YSF / AGEMAX))
 dat$YSL <- pmax(0, 1 - (dat$YSL / AGEMAX))
 
 AA <- nrow(dat)
+if (ids$SEXT[fid] == "nam") {
+    dat$HAB_EOSD2 <- NULL
+    dat$HAB_LCC2 <- NULL
+}
+
 dat0 <- dat[rowSums(is.na(dat)) == 0,]
 #aa <- nrow(dat0) / AA
 #aa <- 1
@@ -133,14 +138,14 @@ if (ids$LCTU[fid] == "lcc") {
     dat0$isDM <- dat0$isDM_LCC
     dat0$isNF <- dat0$isNF_LCC
 }
-Xn0 <- model.matrix(getTerms(mods, "formula"), dat0)
+Xn0 <- model.matrix(getTerms(mods[1:Stage], "formula"), dat0)
 colnames(Xn0) <- fixNames(colnames(Xn0))
 #rm(dat0)
 NR <- nrow(Xn0)
 
 mu0 <- matrix(0, NR, 240)
 for (j in 1:nrow(est)) {
-    mu0[,j] <- drop(Xn0 %*% est[j,])
+    mu0[,j] <- drop(Xn0 %*% est[j,colnames(Xn0)])
 }
 lam <- lamfun(mu0)
 rownames(lam) <- rownames(dat0)
