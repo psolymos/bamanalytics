@@ -144,16 +144,20 @@ colnames(Xn0) <- fixNames(colnames(Xn0))
 NR <- nrow(Xn0)
 
 mu0 <- matrix(0, NR, 240)
-for (j in 1:nrow(est)) {
-    mu0[,j] <- drop(Xn0 %*% est[j,colnames(Xn0)])
+if (NR > 0) {
+    for (j in 1:nrow(est)) {
+        mu0[,j] <- drop(Xn0 %*% est[j,colnames(Xn0)])
+    }
+    lam <- lamfun(mu0)
+    rownames(lam) <- rownames(dat0)
+    rm(mu0, dat0, Xn0)
+    attr(lam, "spp") <- spp
+    attr(lam, "stage") <- Stage
+    attr(lam, "base-year") <- BASE_YEAR
+    attr(lam, "bcr-jurs") <- regi
+} else {
+    lam <- NULL
 }
-lam <- lamfun(mu0)
-rownames(lam) <- rownames(dat0)
-rm(mu0, dat0, Xn0)
-attr(lam, "spp") <- spp
-attr(lam, "stage") <- Stage
-attr(lam, "base-year") <- BASE_YEAR
-attr(lam, "bcr-jurs") <- regi
 gc()
 
 fout <- file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), 
