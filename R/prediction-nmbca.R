@@ -179,23 +179,23 @@ library(RColorBrewer)
 library(mefa4)
 library(pbapply)
 
-ROOT <- "c:/Users/Peter/bam"
-ROOT2 <- "c:/Users/Peter/bam/pred-2015"
-#ROOT <- "c:/bam/May2015"
-#ROOT2 <- "e:/peter/bam/pred-2015"
+#ROOT <- "c:/Users/Peter/bam"
+#ROOT2 <- "c:/Users/Peter/bam/pred-2015"
+ROOT <- "c:/bam/May2015"
+ROOT2 <- "e:/peter/bam/pred-2015"
 
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 load(file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
 load(file.path(ROOT2, "XYeosd.Rdata"))
-
+load(file.path(ROOT2, "XYfull.Rdata"))
 
 PROJECT <- "bam"
 spp <- "CAWA"
 Date <- "2015-09-02"
 
-## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
-## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
+## SEXT: "can", "nam" # spatial extent, (can=canadian boreal ~ eosd)
+## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fre=1997-2014
 ## LCTU: "nlc", "lcc", "eos" # land cover to use
 ids <- expand.grid(
     TEXT=c("gfw", "fre"),
@@ -213,16 +213,20 @@ fid <- 1
 #Stage <- which(names(mods) == "HS")
 Stage <- 6 # which(names(mods) == "Dist")
 # 2001, 2005, 2009, 2013
-BASE_YEAR <- 2013
+BASE_YEAR <- 2012
 
 xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
 
 ttt <- list()
+brr <- list()
 
-for (fid in 1:6) {
-#for (BASE_YEAR in c(2003, 2013)) {
+for (fid in 1:8) {
+for (BASE_YEAR in c(2002, 2012)) {
 
-cat(fid, BASE_YEAR, "\n");flush.console()
+gc()
+fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", 
+        ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
+cat(fo, "\n");flush.console()
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
@@ -245,33 +249,39 @@ if (ids$SEXT[fid] == "nam")
     regs <- gsub(".Rdata", "",
         gsub("pgdat-full-", "", list.files(file.path(ROOT2, "chunks2"))))
 
-
 fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regs, "-",
         ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date, ".Rdata")
 
-load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca2"), fl[1]))
-plam <- lam
-tlam <- attr(lam, "total")
+is_null <- integer(length(fl))
+names(is_null) <- fl
+load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), fl[1]))
+if (is.null(lam)) {
+    is_null[1] <- 1L
+} else {
+    plam <- lam
+    tlam <- attr(lam, "total")
+}
 for (fn in fl[-1]) {
     cat("loading", fn, "\n");flush.console()
-    load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca2"), fn))
-    plam <- rbind(plam, lam)
-    tlam <- rbind(tlam, attr(lam, "total"))
+    load(file.path(ROOT2, "species", paste0(tolower(spp), "-nmbca"), fn))
+    if (is.null(lam)) {
+        is_null[fn] <- 1L
+    } else {
+        plam <- rbind(plam, lam)
+        tlam <- rbind(tlam, attr(lam, "total"))
+    }
 }
-rownames(tlam) <- regs
+rownames(tlam) <- regs[is_null==0]
 dim(plam)
 sum(duplicated(rownames(plam)))
 
-ttt[[fid]] <- tlam
+if (ids$SEXT[fid] == "nam") {
+    q <- quantile(plam[,"Mean"], 0.99)
+    plam[plam[,"Mean"] > q,"Mean"] <- q
 
-fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", 
-        ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
-
-#write.csv(tlam, file=file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".csv")))
-
-png(file.path(ROOT, "out", "figs", "nmbca2", paste0(fo, ".png")), 
-    width = 2000, height = 2000)
-op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
+    q <- quantile(plam[,"Median"], 0.99)
+    plam[plam[,"Median"] > q,"Median"] <- q
+}
 
 #x <- plam[,"Mean"]
 x <- plam[,"Median"]
@@ -279,10 +289,25 @@ probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
 Col <- rev(brewer.pal(5, "RdYlBu"))
 br <- Lc_quantile(x, probs=probs, type="L")
+if (!is.finite(br[length(br)]))
+    br[length(br)] <- 1.01* max(x, na.rm=TRUE)
+brr[[fo]] <- br
+ttt[[fo]] <- tlam
+
+if (FALSE) {
+png(file.path(ROOT2, "species", "cawa-nmbca-figs", paste0(fo, ".png")), 
+    width = 2000, height = 2000)
+op <- par(mfrow=c(2,1), mar=c(1,1,1,1)+0.1)
+
 zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
-plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
-    ann=FALSE, axes=FALSE)
+if (ids$SEXT[fid] == "nam") {
+    plot(XYfull[rownames(plam),], col = Col[zval], pch=".",
+        ann=FALSE, axes=FALSE)
+} else {
+    plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
+        ann=FALSE, axes=FALSE)
+}
 points(xy1, pch=19, cex=2)
 legend("topright", bty = "n", legend=rev(TEXT), 
     fill=rev(Col), border=1, cex=3, 
@@ -296,8 +321,13 @@ TEXT[length(TEXT)] <- paste0(">", 100*br[length(br)-1], "%")
 #CoV <- plam[,"SD"] / plam[,"Mean"]
 CoV <- plam[,"IQR"] / plam[,"Median"]
 zval <- cut(CoV, breaks=br)
-plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
-    ann=FALSE, axes=FALSE)
+if (ids$SEXT[fid] == "nam") {
+    plot(XYfull[rownames(plam),], col = Col[zval], pch=".",
+        ann=FALSE, axes=FALSE)
+} else {
+    plot(XYeosd[rownames(plam),], col = Col[zval], pch=".",
+        ann=FALSE, axes=FALSE)
+}
 points(xy1, pch=19, cex=2)
 legend("topright", bty = "n", legend=rev(TEXT), 
     fill=rev(Col), border=1, cex=3, 
@@ -307,8 +337,55 @@ legend("topright", bty = "n", legend=rev(TEXT),
 par(op)
 dev.off()
 
-#}
+tlam <- data.frame(t(tlam))
+write.csv(tlam, row.names=FALSE,
+    file=file.path(ROOT2, "species", "cawa-nmbca-tabs", paste0("byregion-", fo, ".csv")))
+plam <- data.frame(id=rownames(plam), median=plam[,"Median"], cov=CoV)
+write.csv(plam, row.names=FALSE,
+    file=file.path(ROOT2, "species", "cawa-nmbca-tabs", paste0("bypoint-", fo, ".csv")))
 }
+
+rm(plam)
+}
+}
+
+save(brr, ttt, file=file.path(ROOT2, "species", "tlam-CAWA.Rdata"))
+
+
+## dealing with outliers
+ttt2 <- ttt
+for (i in 1:16) {
+    tmp <- ttt[[i]]
+    if (any(tmp > 10^10)) {
+        for (j in 1:nrow(tmp)) {
+            vv <- tmp[j,]
+            vv <- vv[is.finite(vv)]
+            q <- quantile(vv, 0.99)
+            cat(j, q, "\n")
+            tmp[j, tmp[j,] > q] <- q
+        }
+    }
+    ttt2[[i]] <- tmp
+}
+
+t(sapply(ttt, function(z) 
+        c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6))))
+t(sapply(ttt2, function(z) 
+        c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6))))
+
+
+df <- data.frame(ids[rep(1:6, each=2),1:3], 
+    Year=c(2002, 2012),
+    t(sapply(ttt[1:12], function(z) 
+        c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6)))))
+df$change <- NA
+for (i in 1:6) {
+    N0 <- df$median[i*2-1]
+    N10 <- df$median[i*2]
+    df$change[i*2] <- 100 * ((N10/N0)^(1/10) - 1)
+}
+
+
 
 pe <- data.frame(ids[1:6,1:3],
     Year=BASE_YEAR,
