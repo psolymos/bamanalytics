@@ -22,12 +22,12 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2015-07-24.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2015-10-07.Rdata"))
 
 ### Removal sampling
 
 ## non NA subset for duration related estimates
-pkDur <- dat[,c("PKEY","JDAY","TSSR","DURMETH")]
+pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH")]
 pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
 ## strange methodology where all counts have been filtered
 ## thus this only leads to 0 total count and exclusion
@@ -67,7 +67,13 @@ NAMES <- list(
     "5"=c("INTERCEPT", "JDAY", "TSSR"),
     "6"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR"),
     "7"=c("INTERCEPT", "JDAY", "TSSR", "TSSR2"),
-    "8"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR", "TSSR2"))
+    "8"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR", "TSSR2"),
+    "9"=c("INTERCEPT", "TSLS"),
+    "10"=c("INTERCEPT", "TSLS", "TSLS2"),
+    "11"=c("INTERCEPT", "TSLS", "TSSR"),
+    "12"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR"),
+    "13"=c("INTERCEPT", "TSLS", "TSSR", "TSSR2"),
+    "14"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR", "TSSR2"))
 ff <- list(
     ~ 1,
     ~ JDAY,
@@ -77,7 +83,13 @@ ff <- list(
     ~ JDAY + TSSR,
     ~ JDAY + I(JDAY^2) + TSSR,
     ~ JDAY + TSSR + I(TSSR^2),
-    ~ JDAY + I(JDAY^2) + TSSR + I(TSSR^2))
+    ~ JDAY + I(JDAY^2) + TSSR + I(TSSR^2),
+    ~ TSLS,
+    ~ TSLS + I(TSLS^2),
+    ~ TSLS + TSSR,
+    ~ TSLS + I(TSLS^2) + TSSR,
+    ~ TSLS + TSSR + I(TSSR^2),
+    ~ TSLS + I(TSLS^2) + TSSR + I(TSSR^2))
 
 ## crosstab for species
 xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
