@@ -85,7 +85,9 @@ summary(sqrt(exp(aru[aru > -10])))
 #summary(sqrt(exp(aru)))
 
 ## year effect
+
 trend_res <- list()
+
 for (fid in 1:6) {
 
 fo <- paste0(spp, "-", ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
@@ -142,7 +144,7 @@ resid_yr <- function(i) {
     c(mtw = 100 * (exp(0.1*coef(m)["YR"]) - 1),
         mte = 100 * (exp(0.1*(coef(m)["YR"] + coef(m)["YR:EWE"])) - 1))
 }
-resid_yr(1)
+#resid_yr(1)
 yr_res <- t(pbsapply(1:ncol(bb), resid_yr))
 fstatm <- round(cbind(West=c(Median=median(yr_res[,"mtw.YR"]), 
     quantile(yr_res[,"mtw.YR"], c(0.05, 0.95))),
@@ -193,3 +195,113 @@ trend_res[[fo]] <- list(NN=NN, RR=RR, rtr=yr_res, mtr=cbind(W=tw, E=te))
 
 save(trend_res, file=file.path(ROOT2, "species", "cawa-nmbca-trend", "trend-CAWA.Rdata"))
 
+
+## Province level residual trend
+load("c:/bam/May2015/out/data_package_2015-08-26.Rdata")
+PKEY$JURS <- SS$JURS[match(PKEY$SS, SS$SS)]
+trend_res2 <- list()
+
+for (fid in c(3,5)) {
+
+fo <- paste0(spp, "-", ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
+cat(fo, "\n");flush.console()
+
+e <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
+mods <- e$mods
+Terms <- getTerms(e$mods, "list")
+setdiff(Terms, colnames(e$DAT))
+yy <- e$YY
+xn <- e$DAT[,Terms]
+Xn <- model.matrix(getTerms(mods, "formula"), xn)
+colnames(Xn) <- fixNames(colnames(Xn))
+off <- e$OFF
+bb <- e$BB
+bb <- bb[,1:100]
+rm(e)
+
+load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
+100 * sum(getOK(res)) / length(res)
+
+est <- getEst(res, stage=6)
+stopifnot(all(colnames(Xn) == colnames(est)))
+lam <- exp(pbapply(est, 1, function(z) Xn %*% z))
+lam_hat <- pbapply(lam, 1, median)
+pr <- log(lam_hat) + off[,spp]
+y <- yy[,spp]
+if (spp == "CAWA")
+    y[y>5] <- 6
+
+xn$JURS <- droplevels(PKEY$JURS[match(rownames(xn), PKEY$PKEY)])
+xn$SS <- PKEY$SS[match(rownames(xn), PKEY$PKEY)]
+table(xn$JUSR)
+summary(xn$JUSR)
+xn$isBBS <- ifelse(substr(rownames(xn), 1, 3) == "BBS", "BBS", "BAM")
+xn$YEAR <- 10*xn$YR+2001
+#table(xn$YEAR, xn$isBBS)
+#xn$X <- SS$X[match(xn$SS, SS$SS)]
+#xn$Y <- SS$Y[match(xn$SS, SS$SS)]
+#tmp <- aggregate(xn$Y, list(BBS=xn$isBBS, Jurs=xn$JURS), mean)
+#barplot(matrix(tmp$x, nrow=2), beside=TRUE, ylim=c(40,60))
+#summary(lm(Y ~ isBBS*JURS, xn))
+
+dd <- data.frame(y=y, pr=pr, YR=xn$YR, YEAR=xn$YEAR, JURS=xn$JURS, isBBS=xn$isBBS)
+resid_yr_jurs <- function(i, BBSonly=FALSE) {
+    dat <- dd[bb[,i],]
+    dat <- dat[dat$YEAR >= 2002 & dat$YEAR <= 2012, ]
+    if (BBSonly)
+        dat <- dat[dat$isBBS=="BBS",]
+    dat <- dat[dat$JURS %in% c("AB","ON","QC"),]
+    dat$JURS <- droplevels(dat$JURS)
+    m <- glm(y ~ offset(pr) + YR + JURS:YR, dat, family=poisson)
+    cf <- coef(m)[-1]
+    cf[-1] <- cf[1] + cf[-1]
+    names(cf) <- levels(dat$JURS)
+    100 * (exp(0.1*cf) - 1)
+}
+
+all <- t(pbsapply(1:ncol(bb), resid_yr_jurs, BBSonly=FALSE))
+bbs <- t(pbsapply(1:ncol(bb), resid_yr_jurs, BBSonly=TRUE))
+
+trend_res2[[fo]] <- list(all=all, bbs=bbs)
+
+}
+
+level <- 0.9
+
+Tr <- rbind(t(apply(data.frame(Fid1.All=trend_res2[[1]]$all, Fid1.BBS=trend_res2[[1]]$bbs), 
+    2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))),
+    t(apply(data.frame(Fid3.All=trend_res2[[2]]$all, Fid3.BBS=trend_res2[[2]]$bbs), 
+    2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))),
+    t(apply(data.frame(Fid5.All=trend_res2[[3]]$all, Fid5.BBS=trend_res2[[3]]$bbs), 
+    2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))))
+
+plot(Tr[(1:6)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), pch=19, ylim=range(Tr[1:6,]),
+    axes=FALSE, ann=FALSE, cex=1.5)
+abline(h=0, col="grey")
+segments(x0=1:6, y0=Tr[(1:6)[c(1,4,2,5,3,6)],2], y1=Tr[(1:6)[c(1,4,2,5,3,6)],3],
+    col=rep(c(2, 4), 3), lwd=3)
+axis(2)
+axis(1, at = c(1.5, 3.5, 5.5), labels = c("AB","ON","QC"), tick=FALSE)
+box()
+## legend for all/bbs
+
+e1 <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[1])), envir=e1)
+e2 <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[2])), envir=e2)
+e3 <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[3])), envir=e3)
+e4 <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[4])), envir=e4)
+e5 <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[5])), envir=e5)
+e6 <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[6])), envir=e6)
+
+dim(e1$YY)
+dim(e2$YY)
+dim(e3$YY)
+dim(e4$YY)
+dim(e5$YY)
+dim(e6$YY)

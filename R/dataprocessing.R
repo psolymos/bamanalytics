@@ -221,6 +221,17 @@ compare.sets(rownames(SS01), rownames(SS_pash))
 SS_pash <- SS_pash[rownames(SS01),]
 SS_pash <- SS_pash[,c("BEADTotalL","BEADtotPol")]
 
+## Local spring
+
+SS_sprng <- read.csv("e:/peter/bam/May2015/NRCAN_SG_001_BAMBBS2015_71_13.csv")
+SS_sprng <- SS_sprng[,c("SS","RASTERVALU")]
+SS_sprng$SPRNG <- SS_sprng$RASTERVALU
+levels(SS_sprng$SPRNG) <- gsub(",", "", levels(SS_sprng$SPRNG))
+SS_sprng$SPRNG <- as.numeric(as.character(SS_sprng$SPRNG))
+SS_sprng$SPRNG[SS_sprng$SPRNG < 0] <- NA
+rownames(SS_sprng) <- SS_sprng$SS
+SS_sprng <- SS_sprng[rownames(SS01),]
+
 ## Put together the main SS level object
 SS <- data.frame(
     PCODE=SS01$PCODE,
@@ -236,6 +247,7 @@ SS <- data.frame(
     BCR=as.factor(SS01$BCR),
     TREE=SS02$TREE,
     TREE3=SS02$TREE3,
+    SPRNG=SS_sprng$SPRNG,
     SS03[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", "HAB_EOSD2", 
         "HAB_NALC2", "HAB_NALC1", "LCC_combo")],
     SS_grid,
@@ -621,9 +633,10 @@ with(PCTBL_abmi, table(period123, period1))
 
 
 ## Data package for new offsets
-dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","METHOD",
-    "DURMETH","DISMETH","ROAD")],
-    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2")])
+dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","JULIAN",
+    "srise","start_time","MAXDUR","MAXDIS","METHOD","DURMETH","DISMETH","ROAD")],
+    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2",
+    "BCR","JURS","SPRNG","DD51","X","Y")])
 dat <- dat[dat$ROAD == 0,]
 rownames(dat) <- dat$PKEY
 ii <- intersect(dat$PKEY, levels(PCTBL$PKEY))
@@ -633,6 +646,9 @@ colSums(is.na(dat))
 ## sra and edr might have different NA patterns -- it is OK to exclude them later
 #dat <- dat[rowSums(is.na(dat)) == 0,]
 dat <- droplevels(dat)
+dat$TSLS <- (dat$JULIAN - dat$SPRNG) / 365
+dat$DD5 <- (dat$DD51 - 1600) / 1000
+dat$DD51 <- NULL
 
 dat2 <- with(PKEY_abmi, data.frame(
     PCODE="ABMI",
@@ -640,8 +656,11 @@ dat2 <- with(PKEY_abmi, data.frame(
     SS=as.factor(Label2),
     TSSR=TSSR,
     JDAY=JDAY,
-    MAXDIS=Inf,
+    JULIAN=JULIAN,
+    srise=srise,
+    start_time=start_time,
     MAXDUR=10,
+    MAXDIS=Inf,
     METHOD="ABMI:1",
     DURMETH="X",
     DISMETH="D",
@@ -650,8 +669,16 @@ dat2 <- with(PKEY_abmi, data.frame(
     TREE3=NA,
     LCC_combo=NA,
     HAB_NALC1=NA,
-    HAB_NALC2=NA))
+    HAB_NALC2=NA,
+    BCR=6,
+    JURS=factor("AB", levels=levels(dat$JURS)),
+    SPRNG=NA,
+    X=long,
+    Y=lat,
+    TSLS=NA,
+    DD5=NA))
 rownames(dat2) <- dat2$PKEY
+#write.csv(dat2, row.names=FALSE, file="ABMI-XY.csv")
 
 ## besides `dat` we also need specific aoutput from `PCTBL`
 ## and also the methodology x interval lookup
@@ -733,12 +760,8 @@ levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
 
 
 ## combine dat, dat2 and pc pc2
-dat <- rbind(dat, dat2)
-pc <- rbind(pc, pc2)
-
-save(dat2, pc2, 
-    file=file.path(ROOT, "out",
-    paste0("abmi_data_package_", Sys.Date(), ".Rdata")))
+dat <- rbind(dat, dat2[,colnames(dat)])
+pc <- rbind(pc, pc2[,colnames(pc)])
 
 durmat <- as.matrix(Xtab(~ DURMETH + dur, pc))
 durmat[durmat > 0] <- 1
@@ -760,6 +783,10 @@ table(pcc=droplevels(pcc$DURMET), pkk=droplevels(pkk$DURMET), useNA="a")
 
 }
 
+
+save(dat2, pc2, 
+    file=file.path(ROOT, "out",
+    paste0("abmi_data_package_", Sys.Date(), ".Rdata")))
 
 save(dat, pc, ltdur, ltdis, TAX,
     file=file.path(ROOT, "out",
