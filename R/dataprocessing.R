@@ -679,6 +679,11 @@ dat2 <- with(PKEY_abmi, data.frame(
     DD5=NA))
 rownames(dat2) <- dat2$PKEY
 #write.csv(dat2, row.names=FALSE, file="ABMI-XY.csv")
+ls_abmi <- read.csv("e:/peter/bam/May2015/ABMI_XY_JDStart_DD5.csv")
+rownames(ls_abmi) <- ls_abmi$PKEY
+ls_abmi <- ls_abmi[rownames(dat2),]
+dat2$SPRNG <- ls_abmi$JSD_00_13
+dat2$TSLS <- (dat2$JULIAN - dat2$SPRNG) / 365
 
 ## besides `dat` we also need specific aoutput from `PCTBL`
 ## and also the methodology x interval lookup

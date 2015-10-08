@@ -22,7 +22,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2015-10-07.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2015-10-08.Rdata"))
 
 ### Removal sampling
 
@@ -95,7 +95,7 @@ ff <- list(
 xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
 xtDur[["NONE"]] <- NULL
 
-fitDurFun <- function(spp, fit=TRUE) {
+fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
     X0 <- pkDur[rn,]
     Y0 <- as.matrix(xtDur[[spp]][rn,])
@@ -128,7 +128,7 @@ fitDurFun <- function(spp, fit=TRUE) {
         res <- list()
         for (i in seq_len(length(ff))) {
             f <- as.formula(paste0("Y | D ", paste(as.character(ff[[i]]), collapse=" ")))
-            mod <- try(cmulti(f, X, type="rem"))
+            mod <- try(cmulti(f, X, type=type))
             if (!inherits(mod, "try-error")) {
                 rval <- mod[c("coefficients","vcov","nobs","loglik")]
                 rval$p <- length(coef(mod))
@@ -166,7 +166,8 @@ resDur <- vector("list", length(SPP))
 for (i in 1:length(SPP)) {
     cat("Singing rate estimation for", SPP[i], date(), "\n")
     flush.console()
-    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE))
+    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
+    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
 }
 names(resDur) <- SPP
 resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
@@ -175,6 +176,7 @@ resDur <- resDurOK
 
 save(resDur, resDurData,
     file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
+    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2015_mix.Rdata"))
 
 ### Distance sampling
 
@@ -346,7 +348,7 @@ for (spp in tmp) {
             lnm <- length(resDur[[spp]][[mid]]$names)
             if (lcf != lnm) {
                 cat("SRA conflict for", spp, "model", mid,
-                "( lcf =", lcf, ", lnm =", lnm, "\n")
+                "( len.coef =", lcf, ", len.name =", lnm, ")\n")
                 sra_models[spp,mid] <- 0
             }
         } else {
@@ -361,7 +363,7 @@ for (spp in tmp) {
             lnm <- length(resDis[[spp]][[mid]]$names)
             if (lcf != lnm) {
                 cat("EDR conflict for", spp, "model", mid,
-                "( lcf =", lcf, ", lnm =", lnm, "\n")
+                "( len.coef =", lcf, ", len.name =", lnm, ")\n")
                 edr_models[spp,mid] <- 0
             }
         } else {
@@ -419,7 +421,7 @@ sra_estimates <- resDur[spp]
 
 ## species table
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2015-05-14.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2015-10-07.Rdata"), envir=e)
 tax <- e$TAX
 rownames(tax) <- tax$Species_ID
 spp_table <- data.frame(spp=spp,
@@ -551,7 +553,8 @@ library(detect)
 load_BAM_QPAD(1)
 .BAMCOEFS$version
 if (version > 2)
-    load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
+    #load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
+    load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 .BAMCOEFS$version
 
 SPP <- getBAMspecieslist()
@@ -563,7 +566,7 @@ pp <- sapply(SPP, function(spp) sra_fun(t, cfall[spp,1]))
 qq <- sapply(SPP, function(spp) edr_fun(r, cfall[spp,2]))
 
 pdf(paste0("~/Dropbox/bam/qpad_v3/QPAD_res_v",
-    getBAMversion(),".pdf"), onefile=TRUE, width=8, height=12)
+    getBAMversion(),".pdf"), onefile=TRUE, width=9, height=12)
 for (spp in SPP) {
 
 cat(spp, "\n");flush.console()
@@ -595,25 +598,39 @@ mi <- bestmodelBAMspecies(spp)
 cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
 vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
 
-##      TSSR             JDAY
-## Min.   :-0.315   Min.   :0.351
-## 1st Qu.: 0.071   1st Qu.:0.433
-## Median : 0.159   Median :0.458
-## Mean   : 0.148   Mean   :0.456
-## 3rd Qu.: 0.241   3rd Qu.:0.479
-## Max.   : 0.520   Max.   :0.548
-## NA's   :13971    NA's   :10679
+#     TSSR             JDAY            TSLS       
+# Min.   :-0.315   Min.   :0.351   Min.   :-0.101  
+# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103  
+# Median : 0.149   Median :0.455   Median : 0.131  
+# Mean   : 0.141   Mean   :0.455   Mean   : 0.133  
+# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164  
+# Max.   : 0.520   Max.   :0.641   Max.   : 0.442  
+# NA's   :8455     NA's   :5804    NA's   :17255  
 jd <- seq(0.35, 0.55, 0.01)
 ts <- seq(-0.3, 0.5, 0.01)
-xp <- expand.grid(JDAY=jd, # ---------- CHECK !!!
-    TSSR=ts)
-xp$JDAY2 <- xp$JDAY^2
-xp$TSSR2 <- xp$TSSR^2
-xp$Jday <- xp$JDAY * 365
-xp$Tssr <- xp$TSSR * 24
+ls <- seq(-0.1, 0.4, len=length(jd))
 
-Xp <- model.matrix(~., xp)
-colnames(Xp)[1] <- "INTERCEPT"
+xp1 <- expand.grid(JDAY=jd, # ---------- CHECK !!!
+    TSSR=ts)
+xp1$JDAY2 <- xp1$JDAY^2
+xp1$TSSR2 <- xp1$TSSR^2
+xp1$Jday <- xp1$JDAY * 365
+xp1$Tssr <- xp1$TSSR * 24
+
+xp2 <- expand.grid(TSLS=ls, # ---------- CHECK !!!
+    TSSR=ts)
+xp2$TSLS2 <- xp2$TSLS^2
+xp2$TSSR2 <- xp2$TSSR^2
+xp2$Tsls <- xp2$TSLS * 365
+xp2$Tssr <- xp2$TSSR * 24
+
+Xp1 <- model.matrix(~., xp1)
+colnames(Xp1)[1] <- "INTERCEPT"
+Xp2 <- model.matrix(~., xp2)
+colnames(Xp2)[1] <- "INTERCEPT"
+
+Xp <- if (mi$sra %in% c("9","10","11","12","13","14"))
+    Xp2 else Xp1
 Xp <- Xp[,names(cfi$sra),drop=FALSE]
 lphi1 <- drop(Xp %*% cfi$sra)
 #pcf1 <- mvrnorm(R, cfi$sra, vci$sra)
@@ -712,9 +729,13 @@ abline(v=cfall[spp,2]*100, lty=2)
 rug(cfall[,2]*100, side=1, col="grey")
 box()
 
-image(jd*365, ts*24, pmat,
+xval <- if (mi$sra %in% c("9","10","11","12","13","14"))
+    ls*365 else jd*365
+image(xval, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
-    xlab="Julian days", ylab="Hours since sunrise",
+    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"), 
+        "Days since local springs", "Julian days"), 
+    ylab="Hours since sunrise",
     main=paste("Best model:", mi$sra))
 box()
 image(lc, tr*100, qmat,
@@ -797,3 +818,26 @@ data.frame(Family=sort(table(tab$Family)))
 
 cbind(table(tab$Order, tab$v3.sra.n > 74), table(tab$Order))
 
+
+## exploration
+
+wp <- t(sapply(SPP, function(spp) selectmodelBAMspecies(spp)$sra$weights))
+colnames(wp) <- 0:14
+wq <- t(sapply(SPP, function(spp) selectmodelBAMspecies(spp)$edr$weights))
+colnames(wq) <- 0:5
+np <- sapply(SPP, function(spp) selectmodelBAMspecies(spp)$sra$nobs[1])
+nq <- sapply(SPP, function(spp) selectmodelBAMspecies(spp)$edr$nobs[1])
+Hp <- apply(wp, 1, function(z) sum(z^2))
+Hq <- apply(wq, 1, function(z) sum(z^2))
+
+par(mfrow=c(1,2))
+plot(np, wp[,"0"], pch=21, cex=0.5+Hp, log="x")
+summary(np[wp[,"0"] > 0.95])
+summary(np[wp[,"0"] <= 0.95])
+
+plot(nq, wq[,"0"], pch=21, cex=0.5+Hq, log="x")
+summary(nq[wq[,"0"] > 0.95])
+summary(nq[wq[,"0"] <= 0.95])
+
+library(VennDiagram)
+draw.triple.venn(25+28+14, 28+21, 14+14, 28, 0, 14, 0, euler.d=TRUE, scale=TRUE)
