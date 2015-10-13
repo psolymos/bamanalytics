@@ -320,10 +320,15 @@ ROOT <- "c:/bam/May2015"
 
 ## n.min is threshold above which all models are considered
 ## n.con is threshold above which the 0 constant model is considered
-n.con <- 25
+n.con <- 5
 n.min <- 75
 
-load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
+type <- "mix"
+
+if (type == "rem")
+    load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
+if (type == "mix")
+    load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015_mix.Rdata"))
 load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2015.Rdata"))
 
 ## 0/1 table for successful model fit
@@ -344,7 +349,10 @@ sra_models[rownames(sra_mod),] <- sra_mod
 for (spp in tmp) {
     for (mid in colnames(sra_models)) {
         if (!inherits(resDur[[spp]][[mid]], "try-error")) {
-            lcf <- length(resDur[[spp]][[mid]]$coefficients)
+            if (type == "rem")
+                lcf <- length(resDur[[spp]][[mid]]$coefficients)
+            if (type == "mix")
+                lcf <- length(resDur[[spp]][[mid]]$coefficients) - 1
             lnm <- length(resDur[[spp]][[mid]]$names)
             if (lcf != lnm) {
                 cat("SRA conflict for", spp, "model", mid,
@@ -421,7 +429,7 @@ sra_estimates <- resDur[spp]
 
 ## species table
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2015-10-07.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2015-10-08.Rdata"), envir=e)
 tax <- e$TAX
 rownames(tax) <- tax$Species_ID
 spp_table <- data.frame(spp=spp,
@@ -535,19 +543,27 @@ bamcoefs <- list(spp=spp,
     version=version)
 .BAMCOEFS <- list2env(bamcoefs)
 
-save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
-toDump <- as.list(.BAMCOEFS)
-dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.Rdump"))
-
+if (type == "rem") {
+    save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+    toDump <- as.list(.BAMCOEFS)
+    dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.Rdump"))
+}
+if (type == "mix") {
+    save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.rda"))
+    toDump <- as.list(.BAMCOEFS)
+    dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.Rdump"))
+}
 
 ### Plot species specific results
 
-R <- 1000
+ROOT <- "c:/bam/May2015"
+
+R <- 200
 #spp <- "OVEN"
 level <- 0.9
 version <- 3
-
 prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
+
 library(MASS)
 library(detect)
 load_BAM_QPAD(1)
@@ -556,6 +572,12 @@ if (version > 2)
     #load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
     load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 .BAMCOEFS$version
+
+e <- new.env()
+load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.rda"), envir=e)
+.BAMCOEFSmix <- e$.BAMCOEFS
+.BAMCOEFSmix$version
+
 
 SPP <- getBAMspecieslist()
 cfall <- exp(t(sapply(SPP, function(spp)
@@ -839,5 +861,225 @@ plot(nq, wq[,"0"], pch=21, cex=0.5+Hq, log="x")
 summary(nq[wq[,"0"] > 0.95])
 summary(nq[wq[,"0"] <= 0.95])
 
-library(VennDiagram)
-draw.triple.venn(25+28+14, 28+21, 14+14, 28, 0, 14, 0, euler.d=TRUE, scale=TRUE)
+
+## sra 0 vs b models
+
+e <- new.env()
+load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.rda"), envir=e)
+.BAMCOEFSmix <- e$.BAMCOEFS
+.BAMCOEFSmix$version
+
+aic0 <- .BAMCOEFS$sra_aic
+aicb <- .BAMCOEFSmix$sra_aic
+colnames(aic0) <- paste0("m0_", colnames(aic0))
+colnames(aicb) <- paste0("mb_", colnames(aicb))
+SPP <- sort(intersect(rownames(aic0), rownames(aicb)))
+aic <- cbind(aic0[SPP,], aicb[SPP,])
+np <- sapply(SPP, function(z) selectmodelBAMspecies(z)$sra$nobs[1])
+
+waic0 <- t(apply(aic0, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2) 
+    w/sum(w)
+}))
+waicb <- t(apply(aicb, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2) 
+    w/sum(w)
+}))
+waic <- t(apply(aic, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2) 
+    w/sum(w)
+}))
+
+best <- colnames(aic)[apply(aic, 1, which.min)]
+data.frame(table(best))
+by(np, best %in% c("m0_0", "mb_0"), summary)
+
+
+cfall0 <- sapply(SPP, function(spp) exp(coefBAMspecies(spp, 0, 0)$sra))
+dim(cfall0) <- c(length(SPP), 1)
+dimnames(cfall0) <- list(SPP, "phi_0")
+cfallb <- t(sapply(SPP, function(spp) {
+    tmp <- unname(.BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients)
+    c(phi_b=exp(tmp[1]), c=plogis(tmp[2]))
+    }))
+
+t <- seq(0, 10, 0.1)
+pp0 <- sapply(SPP, function(spp) 1-exp(-t*cfall0[spp,"phi_0"]))
+ppb <- sapply(SPP, function(spp) 1-cfallb[spp,"c"]*exp(-t*cfallb[spp,"phi_b"]))
+
+f <- function(spp) {
+    cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
+    vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
+    !inherits(try(mvrnorm(R, cfi0b, vci0b)), "try-error")
+}
+OK <- sapply(SPP, f)
+table(OK)
+SPP <- SPP[OK]
+
+w00 <- waic0[SPP,"m0_0"]
+w0b <- waicb[SPP,"mb_0"]
+w0 <- pmax(w00, w0b)
+H0 <- apply(waic0[SPP,], 1, function(z) sum(z^2))
+Hb <- apply(waicb[SPP,], 1, function(z) sum(z^2))
+H <- apply(waic[SPP,], 1, function(z) sum(z^2))
+n <- np[SPP]
+
+par(mfrow=c(1,3))
+plot(n, w00, pch=21, cex=1+2*H0, log="x")
+lines(n[order(n)], fitted(glm(w00 ~ n, family=binomial, weights=H0))[order(n)], col=2)
+plot(n, w0b, pch=21, cex=1+2*Hb, log="x")
+lines(n[order(n)], fitted(glm(w0b ~ n, family=binomial, weights=Hb))[order(n)], col=2)
+plot(n, w0, pch=21, cex=1+2*H, log="x")
+lines(n[order(n)], fitted(glm(w0 ~ n, family=binomial, weights=H))[order(n)], col=2)
+
+## best model is 0
+table((1:ncol(waic))[apply(waic[SPP,], 1, which.max)] <= 15)
+
+
+pdf(paste0("~/Dropbox/bam/qpad_v3/QPAD_res_v",
+    getBAMversion(),"_mix.pdf"), onefile=TRUE, width=10, height=12)
+for (spp in SPP) {
+
+cat(spp, "\n");flush.console()
+
+## model weights
+wp <- waic0[spp,]
+wq <- waicb[spp,]
+names(wp) <- colnames(waic0)
+names(wq) <- colnames(waicb)
+wph <- waic[spp,names(wp)]
+wqh <- waic[spp,names(wq)]
+names(wp) <- 0:14
+names(wq) <- 0:14
+
+
+## covariate effects
+mi <- bestmodelBAMspecies(spp, type="AIC")
+cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
+vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
+
+mib <- as.character(0:14)[which.min(aicb[spp,])]
+cfib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$coefficients
+vcib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$vcov
+
+#     TSSR             JDAY            TSLS       
+# Min.   :-0.315   Min.   :0.351   Min.   :-0.101  
+# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103  
+# Median : 0.149   Median :0.455   Median : 0.131  
+# Mean   : 0.141   Mean   :0.455   Mean   : 0.133  
+# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164  
+# Max.   : 0.520   Max.   :0.641   Max.   : 0.442  
+# NA's   :8455     NA's   :5804    NA's   :17255  
+jd <- seq(0.35, 0.55, 0.01)
+ts <- seq(-0.3, 0.5, 0.01)
+ls <- seq(-0.1, 0.4, len=length(jd))
+
+xp1 <- expand.grid(JDAY=jd, # ---------- CHECK !!!
+    TSSR=ts)
+xp1$JDAY2 <- xp1$JDAY^2
+xp1$TSSR2 <- xp1$TSSR^2
+xp1$Jday <- xp1$JDAY * 365
+xp1$Tssr <- xp1$TSSR * 24
+
+xp2 <- expand.grid(TSLS=ls, # ---------- CHECK !!!
+    TSSR=ts)
+xp2$TSLS2 <- xp2$TSLS^2
+xp2$TSSR2 <- xp2$TSSR^2
+xp2$Tsls <- xp2$TSLS * 365
+xp2$Tssr <- xp2$TSSR * 24
+
+Xp1 <- model.matrix(~., xp1)
+colnames(Xp1)[1] <- "INTERCEPT"
+Xp2 <- model.matrix(~., xp2)
+colnames(Xp2)[1] <- "INTERCEPT"
+
+Xp <- if (mi$sra %in% c("9","10","11","12","13","14"))
+    Xp2 else Xp1
+Xp <- Xp[,names(cfi$sra),drop=FALSE]
+lphi1 <- drop(Xp %*% cfi$sra)
+pmat <- matrix(exp(lphi1), length(jd), length(ts))
+pmax <- sra_fun(10, max(exp(lphi1)))
+pmat <- sra_fun(3, pmat)
+pmax <- 1
+
+Xpb <- if (mib %in% c("9","10","11","12","13","14"))
+    Xp2 else Xp1
+cfib1 <- exp(cfib[1])
+cfib2 <- cfib[-1]
+names(cfib2) <- sapply(strsplit(names(cfib2), "_"), "[[", 2)
+names(cfib2)[1] <- "INTERCEPT"
+names(cfib2)[names(cfib2) == "I(TSSR^2)"] <- "TSSR2"
+names(cfib2)[names(cfib2) == "I(TSLS^2)"] <- "TSLS2"
+names(cfib2)[names(cfib2) == "I(JDAY^2)"] <- "JDAY2"
+
+Xpb <- Xpb[,names(cfib2),drop=FALSE]
+lphi1b <- 1-plogis(drop(Xpb %*% cfib2))*exp(-3*cfib1)
+pmatb <- matrix(lphi1b, length(jd), length(ts))
+
+## CI for m0, m0
+cfi00 <- coefBAMspecies(spp, "0", mi$edr)$sra
+vci00 <- drop(vcovBAMspecies(spp, "0", mi$edr)$sra)
+phi00 <- exp(rnorm(R, cfi00, sqrt(vci00)))
+ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
+
+cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
+vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
+pcf1b <- mvrnorm(R, cfi0b, vci0b)
+ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
+
+
+op <- par(las=1, mfrow=c(3,2))
+
+barplot(wp, space=0, col=grey(1-wp), border="grey", ylim=c(0,1),
+    main=paste0(spp, " (n=", np[spp], ") v", getBAMversion(),
+    " wb=", round(sum(wph),2)),
+    ylab="Model weight", xlab="Model ID")
+barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
+    main=paste0(spp, " (n=", np[spp], ") v", getBAMversion(),
+    " wb=", round(sum(wqh),2)),
+    ylab="Model weight", xlab="Model ID")
+
+plot(t, pp0[,spp], type="n", ylim=c(0,1),
+     xlab="Point count duration (min)",
+     ylab="Probability of singing")
+#polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
+#        col="grey", border="grey")
+#matlines(t, pp0, col="grey", lwd=1, lty=1)
+matlines(t, ci00, col="grey", lwd=1, lty=1)
+lines(t, pp0[,spp], col=1, lwd=2)
+
+plot(t, ppb[,spp], type="n", ylim=c(0,1),
+     xlab="Point count duration (min)",
+     ylab="Probability of singing")
+#polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
+#        col="grey", border="grey")
+#matlines(t, ppb, col="grey", lwd=1, lty=1)
+matlines(t, ci0b, col="grey", lwd=1, lty=1)
+lines(t, ppb[,spp], col=1, lwd=2)
+
+xval <- if (mi$sra %in% c("9","10","11","12","13","14"))
+    ls*365 else jd*365
+image(xval, ts*24, pmat,
+    col = rev(grey(seq(0, pmax, len=12))),
+    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"), 
+        "Days since local springs", "Julian days"), 
+    ylab="Hours since sunrise",
+    main=paste("Best model:", mi$sra))
+box()
+
+xval <- if (mib %in% c("9","10","11","12","13","14"))
+    ls*365 else jd*365
+image(xval, ts*24, pmatb,
+    col = rev(grey(seq(0, pmax, len=12))),
+    xlab=ifelse(mib %in% c("9","10","11","12","13","14"), 
+        "Days since local springs", "Julian days"), 
+    ylab="Hours since sunrise",
+    main=paste("Best model:", mi$sra))
+box()
+
+par(op)
+}
+dev.off()
