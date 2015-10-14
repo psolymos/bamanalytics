@@ -42,7 +42,8 @@ if (FALSE) {
 library(rworldmap)
 plot(getMap(resolution = "low"), 
     xlim = c(-193, -48), ylim = c(38, 72), asp = 1)
-points(pkDur[,c("X","Y")], pch=19, col="brown", cex=0.6)
+points(pkDur[,c("X","Y")], pch=19, 
+    col=rgb(70, 130, 180, alpha=255*0.15, maxColorValue=255), cex=0.2)
 
 }
 
