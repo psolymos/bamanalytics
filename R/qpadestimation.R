@@ -320,10 +320,10 @@ ROOT <- "c:/bam/May2015"
 
 ## n.min is threshold above which all models are considered
 ## n.con is threshold above which the 0 constant model is considered
-n.con <- 5
+n.con <- 25
 n.min <- 75
 
-type <- "mix"
+type <- "rem"
 
 if (type == "rem")
     load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
