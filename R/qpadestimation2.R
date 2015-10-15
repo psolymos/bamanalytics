@@ -346,7 +346,7 @@ aaa <- data.frame(Var=as.numeric(sapply(res2, "[[", "Var")),
     Model=rep(c("0","b","t","bt"), each=2),
     Duration=c("3","5"),
     Species=rep(names(res2), each=8))
-aaa$n <- np[match(aaa$Species, names(nob))]
+aaa$n <- nob[match(aaa$Species, names(nob))]
 
 m1 <- lm(Var ~ Model + Duration + n, aaa[aaa$n >= 1,])
 m2 <- lm(Bias ~ Model + Duration + n, aaa[aaa$n >= 1,])
@@ -359,8 +359,8 @@ a1
 summary(m2)
 a2
 
-ng <- 5:200
-sf <- function(x) quantile(x, 0.95, na.rm=TRUE)
+ng <- 1:200
+sf <- function(x) quantile(x, 0.9, na.rm=TRUE)
 maxVar <- cbind(max3_0 = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
     max5_0 = sapply(ng, function(z)
@@ -403,3 +403,59 @@ plot(ng, maxBias[,i], main=paste("Bias", colnames(maxVar)[i]),
     type="l", lwd=2, col=2, ylim=c(min(maxBias), max(maxBias)))
 lines(ng, maxBias[,i-1], lty=2, col=2, lwd=2)
 }
+
+
+
+## sra 0 vs b models
+
+aic0 <- .BAMCOEFS$sra_aic
+aicb <- .BAMCOEFSmix$sra_aic
+colnames(aic0) <- paste0("m0_", colnames(aic0))
+colnames(aicb) <- paste0("mb_", colnames(aicb))
+SPP <- sort(intersect(rownames(aic0), rownames(aicb)))
+
+aic0 <- aic0[SPP,]
+aicb <- aicb[SPP,]
+aic <- cbind(aic0[SPP,], aicb[SPP,])
+
+np <- sapply(SPP, function(z) selectmodelBAMspecies(z)$sra$nobs[1])
+
+waic0 <- t(apply(aic0, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2) 
+    w/sum(w)
+}))
+waicb <- t(apply(aicb, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2) 
+    w/sum(w)
+}))
+waic <- t(apply(aic, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2) 
+    w/sum(w)
+}))
+
+best0 <- as.character(0:14)[apply(aic0, 1, which.min)]
+bestb <- as.character(0:14)[apply(aicb, 1, which.min)]
+best <- colnames(aic)[apply(aic, 1, which.min)]
+
+par(mfrow=c(1,3))
+plot(np, waic0[,1], log="x", ylim=c(0,1), pch=ifelse(best0=="0", "o", "+"))
+plot(np, waicb[,1], log="x", ylim=c(0,1), pch=ifelse(bestb=="0", "o", "+"))
+plot(np, waic[,"m0_0"] + waic[,"mb_0"], log="x", ylim=c(0,1),
+    pch=ifelse(best %in% c("m0_0", "mb_0"), "o", "+"))
+
+best0
+ 0  1 10 11 12 13 14  2  3  4  5  6  7  8  9 
+23 17 16  6 19 24 22 14 15 23 10 12 33  4 15 
+> table(bestb)
+bestb
+ 0  1 10 11 12 13 14  2  3  4  5  7  8  9 
+50 18 12 14 11 34 20 15 12 20 10 23  4 10 
+> table(best)
+best
+ m0_0  m0_1 m0_10 m0_11 m0_12 m0_14  m0_2  m0_3  m0_4  m0_5  m0_6  m0_7  m0_8  m0_9 
+   11     8     7     3     2     2     8     8    10     4     5     8     1     8 
+ mb_0  mb_1 mb_10 mb_11 mb_12 mb_13 mb_14  mb_2  mb_3  mb_4  mb_5  mb_7  mb_8  mb_9 
+    9     8    10    12    10    32    19     8     7    17     7    18     4     7 
