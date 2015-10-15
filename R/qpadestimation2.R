@@ -40,9 +40,9 @@ pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
 
 if (FALSE) {
 library(rworldmap)
-plot(getMap(resolution = "low"), 
+plot(getMap(resolution = "low"),
     xlim = c(-193, -48), ylim = c(38, 72), asp = 1)
-points(pkDur[,c("X","Y")], pch=19, 
+points(pkDur[,c("X","Y")], pch=19,
     col=rgb(70, 130, 180, alpha=255*0.15, maxColorValue=255), cex=0.2)
 
 }
@@ -124,9 +124,9 @@ for (i in 1:length(SPP)) {
     for (j in 1:length(Pcodes)) {
         cat("Singing rate (rem) estimation for", SPP[i], "in", Pcodes[j], "\n")
         flush.console()
-        resDurBAMless1[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="rem", 
+        resDurBAMless1[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="rem",
             pcode=Pcodes[j], excl=TRUE))
-        resDurPcode1[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="rem", 
+        resDurPcode1[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="rem",
             pcode=Pcodes[j], excl=FALSE))
     }
 }
@@ -143,9 +143,9 @@ for (i in 1:length(SPP)) {
     for (j in 1:length(Pcodes)) {
         cat("Singing rate (mix) estimation for", SPP[i], "in", Pcodes[j], "\n")
         flush.console()
-        resDurBAMless1_mix[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="mix", 
+        resDurBAMless1_mix[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="mix",
             pcode=Pcodes[j], excl=TRUE))
-        resDurPcode1_mix[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="mix", 
+        resDurPcode1_mix[[SPP[i]]][[Pcodes[j]]] <- try(fitDurFun2(SPP[i], TRUE, type="mix",
             pcode=Pcodes[j], excl=FALSE))
     }
 }
@@ -166,16 +166,18 @@ nn <- nn[!sapply(nn, inherits, "try-error")]
 }
 
 ## bias/variance/MSE for m0 and mbs
- 
+
+ROOT2 <- "~/Dropbox/bam/duration_ms/revisionOct2015"
+
 library(MASS)
 library(detect)
 load_BAM_QPAD(1)
 .BAMCOEFS$version
-load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+load(file.path(ROOT2, "BAMCOEFS_QPAD_v3.rda"))
 .BAMCOEFS$version
 
 e <- new.env()
-load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.rda"), envir=e)
+load(file.path(ROOT2, "BAMCOEFS_QPAD_v3_mix.rda"), envir=e)
 .BAMCOEFSmix <- e$.BAMCOEFS
 .BAMCOEFSmix$version
 
@@ -238,9 +240,9 @@ spp <- "OVEN"
 
 
 xtfun <- function(spp, ymin=1) {
-    Y <- groupSums(xtDur[[spp]][rn,], 2, 
-        c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3", 
-        "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10", 
+    Y <- groupSums(xtDur[[spp]][rn,], 2,
+        c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3",
+        "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10",
         "5-10", "5-10", "xxx", "5-10", "5-10", "5-10", "5-10", "5-10"))
     Y <- as.matrix(Y)[,c("0-3","3-5","5-10")]
     YY <- cbind("0-3"=Y[,1], "0-5"=Y[,1]+Y[,2], "0-10"=rowSums(Y))
@@ -249,9 +251,9 @@ xtfun <- function(spp, ymin=1) {
 }
 
 xvfun <- function(spp, B=1000, ymin=1) {
-    Y <- groupSums(xtDur[[spp]][rn,], 2, 
-        c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3", 
-        "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10", 
+    Y <- groupSums(xtDur[[spp]][rn,], 2,
+        c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3",
+        "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10",
         "5-10", "5-10", "xxx", "5-10", "5-10", "5-10", "5-10", "5-10"))
     Y <- as.matrix(Y)[,c("0-3","3-5","5-10")]
     YY <- cbind("0-3"=Y[,1], "0-5"=Y[,1]+Y[,2], "0-10"=rowSums(Y))
@@ -359,45 +361,45 @@ a2
 
 ng <- 5:200
 sf <- function(x) quantile(x, 0.95, na.rm=TRUE)
-maxVar <- cbind(max3_0 = sapply(ng, function(z) 
+maxVar <- cbind(max3_0 = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
-    max5_0 = sapply(ng, function(z) 
+    max5_0 = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
-    max3_b = sapply(ng, function(z) 
+    max3_b = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
-    max5_b = sapply(ng, function(z) 
+    max5_b = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
-    max3_t = sapply(ng, function(z) 
+    max3_t = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "t" & aaa$n >= z])),
-    max5_t = sapply(ng, function(z) 
+    max5_t = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "t" & aaa$n >= z])),
-    max3_bt = sapply(ng, function(z) 
+    max3_bt = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
-    max5_bt = sapply(ng, function(z) 
+    max5_bt = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
-maxBias <- cbind(max3_0 = sapply(ng, function(z) 
+maxBias <- cbind(max3_0 = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
-    max5_0 = sapply(ng, function(z) 
+    max5_0 = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
-    max3_b = sapply(ng, function(z) 
+    max3_b = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
-    max5_b = sapply(ng, function(z) 
+    max5_b = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
-    max3_t = sapply(ng, function(z) 
+    max3_t = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "t" & aaa$n >= z])),
-    max5_t = sapply(ng, function(z) 
+    max5_t = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "t" & aaa$n >= z])),
-    max3_bt = sapply(ng, function(z) 
+    max3_bt = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
-    max5_bt = sapply(ng, function(z) 
+    max5_bt = sapply(ng, function(z)
         sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
 
 par(mfrow=c(4,2))
 for (i in c(1,3,5,7)+1) {
-plot(ng, maxVar[,i], main=paste("Var", colnames(maxVar)[i]), 
+plot(ng, maxVar[,i], main=paste("Var", colnames(maxVar)[i]),
     type="l", lwd=2, col=2, ylim=c(0, max(maxVar)))
 lines(ng, maxVar[,i-1], lty=2, col=2, lwd=2)
-plot(ng, maxBias[,i], main=paste("Bias", colnames(maxVar)[i]), 
+plot(ng, maxBias[,i], main=paste("Bias", colnames(maxVar)[i]),
     type="l", lwd=2, col=2, ylim=c(min(maxBias), max(maxBias)))
 lines(ng, maxBias[,i-1], lty=2, col=2, lwd=2)
 }
