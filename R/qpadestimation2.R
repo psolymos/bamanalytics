@@ -38,14 +38,6 @@ pkDur <- droplevels(pkDur[pkDur$PCODE != "GLDRPCCL01",])
 ## thus this only leads to 0 total count and exclusion
 pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
 
-if (FALSE) {
-library(rworldmap)
-plot(getMap(resolution = "low"),
-    xlim = c(-193, -48), ylim = c(38, 72), asp = 1)
-points(pkDur[,c("X","Y")], pch=19,
-    col=rgb(70, 130, 180, alpha=255*0.15, maxColorValue=255), cex=0.2)
-
-}
 
 ## models to consider
 NAMES <- list("0"="INTERCEPT")
@@ -56,7 +48,7 @@ xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
 xtDur[["NONE"]] <- NULL
 
 
-## define pcode, and excl (excl=T to exclude pcode, excl=F to use only pcode
+## define pcode, and excl (excl=T to exclude pcode, excl=F to use only pcode)
 fitDurFun2 <- function(spp, fit=TRUE, type=c("rem","mix"), pcode=NULL, excl=TRUE) {
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
     X0 <- pkDur[rn,]
@@ -459,3 +451,180 @@ best
    11     8     7     3     2     2     8     8    10     4     5     8     1     8 
  mb_0  mb_1 mb_10 mb_11 mb_12 mb_13 mb_14  mb_2  mb_3  mb_4  mb_5  mb_7  mb_8  mb_9 
     9     8    10    12    10    32    19     8     7    17     7    18     4     7 
+
+
+## xv
+
+load("~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem.Rdata")
+load("~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix.Rdata")
+
+ROOT <- "c:/bam/May2015"
+library(mefa4)
+library(pbapply)
+library(detect)
+
+## Load functions kept in separate file
+source("~/repos/bamanalytics/R/dataprocessing_functions.R")
+
+## Load preprocesses data
+load(file.path(ROOT, "out", "new_offset_data_package_2015-10-08.Rdata"))
+
+### Removal sampling
+
+## non NA subset for duration related estimates
+pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","PCODE","X","Y")]
+pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
+sort(table(pkDur$PCODE))
+## only 1 obs in project (all others are >20)
+pkDur <- droplevels(pkDur[pkDur$PCODE != "GLDRPCCL01",])
+## strange methodology where all counts have been filtered
+## thus this only leads to 0 total count and exclusion
+pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
+
+xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
+xtDur[["NONE"]] <- NULL
+
+## number of obs that qualifies as multiple visit
+#spp <- "OVEN"
+rn <- intersect(rownames(pkDur), rownames(xtDur[[1]]))
+X0 <- droplevels(pkDur[rn,])
+D <- ltdur$end[match(X0$DURMETH, rownames(ltdur$end)),]
+## exclude 0 sum and <1 interval rows
+nOK <- table(PC=X0$PCODE, n_int=rowSums(!is.na(D)))
+
+nPC <- rowSums(nOK) - nOK[,"1"]
+nPC <- sort(nPC[nPC > 0])
+PC <- names(nPC)
+
+if (FALSE) {
+library(rworldmap)
+plot(getMap(resolution = "low"),
+    xlim = c(-193, -48), ylim = c(38, 72), asp = 1)
+points(pkDur[, c("X","Y")], pch=".",
+    col=rgb(70, 130, 180, alpha=255*0.15, maxColorValue=255))
+points(X0[rowSums(!is.na(D)) > 1, c("X","Y")], pch=19,
+    col="red", cex=0.3)
+
+}
+
+fun <- function(z, probs=c(0.05, 0.95)) {
+    if (inherits(z, "try-error"))
+        return(unclass(z))
+    z <- z[["0"]]
+    if (inherits(z, "try-error")) {
+        out <- unclass(z)
+        attributes(out) <- NULL
+        return(out)
+    }
+    if (length(z$coefficients) > 1) {
+        out <- c(log.phi.f=unname(z$coefficients[1]),
+            logit.c=unname(z$coefficients[2]),
+            SE.log.phi.f=sqrt(z$vcov[1,1]),
+            SE.logit.c=sqrt(z$vcov[2,2]),
+            Cor.f=cov2cor(z$vcov)[2,1],
+            n=z$nobs)
+    } else {
+        ci <- quantile(rnorm(5000, z$coefficients[1], sqrt(z$vcov)), probs, na.rm=TRUE)
+        out <- c(log.phi.e=unname(z$coefficients[1]),
+            SE.log.phi.e=sqrt(z$vcov),
+            lcl.log.phi.e=unname(ci[1]),
+            ucl.log.phi.e=unname(ci[2]),
+            n=z$nobs)
+            
+    }
+    out
+}
+
+SPP <- names(resDurPcode1)
+
+PCRES <- list()
+for (spp in SPP) {
+
+    cat(spp, "\n");flush.console()
+
+    e1 <- resDurPcode1[[spp]][PC]
+    e2 <- resDurBAMless1[[spp]][PC]
+    f1 <- resDurPcode1_mix[[spp]][PC]
+    f2 <- resDurBAMless1_mix[[spp]][PC]
+
+    pcres <- list()
+    msgs <- list()
+    for (pc in PC) {
+        tmp <- list(e2=e2[[pc]], e1=e1[[pc]], f2=f2[[pc]], f1=f1[[pc]])
+        raw <- lapply(tmp, fun)
+        msg <- sapply(raw, function(z) {
+            out <- 0
+            if (is.character(z)) {
+                out <- 3
+                if (z == "0 observation with multiple duration (1)") 
+                    out <- 1
+                if (z == "1 observation with multiple duration (2)") 
+                    out <- 2
+            }
+            out
+        })
+        raw$e1 <- if (is.character(raw$e1))
+            c(log.phi.e=NA, SE.log.phi.e=NA, lcl.log.phi.e=NA,
+                ucl.log.phi.e=NA, n=NA) else raw$e1
+        raw$e2 <- if (is.character(raw$e2))
+            c(log.phi.e=NA, SE.log.phi.e=NA, lcl.log.phi.e=NA,
+                ucl.log.phi.e=NA, n=NA) else raw$e2
+        raw$f1 <- if (is.character(raw$f1))
+            c(log.phi.f=NA, logit.c=NA, SE.log.phi.f=NA, SE.logit.c=NA,
+                Cor.f=NA, n=NA) else raw$f1
+        raw$f2 <- if (is.character(raw$f2))
+            c(log.phi.f=NA, logit.c=NA, SE.log.phi.f=NA, SE.logit.c=NA,
+                Cor.f=NA, n=NA) else raw$f2
+        ci2 <- raw$e2[c("lcl.log.phi.e","ucl.log.phi.e")]
+        ci1 <- raw$e1[c("lcl.log.phi.e","ucl.log.phi.e")]
+        raw$test <- 0
+        if (!is.na(all(ci1 < ci2[1]))) {
+            if (all(ci1 < ci2[1]))
+                raw$test <- -1
+        } else raw$test <- NA
+        if (!is.na(all(ci1 > ci2[2]))) {
+            if (all(ci1 > ci2[2]))
+                raw$test <- 1
+        } else raw$test <- NA
+        msgs[[pc]] <- msg
+        pcres[[pc]] <- unlist(raw)
+    }
+    PCRES[[spp]] <- data.frame(do.call(rbind, pcres), msg=do.call(rbind, msgs))
+    PCRES[[spp]]$nPC <- nPC
+    PCRES[[spp]]$Species <- spp
+}
+
+summary(PCRES[[1]])
+
+PC0 <- do.call(rbind, PCRES)
+
+PC0$y <- ifelse(PC0$test == 0, 1, 0)
+PC0$d <- PC0$e1.log.phi.e - PC0$e2.log.phi.e
+PC0$problem1 <- ifelse(abs(PC0$e1.log.phi.e) > 10, 1, 0)
+PC0$problem1[is.na(PC0$problem1)] <- 1
+PC0$problem2 <- ifelse(abs(PC0$e2.log.phi.e) > 10, 1, 0)
+PC0$problem2[is.na(PC0$problem2)] <- 1
+PC0$problem <- ifelse(PC0$problem1 + PC0$problem2 > 0, 1, 0)
+PC0$problem[is.na(PC0$problem)] <- 1
+
+summary(glm(y ~ sqrt(e1.n), PC0[PC0$problem < 1,], family=binomial))
+summary(lm(abs(d) ~ sqrt(e1.n), PC0[PC0$problem < 1,], family=binomial))
+
+boxplot(sqrt(e1.n) ~ y, PC0[PC0$problem < 1,])
+plot(d ~ sqrt(e1.n), PC0[PC0$problem < 1,], col=c(1,2)[1+abs(PC0$test[PC0$problem < 1])], pch=19)
+
+par(mfrow=c(1,2))
+plot(d ~ (e1.n), PC0[PC0$problem < 1 & PC0$test == 0,], pch=19, 
+    ylim=range(PC0$d[PC0$problem < 1], na.rm=TRUE), main="OK")
+abline(h=0, col=2)
+plot(d ~ (e1.n), PC0[PC0$problem < 1 & PC0$test != 0,], pch=19, 
+    ylim=range(PC0$d[PC0$problem < 1], na.rm=TRUE), main="not OK")
+abline(h=0, col=2)
+
+round(100*table(PC0$test[PC0$problem < 1]) / sum(table(PC0$test[PC0$problem < 1])), 2)
+
+par(mfrow=c(2,2))
+boxplot(nPC ~ msg.e2, PC0, ylim=c(0,5000))
+boxplot(nPC ~ msg.e1, PC0, ylim=c(0,5000))
+boxplot(nPC ~ msg.f2, PC0, ylim=c(0,5000))
+boxplot(nPC ~ msg.f1, PC0, ylim=c(0,5000))
