@@ -352,3 +352,176 @@ for (i in 1:length(SPP)) {
 }
 save(resDurBAMless1_mix, resDurPcode1_mix,
     file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-4.Rdata")
+
+
+## read all the suff
+
+## rem
+e <- new.env()
+load(file.path(ROOT2, "xval-rem-1.Rdata"), envir=e)
+resDurBAMless1 <- e$resDurBAMless1
+resDurPcode1 <- e$resDurPcode1
+
+e <- new.env()
+load(file.path(ROOT2, "xval-rem-2.Rdata"), envir=e)
+resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
+resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
+
+e <- new.env()
+load(file.path(ROOT2, "xval-rem-3.Rdata"), envir=e)
+resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
+resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
+
+e <- new.env()
+load(file.path(ROOT2, "xval-rem-4.Rdata"), envir=e)
+resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
+resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
+
+## mix
+e <- new.env()
+load(file.path(ROOT2, "xval-mix-1.Rdata"), envir=e)
+resDurBAMless1_mix <- e$resDurBAMless1_mix
+resDurPcode1_mix <- e$resDurPcode1_mix
+
+e <- new.env()
+load(file.path(ROOT2, "xval-mix-2.Rdata"), envir=e)
+resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
+resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
+
+e <- new.env()
+load(file.path(ROOT2, "xval-mix-3.Rdata"), envir=e)
+resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
+resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
+
+e <- new.env()
+load(file.path(ROOT2, "xval-mix-4.Rdata"), envir=e)
+resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
+resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
+
+ff <- list(
+        "0"=~ 1,
+        "1"=~ JDAY,
+        "2"=~ TSSR,
+        "3"=~ JDAY + I(JDAY^2),
+        "4"=~ TSSR + I(TSSR^2),
+        "5"=~ JDAY + TSSR,
+        "6"=~ JDAY + I(JDAY^2) + TSSR,
+        "7"=~ JDAY + TSSR + I(TSSR^2),
+        "8"=~ JDAY + I(JDAY^2) + TSSR + I(TSSR^2),
+        "9"=~ TSLS,
+        "10"=~ TSLS + I(TSLS^2),
+        "11"=~ TSLS + TSSR,
+        "12"=~ TSLS + I(TSLS^2) + TSSR,
+        "13"=~ TSLS + TSSR + I(TSSR^2),
+        "14"=~ TSLS + I(TSLS^2) + TSSR + I(TSSR^2))
+NAMES <- list(
+        "0"="INTERCEPT",
+        "1"=c("INTERCEPT", "JDAY"),
+        "2"=c("INTERCEPT", "TSSR"),
+        "3"=c("INTERCEPT", "JDAY", "JDAY2"),
+        "4"=c("INTERCEPT", "TSSR", "TSSR2"),
+        "5"=c("INTERCEPT", "JDAY", "TSSR"),
+        "6"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR"),
+        "7"=c("INTERCEPT", "JDAY", "TSSR", "TSSR2"),
+        "8"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR", "TSSR2"),
+        "9"=c("INTERCEPT", "TSLS"),
+        "10"=c("INTERCEPT", "TSLS", "TSLS2"),
+        "11"=c("INTERCEPT", "TSLS", "TSSR"),
+        "12"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR"),
+        "13"=c("INTERCEPT", "TSLS", "TSSR", "TSSR2"),
+        "14"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR", "TSSR2"))
+
+aic_fun <- function(x) {
+    if (inherits(x, "try-error"))
+        Inf else -2*x$loglik + 2*x$p
+}
+coef_fun <- function(x, id) {
+    if (inherits(x, "try-error"))
+        rep(NA, NAMES[id]) else x[[id]]$coefficients
+}
+vcov_fun <- function(x, id) {
+    if (inherits(x, "try-error"))
+        matrix(NA, NAMES[id], NAMES[id]) else x[[id]]$vcov
+}
+
+spp <- "OVEN"
+pc <- "LMWELL"
+
+## project pc exluded
+best_99_m0 <- unname(best0[spp])
+best_99_mb <- unname(bestb[spp])
+type_99_best <- if (which.min(aic[spp,]) > 15) "mix" else "rem"
+best_99 <- unname(best[spp])
+
+c_99_m0 <- coef_fun(resDurBAMless1[[spp]][[pc]], "0")
+v_99_m0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], "0")
+c_99_mb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
+v_99_mb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
+
+c_99_best0 <- coef_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
+v_99_best0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
+c_99_bestb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
+v_99_bestb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
+if (type_99_best == "rem") {
+    c_99_best <- c_99_best0
+    v_99_best <- v_99_best0
+} else {
+    c_99_best <- c_99_bestb
+    v_99_best <- v_99_bestb
+}
+
+## only project pc
+aic_1_m0 <- sapply(resDurPcode1[[spp]][[pc]], aic_fun)
+aic_1_mb <- sapply(resDurPcode1_mix[[spp]][[pc]], aic_fun)
+
+best_1_m0 <- names(aic_1_m0)[which.min(aic_1_m0)]
+best_1_mb <- names(aic_1_mb)[which.min(aic_1_mb)]
+type_1_best <- if (which.min(c(aic_1_m0, aic_1_mb)) > 15) "mix" else "rem"
+best_1 <- names(c(aic_1_m0, aic_1_mb))[which.min(c(aic_1_m0, aic_1_mb))]
+
+c_1_m0 <- coef_fun(resDurPcode1[[spp]][[pc]], "0")
+v_1_m0 <- vcov_fun(resDurPcode1[[spp]][[pc]], "0")
+c_1_mb <- coef_fun(resDurPcode1_mix[[spp]][[pc]], "0")
+v_1_mb <- vcov_fun(resDurPcode1_mix[[spp]][[pc]], "0")
+
+c_1_best0 <- coef_fun(resDurPcode1[[spp]][[pc]], best_1_m0)
+v_1_best0 <- vcov_fun(resDurPcode1[[spp]][[pc]], best_1_m0)
+c_1_bestb <- coef_fun(resDurPcode1_mix[[spp]][[pc]], best_1_mb)
+v_1_bestb <- vcov_fun(resDurPcode1_mix[[spp]][[pc]], best_1_mb)
+if (type_1_best == "rem") {
+    c_1_best <- c_1_best0
+    v_1_best <- v_1_best0
+} else {
+    c_1_best <- c_1_bestb
+    v_1_best <- v_1_bestb
+}
+
+df <- pkDur
+df$y <- rowSums(xtDur[[spp]][rownames(df),])
+df$pc <- ifelse(df$PCODE == pc, 1L, 0L)
+df99 <- df[df$PCODE != pc,,drop=FALSE]
+df1 <- df[df$PCODE == pc,,drop=FALSE]
+
+n99 <- nrow(df99)
+n1 <- nrow(df1)
+det99 <- sum(df99$y > 0)
+det1 <- sum(df1$y > 0)
+
+mod0 <- glm(pc ~ 1, df, family=binomial("logit"))
+mod1 <- glm(pc ~ JDAY + TSSR + TSLS, df, family=binomial("logit"))
+logLR <- as.numeric(logLik(mod1) - logLik(mod0))
+
+## model matrix for project based prediction
+X1_1 <- model.matrix(ff[[best_1]], df1)
+X1_99 <- model.matrix(ff[[best_99]], df1)
+
+
+## write a function that calculates point pred & CI depending on rem/mix
+pred_fun(X, c, v, type) {
+    if (type=="rem") {
+        cfs <- mvrnorm(B, c, v)
+    } else {
+        
+    }
+}
+## calculates CIs and compare -- write compare fun.
