@@ -491,10 +491,12 @@ SPP4 <- SPP[181:length(SPP)]
 #spp <- "OVEN"
 #pc <- "LMWELL"
 xvres <- list()
-for (spp in SPP1) {
-for (spp in SPP2) {
-for (spp in SPP3) {
-for (spp in SPP4) {
+
+for (spp in SPP) {
+#for (spp in SPP1) {
+#for (spp in SPP2) {
+#for (spp in SPP3) {
+#for (spp in SPP4) {
 
 tab <- list()
 for (pc in PC) {
@@ -601,6 +603,10 @@ tab <- do.call(rbind, tab)
 xvres[[spp]] <- tab
 }
 
+#save(xvres, file=file.path(ROOT2, "xval-summary-1.Rdata"))
+#save(xvres, file=file.path(ROOT2, "xval-summary-2.Rdata"))
+#save(xvres, file=file.path(ROOT2, "xval-summary-3.Rdata"))
+#save(xvres, file=file.path(ROOT2, "xval-summary-4.Rdata"))
 
 
 if (FALSE) {
