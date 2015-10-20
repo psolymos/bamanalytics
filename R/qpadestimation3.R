@@ -482,10 +482,19 @@ compare_ci <- function(lo1, up1, lo2, up2) {
     !(x1lessthan2lo | x1greaterthan2up)
 }
 
+SPP0 <- SPP
+SPP1 <- SPP[1:60]
+SPP2 <- SPP[61:120]
+SPP3 <- SPP[121:180]
+SPP4 <- SPP[181:length(SPP)]
+
 #spp <- "OVEN"
 #pc <- "LMWELL"
 xvres <- list()
-for (spp in SPP) {
+for (spp in SPP1) {
+for (spp in SPP2) {
+for (spp in SPP3) {
+for (spp in SPP4) {
 
 tab <- list()
 for (pc in PC) {
