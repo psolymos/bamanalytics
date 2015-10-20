@@ -432,96 +432,208 @@ NAMES <- list(
         "14"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR", "TSSR2"))
 
 aic_fun <- function(x) {
-    if (inherits(x, "try-error"))
+#    if (inherits(x, "try-error"))
+    if (is.character(x))
         Inf else -2*x$loglik + 2*x$p
 }
 coef_fun <- function(x, id) {
-    if (inherits(x, "try-error"))
-        rep(NA, NAMES[id]) else x[[id]]$coefficients
+#    if (inherits(x, "try-error"))
+    if (is.character(x[[id]]))
+        NA else x[[id]]$coefficients
 }
 vcov_fun <- function(x, id) {
-    if (inherits(x, "try-error"))
-        matrix(NA, NAMES[id], NAMES[id]) else x[[id]]$vcov
+#    if (inherits(x, "try-error"))
+    if (is.character(x[[id]]))
+        NA else x[[id]]$vcov
 }
-
-spp <- "OVEN"
-pc <- "LMWELL"
-
-## project pc exluded
-best_99_m0 <- unname(best0[spp])
-best_99_mb <- unname(bestb[spp])
-type_99_best <- if (which.min(aic[spp,]) > 15) "mix" else "rem"
-best_99 <- unname(best[spp])
-
-c_99_m0 <- coef_fun(resDurBAMless1[[spp]][[pc]], "0")
-v_99_m0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], "0")
-c_99_mb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
-v_99_mb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
-
-c_99_best0 <- coef_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
-v_99_best0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
-c_99_bestb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
-v_99_bestb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
-if (type_99_best == "rem") {
-    c_99_best <- c_99_best0
-    v_99_best <- v_99_best0
-} else {
-    c_99_best <- c_99_bestb
-    v_99_best <- v_99_bestb
-}
-
-## only project pc
-aic_1_m0 <- sapply(resDurPcode1[[spp]][[pc]], aic_fun)
-aic_1_mb <- sapply(resDurPcode1_mix[[spp]][[pc]], aic_fun)
-
-best_1_m0 <- names(aic_1_m0)[which.min(aic_1_m0)]
-best_1_mb <- names(aic_1_mb)[which.min(aic_1_mb)]
-type_1_best <- if (which.min(c(aic_1_m0, aic_1_mb)) > 15) "mix" else "rem"
-best_1 <- names(c(aic_1_m0, aic_1_mb))[which.min(c(aic_1_m0, aic_1_mb))]
-
-c_1_m0 <- coef_fun(resDurPcode1[[spp]][[pc]], "0")
-v_1_m0 <- vcov_fun(resDurPcode1[[spp]][[pc]], "0")
-c_1_mb <- coef_fun(resDurPcode1_mix[[spp]][[pc]], "0")
-v_1_mb <- vcov_fun(resDurPcode1_mix[[spp]][[pc]], "0")
-
-c_1_best0 <- coef_fun(resDurPcode1[[spp]][[pc]], best_1_m0)
-v_1_best0 <- vcov_fun(resDurPcode1[[spp]][[pc]], best_1_m0)
-c_1_bestb <- coef_fun(resDurPcode1_mix[[spp]][[pc]], best_1_mb)
-v_1_bestb <- vcov_fun(resDurPcode1_mix[[spp]][[pc]], best_1_mb)
-if (type_1_best == "rem") {
-    c_1_best <- c_1_best0
-    v_1_best <- v_1_best0
-} else {
-    c_1_best <- c_1_bestb
-    v_1_best <- v_1_bestb
-}
-
-df <- pkDur
-df$y <- rowSums(xtDur[[spp]][rownames(df),])
-df$pc <- ifelse(df$PCODE == pc, 1L, 0L)
-df99 <- df[df$PCODE != pc,,drop=FALSE]
-df1 <- df[df$PCODE == pc,,drop=FALSE]
-
-n99 <- nrow(df99)
-n1 <- nrow(df1)
-det99 <- sum(df99$y > 0)
-det1 <- sum(df1$y > 0)
-
-mod0 <- glm(pc ~ 1, df, family=binomial("logit"))
-mod1 <- glm(pc ~ JDAY + TSSR + TSLS, df, family=binomial("logit"))
-logLR <- as.numeric(logLik(mod1) - logLik(mod0))
-
-## model matrix for project based prediction
-X1_1 <- model.matrix(ff[[best_1]], df1)
-X1_99 <- model.matrix(ff[[best_99]], df1)
-
-
-## write a function that calculates point pred & CI depending on rem/mix
-pred_fun(X, c, v, type) {
+pred_fun <- function(X, c, v, type) {
+    tmp <- data.frame(q3.med=NA,q3.lo=NA,q3.up=NA,
+        q5.med=NA,q5.lo=NA,q5.up=NA, q10.med=NA,q10.lo=NA,q10.up=NA)
+    if (any(is.na(c)))
+        return(tmp)
+    if (any(is.na(v)))
+        return(tmp)
+    v <- try(as.matrix(Matrix::nearPD(v)$mat))
+    if (inherits(v, "try-error"))
+        return(tmp)
+    cfs <- try(mvrnorm(B, c, v))
+    if (inherits(cfs, "try-error"))
+        return(tmp)
     if (type=="rem") {
-        cfs <- mvrnorm(B, c, v)
+        p3 <- apply(cfs, 1, function(z) 1-exp(-3*exp(X %*% z)))
+        p5 <- apply(cfs, 1, function(z) 1-exp(-5*exp(X %*% z)))
+        p10 <- apply(cfs, 1, function(z) 1-exp(-10*exp(X %*% z)))
     } else {
-        
+        p3 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-3*exp(z[1])))
+        p5 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-5*exp(z[1])))
+        p10 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-10*exp(z[1])))
+    }
+    q3 <- t(apply(p3, 1, quantile, c(0.5, 0.05, 0.95)))
+    q5 <- t(apply(p5, 1, quantile, c(0.5, 0.05, 0.95)))
+    q10 <- t(apply(p10, 1, quantile, c(0.5, 0.05, 0.95)))
+    colnames(q3) <- colnames(q5) <- colnames(q10) <- c("med","lo","up")
+    data.frame(q3=q3, q5=q5, q10=q10)
+}
+compare_ci <- function(lo1, up1, lo2, up2) {
+    if (any(is.na(c(lo1, up1, lo2, up2))))
+        return(NA)
+    x1lessthan2lo <- lo1 < lo2 & up1 < lo2
+    x1greaterthan2up <- lo1 > up2 & up1 > up2
+    !(x1lessthan2lo | x1greaterthan2up)
+}
+
+#spp <- "OVEN"
+#pc <- "LMWELL"
+xvres <- list()
+for (spp in SPP) {
+
+tab <- list()
+for (pc in PC) {
+
+if (!inherits(resDurPcode1[[spp]][[pc]], "try-error") && !inherits(resDurBAMless1[[spp]][[pc]], "try-error")) {
+
+    cat(spp, pc, "\n");flush.console()
+    ## project pc exluded
+    best_99_m0 <- unname(best0[spp])
+    best_99_mb <- unname(bestb[spp])
+    type_99_best <- if (which.min(aic[spp,]) > 15) "mix" else "rem"
+    best_99 <- unname(best[spp])
+
+    c_99_m0 <- coef_fun(resDurBAMless1[[spp]][[pc]], "0")
+    v_99_m0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], "0")
+    c_99_mb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
+    v_99_mb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
+
+    c_99_best0 <- coef_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
+    v_99_best0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
+    c_99_bestb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
+    v_99_bestb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
+    if (type_99_best == "rem") {
+        c_99_best <- c_99_best0
+        v_99_best <- v_99_best0
+    } else {
+        c_99_best <- c_99_bestb
+        v_99_best <- v_99_bestb
+    }
+
+    ## only project pc
+    aic_1_m0 <- sapply(resDurPcode1[[spp]][[pc]], aic_fun)
+    aic_1_mb <- sapply(resDurPcode1_mix[[spp]][[pc]], aic_fun)
+
+    best_1_m0 <- names(aic_1_m0)[which.min(aic_1_m0)]
+    best_1_mb <- names(aic_1_mb)[which.min(aic_1_mb)]
+    type_1_best <- if (which.min(c(aic_1_m0, aic_1_mb)) > 15) "mix" else "rem"
+    best_1 <- names(c(aic_1_m0, aic_1_mb))[which.min(c(aic_1_m0, aic_1_mb))]
+
+    c_1_m0 <- coef_fun(resDurPcode1[[spp]][[pc]], "0")
+    v_1_m0 <- vcov_fun(resDurPcode1[[spp]][[pc]], "0")
+    c_1_mb <- coef_fun(resDurPcode1_mix[[spp]][[pc]], "0")
+    v_1_mb <- vcov_fun(resDurPcode1_mix[[spp]][[pc]], "0")
+
+    c_1_best0 <- coef_fun(resDurPcode1[[spp]][[pc]], best_1_m0)
+    v_1_best0 <- vcov_fun(resDurPcode1[[spp]][[pc]], best_1_m0)
+    c_1_bestb <- coef_fun(resDurPcode1_mix[[spp]][[pc]], best_1_mb)
+    v_1_bestb <- vcov_fun(resDurPcode1_mix[[spp]][[pc]], best_1_mb)
+    if (type_1_best == "rem") {
+        c_1_best <- c_1_best0
+        v_1_best <- v_1_best0
+    } else {
+        c_1_best <- c_1_bestb
+        v_1_best <- v_1_bestb
+    }
+
+    df <- pkDur
+    df$y <- rowSums(xtDur[[spp]][rownames(df),])
+    df$pc <- ifelse(df$PCODE == pc, 1L, 0L)
+    df99 <- df[df$PCODE != pc,,drop=FALSE]
+    df1 <- df[df$PCODE == pc,,drop=FALSE]
+
+    n99 <- nrow(df99)
+    n1 <- nrow(df1)
+    det99 <- sum(df99$y > 0)
+    det1 <- sum(df1$y > 0)
+
+#    mod0 <- glm(pc ~ 1, df, family=binomial("logit"))
+#    mod1 <- glm(pc ~ JDAY + TSSR + TSLS, df, family=binomial("logit"))
+#    logLR <- as.numeric(logLik(mod1) - logLik(mod0))
+
+    ## model matrix for project based prediction
+    X1_1 <- model.matrix(ff[[best_1]], df1)
+    X1_99 <- model.matrix(ff[[best_99]], df1)
+    X1 <- matrix(1, n1, 1)
+
+    pr_1_m0 <- pred_fun(X1, c_1_m0, v_1_m0, "rem")
+    pr_1_mb <- pred_fun(X1, c_1_mb, v_1_mb, "mix")
+    pr_1_best <- pred_fun(X1_1, c_1_best, v_1_best, type_1_best)
+    pr_99_m0 <- pred_fun(X1, c_99_m0, v_99_m0, "rem")
+    pr_99_mb <- pred_fun(X1, c_99_mb, v_99_mb, "mix")
+    pr_99_best <- pred_fun(X1_99, c_99_best, v_99_best, type_99_best)
+
+    sdiff3_m0 <-   compare_ci(pr_1_m0$q3.lo,    pr_1_m0$q3.up,    pr_99_m0$q3.lo,    pr_99_m0$q3.up)
+    sdiff3_mb <-   compare_ci(pr_1_mb$q3.lo,    pr_1_mb$q3.up,    pr_99_mb$q3.lo,    pr_99_mb$q3.up)
+    sdiff3_best <- compare_ci(pr_1_best$q3.lo,  pr_1_best$q3.up,  pr_99_best$q3.lo,  pr_99_best$q3.up)
+    sdiff5_m0 <-   compare_ci(pr_1_m0$q5.lo,    pr_1_m0$q5.up,    pr_99_m0$q5.lo,    pr_99_m0$q5.up)
+    sdiff5_mb <-   compare_ci(pr_1_mb$q5.lo,    pr_1_mb$q5.up,    pr_99_mb$q5.lo,    pr_99_mb$q5.up)
+    sdiff5_best <- compare_ci(pr_1_best$q5.lo,  pr_1_best$q5.up,  pr_99_best$q5.lo,  pr_99_best$q5.up)
+    sdiff10_m0 <-  compare_ci(pr_1_m0$q10.lo,   pr_1_m0$q10.up,   pr_99_m0$q10.lo,   pr_99_m0$q10.up)
+    sdiff10_mb <-  compare_ci(pr_1_mb$q10.lo,   pr_1_mb$q10.up,   pr_99_mb$q10.lo,   pr_99_mb$q10.up)
+    sdiff10_best <-compare_ci(pr_1_best$q10.lo, pr_1_best$q10.up, pr_99_best$q10.lo, pr_99_best$q10.up)
+
+    tab[[pc]] <- data.frame(spp=spp,
+        n99=n99, n1=n1, det99=det99, det1=det1, #logLR=logLR,
+        best99=best_99, best1=best_1, type99=type_99_best, type1=type_1_best,
+        m0_3=sum(sdiff3_m0), m0_5=sum(sdiff5_m0), m0_10=sum(sdiff10_m0), 
+        mb_3=sum(sdiff3_mb), mb_5=sum(sdiff5_mb), mb_10=sum(sdiff10_mb), 
+        best_3=sum(sdiff3_best), best_5=sum(sdiff5_best), best_10=sum(sdiff10_best))
     }
 }
+tab <- do.call(rbind, tab)
+
+xvres[[spp]] <- tab
+}
+
+
+
+if (FALSE) {
+par(mfrow=c(3,3))
+
+plot(1:n1, pr_1_m0$q3.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_m0$q3.lo, y1=pr_1_m0$q3.up, col=ifelse(sdiff3_m0, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_m0$q3.lo, y1=pr_99_m0$q3.up, col=ifelse(sdiff3_m0, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_mb$q3.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_mb$q3.lo, y1=pr_1_mb$q3.up, col=ifelse(sdiff3_mb, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_mb$q3.lo, y1=pr_99_mb$q3.up, col=ifelse(sdiff3_mb, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_best$q3.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_best$q3.lo, y1=pr_1_best$q3.up, col=ifelse(sdiff3_best, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_best$q3.lo, y1=pr_99_best$q3.up, col=ifelse(sdiff3_best, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_m0$q5.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_m0$q5.lo, y1=pr_1_m0$q5.up, col=ifelse(sdiff5_m0, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_m0$q5.lo, y1=pr_99_m0$q5.up, col=ifelse(sdiff5_m0, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_mb$q5.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_mb$q5.lo, y1=pr_1_mb$q5.up, col=ifelse(sdiff5_mb, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_mb$q5.lo, y1=pr_99_mb$q5.up, col=ifelse(sdiff5_mb, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_best$q5.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_best$q5.lo, y1=pr_1_best$q5.up, col=ifelse(sdiff5_best, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_best$q5.lo, y1=pr_99_best$q5.up, col=ifelse(sdiff5_best, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_m0$q10.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_m0$q10.lo, y1=pr_1_m0$q10.up, col=ifelse(sdiff10_m0, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_m0$q10.lo, y1=pr_99_m0$q10.up, col=ifelse(sdiff10_m0, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_mb$q10.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_mb$q10.lo, y1=pr_1_mb$q10.up, col=ifelse(sdiff10_mb, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_mb$q10.lo, y1=pr_99_mb$q10.up, col=ifelse(sdiff10_mb, 3, 4), lwd=3)
+
+plot(1:n1, pr_1_best$q10.med, ylim=c(0,1), type="n")
+segments(x0=(1:n1)-0.2, y0=pr_1_best$q10.lo, y1=pr_1_best$q10.up, col=ifelse(sdiff10_best, 3, 2), lwd=3)
+segments(x0=(1:n1)+0.2, y0=pr_99_best$q10.lo, y1=pr_99_best$q10.up, col=ifelse(sdiff10_best, 3, 4), lwd=3)
+}
+
+## write a function that calculates point pred & CI depending on rem/mix
 ## calculates CIs and compare -- write compare fun.
+
