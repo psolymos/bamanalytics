@@ -438,6 +438,13 @@ plot(np, waicb[,1], log="x", ylim=c(0,1), pch=ifelse(bestb=="0", "o", "+"))
 plot(np, waic[,"m0_0"] + waic[,"mb_0"], log="x", ylim=c(0,1),
     pch=ifelse(best %in% c("m0_0", "mb_0"), "o", "+"))
 
+nn <- 1:max(np)
+ww <- sapply(nn, function(z) mean((waic[,"m0_0"] + waic[,"mb_0"])[np >= z]))
+plot(nn, ww, type="l", ylim=c(0, max(ww)), xlab="Number of detections",
+    ylab="P(constant m0 or mb)", xlim=c(0,5000))
+rug(np)
+
+
 best0
  0  1 10 11 12 13 14  2  3  4  5  6  7  8  9 
 23 17 16  6 19 24 22 14 15 23 10 12 33  4 15 

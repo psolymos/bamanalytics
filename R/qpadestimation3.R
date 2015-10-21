@@ -446,9 +446,11 @@ vcov_fun <- function(x, id) {
     if (is.character(x[[id]]))
         NA else x[[id]]$vcov
 }
-pred_fun <- function(X, c, v, type) {
+pred_fun <- function(X, c, v, type, ptonly=FALSE) {
     tmp <- data.frame(q3.med=NA,q3.lo=NA,q3.up=NA,
         q5.med=NA,q5.lo=NA,q5.up=NA, q10.med=NA,q10.lo=NA,q10.up=NA)
+    if (ptonly)
+        tmp <- data.frame(q3=NA,q5=NA,q10=NA)
     if (any(is.na(c)))
         return(tmp)
     if (any(is.na(v)))
@@ -459,20 +461,33 @@ pred_fun <- function(X, c, v, type) {
     cfs <- try(mvrnorm(B, c, v))
     if (inherits(cfs, "try-error"))
         return(tmp)
-    if (type=="rem") {
-        p3 <- apply(cfs, 1, function(z) 1-exp(-3*exp(X %*% z)))
-        p5 <- apply(cfs, 1, function(z) 1-exp(-5*exp(X %*% z)))
-        p10 <- apply(cfs, 1, function(z) 1-exp(-10*exp(X %*% z)))
+    if (ptonly) {
+        if (type=="rem") {
+            p3 <- 1-exp(-3*exp(X %*% c))
+            p5 <- 1-exp(-5*exp(X %*% c))
+            p10 <- 1-exp(-10*exp(X %*% c))
+        } else {
+            p3 <- 1-plogis(X %*% c[-1])*exp(-3*exp(c[1]))
+            p5 <- 1-plogis(X %*% c[-1])*exp(-5*exp(c[1]))
+            p10 <- 1-plogis(X %*% c[-1])*exp(-10*exp(c[1]))
+        }
     } else {
-        p3 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-3*exp(z[1])))
-        p5 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-5*exp(z[1])))
-        p10 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-10*exp(z[1])))
+        if (type=="rem") {
+            p3 <- apply(cfs, 1, function(z) 1-exp(-3*exp(X %*% z)))
+            p5 <- apply(cfs, 1, function(z) 1-exp(-5*exp(X %*% z)))
+            p10 <- apply(cfs, 1, function(z) 1-exp(-10*exp(X %*% z)))
+        } else {
+            p3 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-3*exp(z[1])))
+            p5 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-5*exp(z[1])))
+            p10 <- apply(cfs, 1, function(z) 1-plogis(X %*% z[-1])*exp(-10*exp(z[1])))
+        }
+        q3 <- t(apply(p3, 1, quantile, c(0.5, 0.05, 0.95)))
+        q5 <- t(apply(p5, 1, quantile, c(0.5, 0.05, 0.95)))
+        q10 <- t(apply(p10, 1, quantile, c(0.5, 0.05, 0.95)))
+        colnames(q3) <- colnames(q5) <- colnames(q10) <- c("med","lo","up")
     }
-    q3 <- t(apply(p3, 1, quantile, c(0.5, 0.05, 0.95)))
-    q5 <- t(apply(p5, 1, quantile, c(0.5, 0.05, 0.95)))
-    q10 <- t(apply(p10, 1, quantile, c(0.5, 0.05, 0.95)))
-    colnames(q3) <- colnames(q5) <- colnames(q10) <- c("med","lo","up")
-    data.frame(q3=q3, q5=q5, q10=q10)
+    out <- if (ptonly)
+        data.frame(q3=p3, q5=p5, q10=p10) else data.frame(q3=q3, q5=q5, q10=q10)
 }
 compare_ci <- function(lo1, up1, lo2, up2) {
     if (any(is.na(c(lo1, up1, lo2, up2))))
@@ -481,6 +496,14 @@ compare_ci <- function(lo1, up1, lo2, up2) {
     x1greaterthan2up <- lo1 > up2 & up1 > up2
     !(x1lessthan2lo | x1greaterthan2up)
 }
+waic_fun <- function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2) 
+    w/sum(w)
+}
+
+ptonly <- FALSE
+external <- FALSE
 
 SPP0 <- SPP
 SPP1 <- SPP[1:60]
@@ -510,15 +533,27 @@ if (!inherits(resDurPcode1[[spp]][[pc]], "try-error") && !inherits(resDurBAMless
     type_99_best <- if (which.min(aic[spp,]) > 15) "mix" else "rem"
     best_99 <- unname(best[spp])
 
-    c_99_m0 <- coef_fun(resDurBAMless1[[spp]][[pc]], "0")
-    v_99_m0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], "0")
-    c_99_mb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
-    v_99_mb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
+    if (external) {
+        c_99_m0 <- coef_fun(resDurBAMless1[[spp]][[pc]], "0")
+        v_99_m0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], "0")
+        c_99_mb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
+        v_99_mb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], "0")
 
-    c_99_best0 <- coef_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
-    v_99_best0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
-    c_99_bestb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
-    v_99_bestb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
+        c_99_best0 <- coef_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
+        v_99_best0 <- vcov_fun(resDurBAMless1[[spp]][[pc]], best_99_m0)
+        c_99_bestb <- coef_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
+        v_99_bestb <- vcov_fun(resDurBAMless1_mix[[spp]][[pc]], best_99_mb)
+    } else {
+        c_99_m0 <- coef_fun(.BAMCOEFS$sra_estimates[[spp]], "0")
+        v_99_m0 <- vcov_fun(.BAMCOEFS$sra_estimates[[spp]], "0")
+        c_99_mb <- coef_fun(.BAMCOEFSmix$sra_estimates[[spp]], "0")
+        v_99_mb <- vcov_fun(.BAMCOEFSmix$sra_estimates[[spp]], "0")
+
+        c_99_best0 <- coef_fun(.BAMCOEFS$sra_estimates[[spp]], best_99_m0)
+        v_99_best0 <- vcov_fun(.BAMCOEFS$sra_estimates[[spp]], best_99_m0)
+        c_99_bestb <- coef_fun(.BAMCOEFSmix$sra_estimates[[spp]], best_99_mb)
+        v_99_bestb <- vcov_fun(.BAMCOEFSmix$sra_estimates[[spp]], best_99_mb)
+    }
     if (type_99_best == "rem") {
         c_99_best <- c_99_best0
         v_99_best <- v_99_best0
@@ -530,6 +565,20 @@ if (!inherits(resDurPcode1[[spp]][[pc]], "try-error") && !inherits(resDurBAMless
     ## only project pc
     aic_1_m0 <- sapply(resDurPcode1[[spp]][[pc]], aic_fun)
     aic_1_mb <- sapply(resDurPcode1_mix[[spp]][[pc]], aic_fun)
+
+    waic_1_m0 <- waic_fun(aic_1_m0)
+    waic_1_mb <- waic_fun(aic_1_mb)
+    waic_1    <- waic_fun(c(aic_1_m0, aic_1_mb))
+    w0_1_m0 <- waic_1_m0["0"]
+    w0_1_mb <- waic_1_mb["0"]
+    w0_1 <- sum(waic_1[which(names(waic_1)=="0")])
+
+    waic_99_m0 <- waic_fun(aic0[spp,])
+    waic_99_mb <- waic_fun(aicb[spp,])
+    waic_99    <- waic_fun(aic[spp,])
+    w0_99_m0 <- waic_99_m0["0"]
+    w0_99_mb <- waic_99_mb["0"]
+    w0_99 <- sum(waic_99[which(names(waic_99)=="0")])
 
     best_1_m0 <- names(aic_1_m0)[which.min(aic_1_m0)]
     best_1_mb <- names(aic_1_mb)[which.min(aic_1_mb)]
@@ -568,49 +617,112 @@ if (!inherits(resDurPcode1[[spp]][[pc]], "try-error") && !inherits(resDurBAMless
 #    mod1 <- glm(pc ~ JDAY + TSSR + TSLS, df, family=binomial("logit"))
 #    logLR <- as.numeric(logLik(mod1) - logLik(mod0))
 
+
     ## model matrix for project based prediction
-    X1_1 <- model.matrix(ff[[best_1]], df1)
-    X1_99 <- model.matrix(ff[[best_99]], df1)
-    X1 <- matrix(1, n1, 1)
+    X1_1 <- if (ptonly && best_1 == "0")
+        matrix(1, 1, 1) else model.matrix(ff[[best_1]], df1)
+    X1_99 <- if (ptonly && best_99 == "0")
+        matrix(1, 1, 1) else model.matrix(ff[[best_99]], df1)
+    X1 <- if (ptonly)
+        matrix(1, 1, 1) else matrix(1, n1, 1)
 
-    pr_1_m0 <- pred_fun(X1, c_1_m0, v_1_m0, "rem")
-    pr_1_mb <- pred_fun(X1, c_1_mb, v_1_mb, "mix")
-    pr_1_best <- pred_fun(X1_1, c_1_best, v_1_best, type_1_best)
-    pr_99_m0 <- pred_fun(X1, c_99_m0, v_99_m0, "rem")
-    pr_99_mb <- pred_fun(X1, c_99_mb, v_99_mb, "mix")
-    pr_99_best <- pred_fun(X1_99, c_99_best, v_99_best, type_99_best)
+    pr_1_m0 <- pred_fun(X1, c_1_m0, v_1_m0, "rem", ptonly=ptonly)
+    pr_1_mb <- pred_fun(X1, c_1_mb, v_1_mb, "mix", ptonly=ptonly)
+    pr_1_best <- pred_fun(X1_1, c_1_best, v_1_best, type_1_best, ptonly=ptonly)
+    pr_99_m0 <- pred_fun(X1, c_99_m0, v_99_m0, "rem", ptonly=ptonly)
+    pr_99_mb <- pred_fun(X1, c_99_mb, v_99_mb, "mix", ptonly=ptonly)
+    pr_99_best <- pred_fun(X1_99, c_99_best, v_99_best, type_99_best, ptonly=ptonly)
 
-    sdiff3_m0 <-   compare_ci(pr_1_m0$q3.lo,    pr_1_m0$q3.up,    pr_99_m0$q3.lo,    pr_99_m0$q3.up)
-    sdiff3_mb <-   compare_ci(pr_1_mb$q3.lo,    pr_1_mb$q3.up,    pr_99_mb$q3.lo,    pr_99_mb$q3.up)
-    sdiff3_best <- compare_ci(pr_1_best$q3.lo,  pr_1_best$q3.up,  pr_99_best$q3.lo,  pr_99_best$q3.up)
-    sdiff5_m0 <-   compare_ci(pr_1_m0$q5.lo,    pr_1_m0$q5.up,    pr_99_m0$q5.lo,    pr_99_m0$q5.up)
-    sdiff5_mb <-   compare_ci(pr_1_mb$q5.lo,    pr_1_mb$q5.up,    pr_99_mb$q5.lo,    pr_99_mb$q5.up)
-    sdiff5_best <- compare_ci(pr_1_best$q5.lo,  pr_1_best$q5.up,  pr_99_best$q5.lo,  pr_99_best$q5.up)
-    sdiff10_m0 <-  compare_ci(pr_1_m0$q10.lo,   pr_1_m0$q10.up,   pr_99_m0$q10.lo,   pr_99_m0$q10.up)
-    sdiff10_mb <-  compare_ci(pr_1_mb$q10.lo,   pr_1_mb$q10.up,   pr_99_mb$q10.lo,   pr_99_mb$q10.up)
-    sdiff10_best <-compare_ci(pr_1_best$q10.lo, pr_1_best$q10.up, pr_99_best$q10.lo, pr_99_best$q10.up)
+    if (ptonly) {
+        tab[[pc]] <- data.frame(spp=spp,
+            pc=pc,
+            n99=n99, n1=n1, det99=det99, det1=det1, 
+            best99=best_99, best1=best_1, type99=type_99_best, type1=type_1_best,
+            w1_m0=w0_1_m0, w1_mb=w0_1_mb, w1=w0_1, w99_m0=w0_99_m0, w99_mb=w0_99_mb, w99=w0_99,
+            pr_1_m0=t(colMeans(pr_1_m0)), 
+            pr_1_mb=t(colMeans(pr_1_mb)), 
+            pr_1_best=t(colMeans(pr_1_best)),
+            pr_99_m0=t(colMeans(pr_99_m0)), 
+            pr_99_mb=t(colMeans(pr_99_mb)), 
+            pr_99_best=t(colMeans(pr_99_best)))
+    }
+    if (!ptonly) {
+        sdiff3_m0 <-   compare_ci(pr_1_m0$q3.lo,    pr_1_m0$q3.up,    
+            pr_99_m0$q3.lo,    pr_99_m0$q3.up)
+        sdiff3_mb <-   compare_ci(pr_1_mb$q3.lo,    pr_1_mb$q3.up,    
+            pr_99_mb$q3.lo,    pr_99_mb$q3.up)
+        sdiff3_best <- compare_ci(pr_1_best$q3.lo,  pr_1_best$q3.up,  
+            pr_99_best$q3.lo,  pr_99_best$q3.up)
+        sdiff5_m0 <-   compare_ci(pr_1_m0$q5.lo,    pr_1_m0$q5.up,    
+            pr_99_m0$q5.lo,    pr_99_m0$q5.up)
+        sdiff5_mb <-   compare_ci(pr_1_mb$q5.lo,    pr_1_mb$q5.up,    
+            pr_99_mb$q5.lo,    pr_99_mb$q5.up)
+        sdiff5_best <- compare_ci(pr_1_best$q5.lo,  pr_1_best$q5.up,  
+            pr_99_best$q5.lo,  pr_99_best$q5.up)
+        sdiff10_m0 <-  compare_ci(pr_1_m0$q10.lo,   pr_1_m0$q10.up,   
+            pr_99_m0$q10.lo,   pr_99_m0$q10.up)
+        sdiff10_mb <-  compare_ci(pr_1_mb$q10.lo,   pr_1_mb$q10.up,   
+            pr_99_mb$q10.lo,   pr_99_mb$q10.up)
+        sdiff10_best <-compare_ci(pr_1_best$q10.lo, pr_1_best$q10.up, 
+            pr_99_best$q10.lo, pr_99_best$q10.up)
 
-    tab[[pc]] <- data.frame(spp=spp,
-        n99=n99, n1=n1, det99=det99, det1=det1, #logLR=logLR,
-        best99=best_99, best1=best_1, type99=type_99_best, type1=type_1_best,
-        m0_3=sum(sdiff3_m0), m0_5=sum(sdiff5_m0), m0_10=sum(sdiff10_m0), 
-        mb_3=sum(sdiff3_mb), mb_5=sum(sdiff5_mb), mb_10=sum(sdiff10_mb), 
-        best_3=sum(sdiff3_best), best_5=sum(sdiff5_best), best_10=sum(sdiff10_best))
+        tab[[pc]] <- data.frame(spp=spp, pc=pc,
+            n99=n99, n1=n1, det99=det99, det1=det1, #logLR=logLR,
+            best99=best_99, best1=best_1, type99=type_99_best, type1=type_1_best,
+            m0_3=sum(sdiff3_m0), m0_5=sum(sdiff5_m0), m0_10=sum(sdiff10_m0), 
+            mb_3=sum(sdiff3_mb), mb_5=sum(sdiff5_mb), mb_10=sum(sdiff10_mb), 
+            best_3=sum(sdiff3_best), best_5=sum(sdiff5_best), best_10=sum(sdiff10_best))
+    }
+
     }
 }
 tab <- do.call(rbind, tab)
 
 xvres[[spp]] <- tab
 }
-
+save(xvres, file=file.path(ROOT2, "xval-summary-new.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-1.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-2.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-3.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-4.Rdata"))
 
+load(file.path(ROOT2, "xval-dis.Rdata"))
 
-if (FALSE) {
-par(mfrow=c(3,3))
+xv <- do.call(rbind, xvres)
+xv$dis <- dis[match(xv$pc, rownames(dis)), "MEAN"]
+xv$occ <- (xv$det99 + xv$det1) / (xv$n99 + xv$n1)
+xv$occ1 <- xv$det1 / xv$n1
+xv$best1is0 <- ifelse(xv$best1==0, 1, 0)
+xv$best99is0 <- ifelse(xv$best99==0, 1, 0)
+
+keep <- rep(TRUE, nrow(xv))
+keep[xv$pr_1_m0.q10 < 0.05 | xv$pr_1_mb.q10 < 0.05 | xv$pr_1_best.q10 < 0.05] <- FALSE
+keep[xv$pr_1_m0.q3 > 0.95 | xv$pr_1_mb.q3 > 0.95 | xv$pr_1_best.q3 > 0.95] <- FALSE
+keep[is.na(xv$pr_1_m0.q3) | is.na(xv$pr_1_mb.q3) | is.na(xv$pr_1_best.q3)] <- FALSE
+xvx <- xv[keep,]
+
+plot(w1 ~ log(n1), xvx, pch=ifelse(xvx$best1is0>0, "x", "."))
+abline(lm(w1 ~ log(n1), xvx), col=2)
+
+plot(w1 ~ det1, xvx, pch=21, col=ifelse(xvx$best1is0>0, "blue", "grey"), xlim=c(0,1000))
+plot(w1 ~ log(det1), xvx, pch=21, col=ifelse(xvx$best1is0>0, "blue", "grey"))
+abline(lm(w1 ~ log(det1), xvx), col=2)
+#boxplot(log(det1) ~ best1is0, xvx)
+
+nn <- 0:5000#max(xvx$det1)
+#xx <- sapply(nn, function(z) mean(xvx$best1is0[xvx$det1 >= z]))
+xx <- sapply(nn, function(z) mean(c(xv$best1is0[xv$det1 >= z], xv$best99is0[xv$det99 >= z]) ))
+plot(nn, xx, type="l", ylim=c(0, max(xx)), xlab="Number of detections",
+    ylab="P(constant m0 or mb)")
+rug(xvx$det1)
+
+## -- old
+
+plot(pr_1_best$q3.med, pr_99_best$q3.med, ylim=c(0,1), xlim=c(0,1))
+abline(0,1,col=2)
+
+plot_fun <- function() {
+op <- par(mfrow=c(3,3))
 
 plot(1:n1, pr_1_m0$q3.med, ylim=c(0,1), type="n")
 segments(x0=(1:n1)-0.2, y0=pr_1_m0$q3.lo, y1=pr_1_m0$q3.up, col=ifelse(sdiff3_m0, 3, 2), lwd=3)
@@ -647,8 +759,86 @@ segments(x0=(1:n1)+0.2, y0=pr_99_mb$q10.lo, y1=pr_99_mb$q10.up, col=ifelse(sdiff
 plot(1:n1, pr_1_best$q10.med, ylim=c(0,1), type="n")
 segments(x0=(1:n1)-0.2, y0=pr_1_best$q10.lo, y1=pr_1_best$q10.up, col=ifelse(sdiff10_best, 3, 2), lwd=3)
 segments(x0=(1:n1)+0.2, y0=pr_99_best$q10.lo, y1=pr_99_best$q10.up, col=ifelse(sdiff10_best, 3, 4), lwd=3)
+par(op)
 }
 
 ## write a function that calculates point pred & CI depending on rem/mix
 ## calculates CIs and compare -- write compare fun.
 
+#logLR <- list()
+dis <- list()
+for (pc in PC) {
+    cat(pc, "\n");flush.console()
+
+    df <- pkDur
+    #df$y <- rowSums(xtDur[[spp]][rownames(df),])
+    df$pc <- ifelse(df$PCODE == pc, 1L, 0L)
+    df99 <- df[df$PCODE != pc,,drop=FALSE]
+    df1 <- df[df$PCODE == pc,,drop=FALSE]
+
+    jd0 <- range(df$JDAY)
+    jd99 <- range(df99$JDAY)
+    jd1 <- range(df1$JDAY)
+    ts0 <- range(df$TSSR)
+    ts99 <- range(df99$TSSR)
+    ts1 <- range(df1$TSSR)
+    ls0 <- range(df$TSLS)
+    ls99 <- range(df99$TSLS)
+    ls1 <- range(df1$TSLS)
+
+    djd <- if (compare_ci(jd1[1], jd1[2], jd99[1], jd99[2]))
+        (min(jd1[2], jd99[2]) - max(jd1[1], jd99[1])) / diff(jd0) else 0
+    dts <- if (compare_ci(ts1[1], ts1[2], ts99[1], ts99[2]))
+        (min(ts1[2], ts99[2]) - max(ts1[1], ts99[1])) / diff(ts0) else 0
+    dls <- if (compare_ci(ls1[1], ls1[2], ls99[1], ls99[2]))
+        (min(ls1[2], ls99[2]) - max(ls1[1], ls99[1])) / diff(ls0) else 0
+    dis[[pc]] <- c(MEAN=mean(c(djd, dts, dls)), JDAY=djd,
+        TSSR=dts, TSLS=dls)
+
+    #mod0 <- glm(pc ~ 1, df, family=binomial("logit"))
+    #mod1 <- glm(pc ~ JDAY + TSSR + TSLS, df, family=binomial("logit"))
+    #logLR[[pc]] <- as.numeric(logLik(mod1) - logLik(mod0))
+}
+#save(logLR, file=file.path(ROOT2, "xval-logLR.Rdata"))
+dis <- do.call(rbind, dis)
+save(dis, file=file.path(ROOT2, "xval-dis.Rdata"))
+
+e <- new.env()
+load(file.path(ROOT2, "xval-summary-1.Rdata"), envir=e)
+xvres <- e$xvres
+e <- new.env()
+load(file.path(ROOT2, "xval-summary-2.Rdata"), envir=e)
+xvres <- c(xvres, e$xvres)
+e <- new.env()
+load(file.path(ROOT2, "xval-summary-3.Rdata"), envir=e)
+xvres <- c(xvres, e$xvres)
+e <- new.env()
+load(file.path(ROOT2, "xval-summary-4.Rdata"), envir=e)
+xvres <- c(xvres, e$xvres)
+
+for (i in 1:length(xvres)) {
+    xvres[[i]]$pc <- rownames(xvres[[i]])
+}
+
+xv <- do.call(rbind, xvres)
+xv$dis <- dis[match(xv$pc, rownames(dis)), "MEAN"]
+xv$occ <- (xv$det99 + xv$det1) / (xv$n99 + xv$n1)
+xv$occ1 <- xv$det1 / xv$n1
+xv$best1is0 <- ifelse(xv$best1==0, 1, 0)
+
+#xv <- xv[xv$det1 >= 200,]
+
+xv1 <- xv[,c("m0_3","m0_5","m0_10","mb_3","mb_5","mb_10","best_3","best_5","best_10")] / xv$n1
+summary(xv1)
+xv$ok <- xv1$best_3 >= 0.5
+
+mod <- glm(cbind(m0_3, n1-m0_3) ~ occ + dis, xv, family=binomial)
+
+summary(mm <- glm(best1is0 ~ n1, xv, family=binomial))
+
+boxplot(n1 ~ ok, xv)
+
+plot(xv$det1, xv1$best_3)
+
+plot(xv1$best_3 ~ sqrt(xv$n1))
+abline(lm(xv1$best_3 ~ sqrt(xv$n1)), col=2)
