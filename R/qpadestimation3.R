@@ -804,16 +804,16 @@ dis <- do.call(rbind, dis)
 save(dis, file=file.path(ROOT2, "xval-dis.Rdata"))
 
 e <- new.env()
-load(file.path(ROOT2, "xval-summary-1.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-summary-int-1.Rdata"), envir=e)
 xvres <- e$xvres
 e <- new.env()
-load(file.path(ROOT2, "xval-summary-2.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-summary-int-2.Rdata"), envir=e)
 xvres <- c(xvres, e$xvres)
 e <- new.env()
-load(file.path(ROOT2, "xval-summary-3.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-summary-int-3.Rdata"), envir=e)
 xvres <- c(xvres, e$xvres)
 e <- new.env()
-load(file.path(ROOT2, "xval-summary-4.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-summary-int-4.Rdata"), envir=e)
 xvres <- c(xvres, e$xvres)
 
 for (i in 1:length(xvres)) {
@@ -830,7 +830,7 @@ xv$best1is0 <- ifelse(xv$best1==0, 1, 0)
 
 xv1 <- xv[,c("m0_3","m0_5","m0_10","mb_3","mb_5","mb_10","best_3","best_5","best_10")] / xv$n1
 summary(xv1)
-xv$ok <- xv1$best_3 >= 0.5
+xv$ok <- xv1$best_3 >= 0.9
 
 mod <- glm(cbind(m0_3, n1-m0_3) ~ occ + dis, xv, family=binomial)
 
