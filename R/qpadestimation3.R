@@ -83,7 +83,8 @@ PC <- names(nPC)
 
 ## define pcode, and excl (excl=T to exclude pcode, excl=F to use only pcode)
 ## ff_id is the subset of ff list to be used
-fitDurFun3 <- function(spp, fit=TRUE, type=c("rem","mix"), pcode=NULL, excl=TRUE) 
+fitDurFun3 <- function(spp, fit=TRUE, type=c("rem","mix"), 
+pcode=NULL, excl=TRUE, rnd=FALSE) 
 {
     ff <- list(
         "0"=~ 1,
@@ -129,8 +130,15 @@ fitDurFun3 <- function(spp, fit=TRUE, type=c("rem","mix"), pcode=NULL, excl=TRUE
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
     X0 <- pkDur[rn,]
     if (!is.null(pcode)) {
-        X0 <- if (excl)
-            X0[X0$PCODE != pcode,,drop=FALSE] else X0[X0$PCODE == pcode,,drop=FALSE]
+#        X0 <- if (excl)
+#            X0[X0$PCODE != pcode,,drop=FALSE] else X0[X0$PCODE == pcode,,drop=FALSE]
+        keep <- if (excl)
+            X0$PCODE != pcode else X0$PCODE == pcode
+        if (rnd) {
+            keep <- keep[sample.int(length(keep))]
+        }
+        X0 <- X0[keep,,drop=FALSE]
+
     }
     rn <- rownames(X0)
     Y0 <- as.matrix(xtDur[[spp]][rn,])
@@ -183,6 +191,8 @@ fitDurFun3 <- function(spp, fit=TRUE, type=c("rem","mix"), pcode=NULL, excl=TRUE
     res
 }
 
+RND <- TRUE
+
 SPP0 <- SPP
 SPP1 <- SPP[1:60]
 SPP2 <- SPP[61:120]
@@ -201,15 +211,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (rem) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (rem) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1, resDurPcode1,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-1.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-1rnd.Rdata")
 
 SPP <- SPP2
 resDurBAMless1 <- list()
@@ -221,15 +231,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (rem) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (rem) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1, resDurPcode1,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-2.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-2rnd.Rdata")
 
 SPP <- SPP3
 resDurBAMless1 <- list()
@@ -241,15 +251,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (rem) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (rem) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1, resDurPcode1,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-3.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-3rnd.Rdata")
 
 SPP <- SPP4
 resDurBAMless1 <- list()
@@ -261,15 +271,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (rem) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (rem) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="rem",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1, resDurPcode1,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-4.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-rem-4rnd.Rdata")
 
 ## ------------------- mix
 
@@ -283,15 +293,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (mix) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (mix) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1_mix, resDurPcode1_mix,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-1.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-1rnd.Rdata")
 
 SPP <- SPP2
 resDurBAMless1_mix <- list()
@@ -303,15 +313,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (mix) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (mix) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1_mix, resDurPcode1_mix,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-2.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-2rnd.Rdata")
 
 SPP <- SPP3
 resDurBAMless1_mix <- list()
@@ -323,15 +333,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (mix) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (mix) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1_mix, resDurPcode1_mix,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-3.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-3rnd.Rdata")
 
 SPP <- SPP4
 resDurBAMless1_mix <- list()
@@ -343,15 +353,15 @@ for (i in 1:length(SPP)) {
         cat("Singing rate (mix) estimation for", SPP[i], "excluding", PC[j], "\n")
         flush.console()
         resDurBAMless1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=TRUE))
+            pcode=PC[j], excl=TRUE, rnd=RND))
         cat("Singing rate (mix) estimation for", SPP[i], "in", PC[j], "\n")
         flush.console()
         resDurPcode1_mix[[SPP[i]]][[PC[j]]] <- try(fitDurFun3(SPP[i], TRUE, type="mix",
-            pcode=PC[j], excl=FALSE))
+            pcode=PC[j], excl=FALSE, rnd=RND))
     }
 }
 save(resDurBAMless1_mix, resDurPcode1_mix,
-    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-4.Rdata")
+    file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-4rnd.Rdata")
 
 
 ## read all the suff
