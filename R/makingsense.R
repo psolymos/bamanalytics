@@ -201,7 +201,7 @@ load("c:/bam/May2015/out/data_package_2015-08-26.Rdata")
 PKEY$JURS <- SS$JURS[match(PKEY$SS, SS$SS)]
 trend_res2 <- list()
 
-for (fid in c(3,5)) {
+for (fid in c(1,3,5)) {
 
 fo <- paste0(spp, "-", ids$TEXT[fid], "_", ids$SEXT[fid], "_", ids$LCTU[fid], "_", Date)
 cat(fo, "\n");flush.console()
@@ -267,6 +267,8 @@ trend_res2[[fo]] <- list(all=all, bbs=bbs)
 
 }
 
+save(trend_res2, file=file.path(ROOT2, "species", "cawa-nmbca-trend", "trend2-CAWA.Rdata"))
+
 level <- 0.9
 
 Tr <- rbind(t(apply(data.frame(Fid1.All=trend_res2[[1]]$all, Fid1.BBS=trend_res2[[1]]$bbs), 
@@ -275,15 +277,52 @@ Tr <- rbind(t(apply(data.frame(Fid1.All=trend_res2[[1]]$all, Fid1.BBS=trend_res2
     2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))),
     t(apply(data.frame(Fid5.All=trend_res2[[3]]$all, Fid5.BBS=trend_res2[[3]]$bbs), 
     2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))))
+write.csv(Tr, file=file.path(ROOT2, "species", "cawa-nmbca-trend", "trend2-CAWA.csv"))
 
-plot(Tr[(1:6)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), pch=19, ylim=range(Tr[1:6,]),
+#x0 <- 1:6
+par(mfrow=c(3,1))
+x0 <- c(1,2, 5,6, 9,10)
+plot(x0, Tr[(1:6)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), 
+    pch=19, ylim=range(Tr),
     axes=FALSE, ann=FALSE, cex=1.5)
 abline(h=0, col="grey")
-segments(x0=1:6, y0=Tr[(1:6)[c(1,4,2,5,3,6)],2], y1=Tr[(1:6)[c(1,4,2,5,3,6)],3],
+segments(x0=x0, y0=Tr[(1:6)[c(1,4,2,5,3,6)],2], y1=Tr[(1:6)[c(1,4,2,5,3,6)],3],
     col=rep(c(2, 4), 3), lwd=3)
 axis(2)
-axis(1, at = c(1.5, 3.5, 5.5), labels = c("AB","ON","QC"), tick=FALSE)
+axis(1, at = c(1.5, 5.5, 9.5), labels = c("AB","ON","QC"), tick=FALSE)
 box()
+title(main="CAWA, GFW+Fire, Canada, NALCMS")
+legend("topright", pch=19, lty=1, lwd=2, col=c(2,4), 
+    legend=c("All", "BBS only"), bty="n")
+
+x0 <- c(1,2, 5,6, 9,10)
+plot(x0, Tr[(7:12)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), 
+    pch=19, ylim=range(Tr),
+    axes=FALSE, ann=FALSE, cex=1.5)
+abline(h=0, col="grey")
+segments(x0=x0, y0=Tr[(7:12)[c(1,4,2,5,3,6)],2], y1=Tr[(7:12)[c(1,4,2,5,3,6)],3],
+    col=rep(c(2, 4), 3), lwd=3)
+axis(2)
+axis(1, at = c(1.5, 5.5, 9.5), labels = c("AB","ON","QC"), tick=FALSE)
+box()
+title(main="CAWA, GFW+Fire, Canada, LCC")
+legend("topright", pch=19, lty=1, lwd=2, col=c(2,4), 
+    legend=c("All", "BBS only"), bty="n")
+
+x0 <- c(1,2, 5,6, 9,10)
+plot(x0, Tr[(13:18)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), 
+    pch=19, ylim=range(Tr),
+    axes=FALSE, ann=FALSE, cex=1.5)
+abline(h=0, col="grey")
+segments(x0=x0, y0=Tr[(13:18)[c(1,4,2,5,3,6)],2], y1=Tr[(13:18)[c(1,4,2,5,3,6)],3],
+    col=rep(c(2, 4), 3), lwd=3)
+axis(2)
+axis(1, at = c(1.5, 5.5, 9.5), labels = c("AB","ON","QC"), tick=FALSE)
+box()
+title(main="CAWA, GFW+Fire, Canada, EOSD")
+legend("topright", pch=19, lty=1, lwd=2, col=c(2,4), 
+    legend=c("All", "BBS only"), bty="n")
+
 ## legend for all/bbs
 
 e1 <- new.env()
