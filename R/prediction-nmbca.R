@@ -385,7 +385,7 @@ for (i in 1:6) {
     df$change[i*2] <- 100 * ((N10/N0)^(1/10) - 1)
 }
 
-
+write.csv(df, file=file.path(ROOT2, "species", "popsize.csv"))
 
 pe <- data.frame(ids[1:6,1:3],
     Year=BASE_YEAR,

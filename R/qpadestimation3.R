@@ -368,43 +368,43 @@ save(resDurBAMless1_mix, resDurPcode1_mix,
 
 ## rem
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-1.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-rem-1rnd.Rdata"), envir=e)
 resDurBAMless1 <- e$resDurBAMless1
 resDurPcode1 <- e$resDurPcode1
 
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-2.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-rem-2rnd.Rdata"), envir=e)
 resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
 resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-3.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-rem-3rnd.Rdata"), envir=e)
 resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
 resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-4.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-rem-4rnd.Rdata"), envir=e)
 resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
 resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
 
 ## mix
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-1.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-mix-1rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- e$resDurBAMless1_mix
 resDurPcode1_mix <- e$resDurPcode1_mix
 
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-2.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-mix-2rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
 resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-3.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-mix-3rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
 resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-4.Rdata"), envir=e)
+load(file.path(ROOT2, "xval-mix-4rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
 resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
 
@@ -513,7 +513,7 @@ waic_fun <- function(z) {
 }
 
 ptonly <- FALSE
-external <- FALSE
+external <- TRUE
 
 SPP0 <- SPP
 SPP1 <- SPP[1:60]
@@ -534,7 +534,12 @@ for (spp in SPP) {
 tab <- list()
 for (pc in PC) {
 
-if (!inherits(resDurPcode1[[spp]][[pc]], "try-error") && !inherits(resDurBAMless1[[spp]][[pc]], "try-error")) {
+OK <- c(!inherits(resDurPcode1[[spp]][[pc]], "try-error"),
+    !inherits(resDurBAMless1[[spp]][[pc]], "try-error"),
+    !inherits(resDurPcode1_mix[[spp]][[pc]], "try-error"),
+    !inherits(resDurBAMless1_mix[[spp]][[pc]], "try-error"))
+
+if (all(OK)) {
 
     cat(spp, pc, "\n");flush.console()
     ## project pc exluded
@@ -690,7 +695,7 @@ tab <- do.call(rbind, tab)
 
 xvres[[spp]] <- tab
 }
-save(xvres, file=file.path(ROOT2, "xval-summary-new.Rdata"))
+save(xvres, file=file.path(ROOT2, "xval-summary-rnd.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-1.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-2.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-3.Rdata"))
