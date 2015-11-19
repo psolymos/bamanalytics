@@ -184,6 +184,7 @@ mpi.quit("no")
 ## graphics
 library(lattice)
 load("~/Dropbox/bam/full_life_cycle/glmm-res3.Rdata")
+rm(.Last)
 
 pow <- t(sapply(res, function(z) z[,"Pow"]))
 
@@ -211,6 +212,35 @@ legend("bottomright", col=c(2,4), lty=1, lwd=2,
        legend=c("dense","sparse"), bty="n")
 par(op)
 
+
+
+load("~/Dropbox/bam/full_life_cycle/glmm-res3-sigmatau.Rdata")
+
+pow <- t(sapply(res, function(z) z[,"Pow"]))
+
+vals$Beta <- log(vals$Delta / 100 + 1)
+vals$Decadal <- 100 * (exp(vals$Beta * 10) - 1)
+
+op <- par(mfrow=c(3,3), las=1, mar=c(4,4,2,1)+0.1)
+for (i in 1:3) {
+    for (j in 1:3) {
+        sigma <- unique(vals$sigma)[i]
+        tau <- unique(vals$tau)[j]
+        ss <- pow[!vals$hb & vals$sigma == sigma & vals$tau == tau,]
+        matplot(sort(unique(vals$Delta)), ss[,5:6],
+            type="l", ylim=c(0,1),
+            xlab="", ylab="",
+            main=paste0("sig=", sigma, ", tau=", tau),
+            lty=1, lwd=2, col=c(2,4))
+        if (j==1 && i==2)
+            title(ylab="Power")
+        if (i==3 && j==2)
+            title(xlab="Annual trend (%)")
+    }
+}
+legend("bottomright", col=c(2,4), lty=1, lwd=2,
+       legend=c("dense","sparse"), bty="n")
+par(op)
 
 
 
