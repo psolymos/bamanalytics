@@ -736,12 +736,12 @@ if (all(OK)) {
         n99=n99, n1=n1, det99=det99, det1=det1, 
         best99=best_99, best1=best_1, type99=type_99_best, type1=type_1_best,
         w1_m0=w0_1_m0, w1_mb=w0_1_mb, w1=w0_1, w99_m0=w0_99_m0, w99_mb=w0_99_mb, w99=w0_99,
-        pr_1_m0=t(colMeans(pr_1_m0)), 
-        pr_1_mb=t(colMeans(pr_1_mb)), 
-        pr_1_best=t(colMeans(pr_1_best)),
-        pr_99_m0=t(colMeans(pr_99_m0)), 
-        pr_99_mb=t(colMeans(pr_99_mb)), 
-        pr_99_best=t(colMeans(pr_99_best)))
+        pr_1_m0=pr_1_m0, 
+        pr_1_mb=pr_1_mb, 
+        pr_1_best=pr_1_best,
+        pr_99_m0=pr_99_m0, 
+        pr_99_mb=pr_99_mb, 
+        pr_99_best=pr_99_best)
     }
 }
 tab <- do.call(rbind, tab)
@@ -754,7 +754,7 @@ xvres[[spp]] <- tab
 #save(xvres, file=file.path(ROOT2, "xval-summary-1.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-2.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-3.Rdata"))
-#save(xvres, file=file.path(ROOT2, "xval-summary-4.Rdata"))
+save(xvres, file=file.path(ROOT2, "xval-summary-4.Rdata"))
 
 #save(xvres, file=file.path(ROOT2, "xval-summary-1rnd.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-2rnd.Rdata"))
