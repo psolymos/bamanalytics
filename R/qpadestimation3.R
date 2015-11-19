@@ -73,6 +73,10 @@ names(best) <- names(best0) <- names(bestb) <- SPP
 rn <- intersect(rownames(pkDur), rownames(xtDur[[1]]))
 pkDur <- droplevels(pkDur[rn,])
 
+## random PCODE
+set.seed(1000)
+pkDur$PCODErnd <- pkDur$PCODE[sample.int(nrow(pkDur))]
+
 D <- ltdur$end[match(pkDur$DURMETH, rownames(ltdur$end)),]
 ## exclude 0 sum and <1 interval rows
 nOK <- table(PC=pkDur$PCODE, n_int=rowSums(!is.na(D)))
@@ -130,13 +134,10 @@ pcode=NULL, excl=TRUE, rnd=FALSE)
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
     X0 <- pkDur[rn,]
     if (!is.null(pcode)) {
-#        X0 <- if (excl)
-#            X0[X0$PCODE != pcode,,drop=FALSE] else X0[X0$PCODE == pcode,,drop=FALSE]
+        xPCODE <- if (rnd)
+            X0$PCODErnd else X0$PCODE
         keep <- if (excl)
-            X0$PCODE != pcode else X0$PCODE == pcode
-        if (rnd) {
-            keep <- keep[sample.int(length(keep))]
-        }
+            xPCODE != pcode else xPCODE == pcode
         X0 <- X0[keep,,drop=FALSE]
 
     }
