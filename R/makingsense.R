@@ -22,11 +22,15 @@ ids$fn <- with(ids, paste0("bam_", spp, "_",
     TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
 ids$data <- with(ids, paste0("pack_", 
     TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
+ids$prefix <- with(ids, paste0( 
+    TEXT, "_", SEXT, "_", LCTU, "_", Date))
 rownames(ids) <- 1:8
 
 
 Stage <- 6
 fid <- 1
+
+for (fid in 1:6) {
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
@@ -44,7 +48,24 @@ rm(e)
 load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
 100 * sum(getOK(res)) / length(res)
 est <- getEst(res, stage = Stage, X=Xn)
+#est_hab <- getEst(res, stage = 4, X=Xn)
 
+## output for Sam
+
+su <- getSummary(res)
+write.csv(su, file.path(ROOT, "out", "nmbca-samuel", 
+    paste0("CoefSE_", as.character(ids$prefix[fid]), ".csv")))
+mt <- getFancyMidTab(res, mods)
+write.csv(mt, file.path(ROOT, "out", "nmbca-samuel", 
+    paste0("MIDtab_", as.character(ids$prefix[fid]), ".csv")))
+
+pdf(file.path(ROOT, "out", "nmbca-samuel", 
+    paste0("MIDplot_", as.character(ids$prefix[fid]), ".pdf")))
+plotMid(res, mods, web=TRUE)
+dev.off()
+
+}
+write.csv(ids, file.path(ROOT, "out", "nmbca-samuel", "model-ids.csv"))
 
 #mods <- if (fid == 4)
 #    mods_fire else mods_gfw
@@ -54,8 +75,7 @@ load(file.path(ROOT, "out", folder, fn))
 sum(getOK(res)) / length(res)
 
 ## need to load data for xn, Xn
-
-est <- getEst(res, stage=NULL)
+#est <- getEst(res, stage=NULL)
 
 getCaic(res)
 printCoefmat(getSummary(res))
