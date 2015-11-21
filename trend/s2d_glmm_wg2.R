@@ -162,7 +162,7 @@ clusterExport(cl, ls())
 
 res <- parLapply(cl, 1:nrow(vals),
     function(i) bfun(Delta=vals[i,"Delta"], sp=vals[i,"sp"],
-        an=vals[i,"an"], hb=vals[i,"hb"], B=B, 
+        an=vals[i,"an"], hb=vals[i,"hb"], B=B,
         sigma=vals[i,"sigma"], tau=vals[i,"tau"]))
 
 #res <- lapply(1:2,
@@ -183,6 +183,7 @@ mpi.quit("no")
 
 ## graphics
 library(lattice)
+#load("~/Dropbox/bam/full_life_cycle/glmm-res3-sigmatau.Rdata")
 load("~/Dropbox/bam/full_life_cycle/glmm-res3.Rdata")
 rm(.Last)
 
@@ -191,13 +192,14 @@ pow <- t(sapply(res, function(z) z[,"Pow"]))
 vals$Beta <- log(vals$Delta / 100 + 1)
 vals$Decadal <- 100 * (exp(vals$Beta * 10) - 1)
 
+cid <- 3:4
 op <- par(mfrow=c(3,3), las=1, mar=c(4,4,2,1)+0.1)
 for (i in 1:3) {
     for (j in 1:3) {
         sp <- unique(vals$sp)[i]
         an <- unique(vals$an)[j]
-        ss <- pow[!vals$hb & vals$sp == sp & vals$an == an,]
-        matplot(sort(unique(vals$Delta)), ss[,5:6],
+        ss <- pow[vals$hb & vals$sp == sp & vals$an == an,]
+        matplot(sort(unique(vals$Delta)), ss[,cid],
             type="l", ylim=c(0,1),
             xlab="", ylab="",
             main=paste0("sp=", sp, ", an=", an),
