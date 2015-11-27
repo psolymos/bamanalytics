@@ -810,6 +810,37 @@ ROOT <- "c:/bam/May2015"
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
 
+## summary of detections by species
+if (FALSE) {
+    library(mefa4)
+    ROOT2 <- "e:/peter/bam/pred-2015"
+    #spp <- "CAWA"
+    xt_by_ss <- Xtab(ABUND ~ SS + SPECIES, PCTBL)
+    xt_by_ss[xt_by_ss > 0] <- 1
+    xt_by_pk <- Xtab(ABUND ~ PKEY + SPECIES, PCTBL)
+    xt_by_pk[xt_by_ss > 0] <- 1
+    SS$BJ <- interaction(SS$BCR, SS$JURS, sep="_", drop=TRUE)
+    PKEY$BJ <- SS$BJ[match(PKEY$SS, SS$SS)]
+    bj_by_ss <- SS$BJ[match(rownames(xt_by_ss), SS$SS)]
+    bj_by_pk <- PKEY$BJ[match(rownames(xt_by_pk), PKEY$PKEY)]
+    xt_by_ss <- xt_by_ss[!is.na(bj_by_ss),]
+    bj_by_ss <- bj_by_ss[!is.na(bj_by_ss)]
+    xt_by_pk <- xt_by_pk[!is.na(bj_by_pk),]
+    bj_by_pk <- bj_by_pk[!is.na(bj_by_pk)]
+    
+    det_ss <- as.matrix(groupSums(xt_by_ss, 1, bj_by_ss))
+    det_pk <- as.matrix(groupSums(xt_by_pk, 1, bj_by_pk))
+    all(rownames(det_ss) == rownames(det_pk))
+
+    write.csv(det_ss, row.names=TRUE,
+        file=file.path(ROOT2, "species", "cawa-nmbca-tabs", 
+        "detections-by-species_ss-level.csv"))
+    write.csv(det_pk, row.names=TRUE,
+        file=file.path(ROOT2, "species", "cawa-nmbca-tabs", 
+        "detections-by-species_pkey-level.csv"))
+    
+}
+
 library(QPAD)
 load_BAM_QPAD(3)
 getBAMversion()

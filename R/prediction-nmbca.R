@@ -349,7 +349,24 @@ rm(plam)
 }
 }
 
-save(brr, ttt, file=file.path(ROOT2, "species", "tlam-CAWA.Rdata"))
+## brr: list of Lc based breaks
+## ttt: list of BCR/prov x B matrices
+#save(brr, ttt, file=file.path(ROOT2, "species", "tlam-CAWA.Rdata"))
+
+load(file.path(ROOT2, "species", "tlam-CAWA.Rdata"))
+
+f <- function(x) {
+    q <- unname(quantile(x, c(0.5, 0.05, 0.95)))
+    c(Mean=mean(x), SD=sd(x), Median=q[1], LCL90=q[2], UCL90=q[3], IQR=q[3]-q[2])
+}
+for (i in 1:length(ttt)) {
+
+tmp <- t(apply(ttt[[i]], 1, f))
+write.csv(tmp, row.names=TRUE,
+    file=file.path(ROOT2, "species", "cawa-nmbca-tabs", 
+    paste0("summary-by-region-", names(ttt)[i], ".csv")))
+}
+
 
 
 ## dealing with outliers

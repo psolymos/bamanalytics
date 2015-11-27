@@ -67,6 +67,24 @@ dev.off()
 }
 write.csv(ids, file.path(ROOT, "out", "nmbca-samuel", "model-ids.csv"))
 
+for (fid in 1:2) {
+e <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
+mods <- e$mods
+Terms <- getTerms(e$mods, "list")
+setdiff(Terms, colnames(e$DAT))
+yy <- e$YY
+xn <- e$DAT[,Terms]
+Xn <- model.matrix(getTerms(mods, "formula"), xn)
+colnames(Xn) <- fixNames(colnames(Xn))
+off <- e$OFF
+bb <- e$BB
+rm(e)
+aa <- getFancyModsTab(mods)
+write.csv(aa, file.path(ROOT, "out", "nmbca-samuel", 
+    paste0("model-table-", as.character(ids$TEXT[fid]), ".csv")))
+}
+
 #mods <- if (fid == 4)
 #    mods_fire else mods_gfw
 fn <- paste0("bam-", fid, "_", spp, ".Rdata", sep="")
