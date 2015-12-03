@@ -85,6 +85,122 @@ write.csv(aa, file.path(ROOT, "out", "nmbca-samuel",
     paste0("model-table-", as.character(ids$TEXT[fid]), ".csv")))
 }
 
+## habitat association graphs for report
+for (fid in 1:6) {
+
+cat(fid, "\n");flush.console()
+
+e <- new.env()
+load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
+mods <- e$mods
+Terms <- getTerms(e$mods, "list")
+setdiff(Terms, colnames(e$DAT))
+yy <- e$YY
+xn <- e$DAT[,Terms]
+Xn <- model.matrix(getTerms(mods, "formula"), xn)
+colnames(Xn) <- fixNames(colnames(Xn))
+off <- e$OFF
+bb <- e$BB
+rm(e)
+
+load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
+100 * sum(getOK(res)) / length(res)
+est <- getEst(res, stage = 2, X=Xn) # Hab + Road
+
+## road
+xn1 <- expand.grid(HAB=levels(xn$HAB), TR3=levels(xn$TR3))
+xn1$ROAD <- 1
+Xn1 <- model.matrix(getTerms(mods[2], "formula"), xn1)
+colnames(Xn1) <- fixNames(colnames(Xn1))
+est1 <- est[,colnames(Xn1)]
+Xn1 <- rbind(0, Xn1)
+Xn1[1,1] <- 1
+rownames(Xn1) <- c("Reference", paste0(xn1$TR3, ".", xn1$HAB))
+
+pr <- t(apply(est1, 1, function(z) Xn1 %*% z))
+colnames(pr) <- rownames(Xn1)
+pr <- exp(pr - pr[,1])
+pr[pr>2] <- 2
+
+png(file.path(ROOT, "out", "nmbca-samuel", 
+    paste0("CAWAfig_Road_", as.character(ids$prefix[fid]), ".png")))
+op <- par(mar=c(5,8,2,2), las=1)
+boxplot(pr[,-1], horizontal=TRUE, range=0, 
+    xlab="Expected abundance: On-road / Off-road",
+    col=rep(terrain.colors(3), each=nlevels(xn$HAB)),
+    main=as.character(ids$prefix[fid]))
+abline(v=1, col=2)
+par(op)
+dev.off()
+
+## habitat (HGT taken as mean)
+
+xn2 <- expand.grid(HAB=levels(xn$HAB), TR3=levels(xn$TR3))
+xn2$ROAD <- 0
+xn2$isNF <- ifelse(xn2$HAB %in% 
+    c("Agr", "Barren", "Burn", "Devel", "Grass", "Wet"), 1L, 0L)
+xn2$isDM <- ifelse(xn2$HAB %in% c("Decid", "Mixed"), 1, 0)
+xn2$HGT <- ifelse(xn2$isNF == 0, mean(xn$HGT[xn$isNF==0]), mean(xn$HGT[xn$isNF==1]))
+xn2$HGT2 <- xn2$HGT^2
+Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
+colnames(Xn2) <- fixNames(colnames(Xn2))
+est2 <- est[,colnames(Xn2)]
+rownames(Xn2) <- paste0(xn2$TR3, ".", xn2$HAB)
+
+pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
+colnames(pr) <- rownames(Xn2)
+
+#pr <- pr[,1:nlevels(xn$HAB)]
+#pr <- pr[,(nlevels(xn$HAB)+1):(2*nlevels(xn$HAB))]
+pr <- pr[,(2*nlevels(xn$HAB)+1):(3*nlevels(xn$HAB))]
+colnames(pr) <- levels(xn$HAB)
+pr <- pr[,order(colMeans(pr))]
+
+png(file.path(ROOT, "out", "nmbca-samuel", 
+    paste0("CAWAfig_Lcover_", as.character(ids$prefix[fid]), ".png")))
+op <- par(mar=c(5,8,2,2), las=1)
+boxplot(pr, horizontal=TRUE, range=0, 
+    xlab="Expected density (males / ha)",
+    col=rev(terrain.colors(nlevels(xn$HAB))),
+    main=as.character(ids$prefix[fid]))
+par(op)
+dev.off()
+
+
+HGT <- seq(0,1,by=0.01)
+xn2 <- expand.grid(HAB=factor(c("Conif", "Decid", "Mixed", "Wet"), levels(xn$HAB)), 
+    HGT=HGT)
+xn2$TR3 <- factor("Dense", levels(xn$TR3))
+xn2$ROAD <- 0
+xn2$isNF <- ifelse(xn2$HAB %in% 
+    c("Agr", "Barren", "Burn", "Devel", "Grass", "Wet"), 1L, 0L)
+xn2$isDM <- ifelse(xn2$HAB %in% c("Decid", "Mixed"), 1, 0)
+xn2$HGT2 <- xn2$HGT^2
+xn2$Height <- 50*xn2$HGT
+Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
+colnames(Xn2) <- fixNames(colnames(Xn2))
+est2 <- est[,colnames(Xn2)]
+
+
+pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
+xn2$Density <- colMeans(pr)
+xn2$lcl <- apply(pr, 2, quantile, 0.05)
+xn2$ucl <- apply(pr, 2, quantile, 0.95)
+
+png(file.path(ROOT, "out", "nmbca-samuel", 
+    paste0("CAWAfig_Height_", as.character(ids$prefix[fid]), ".png")))
+op <- par(las=1)
+lam <- t(matrix(xn2$Density, nrow=4))
+matplot(HGT*50, lam, lty=1, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
+    ylab="Density (males/ha)", xlab="Height (m)", main=as.character(ids$prefix[fid]))
+legend("topright",
+    lty=1, lwd=2, bty="n", col=1:4, legend=c("Conif", "Decid", "Mixed", "Wet"))
+par(op)
+dev.off()
+
+}
+
+
 #mods <- if (fid == 4)
 #    mods_fire else mods_gfw
 fn <- paste0("bam-", fid, "_", spp, ".Rdata", sep="")

@@ -1251,6 +1251,14 @@ DAT$YSF <- pmax(0, 1 - (DAT$YSF / AGEMAX))
 DAT$YSL <- pmax(0, 1 - (DAT$YSL / AGEMAX))
 plot(DAT$YSD ~ DAT0$YSD)
 
+if (FALSE) {
+YS <- 0:100
+YSD <- pmax(0, 1 - (YS / 50))
+plot(YS, YSD, xlab="Years since disturbance", ylab="YSD covariate", type="l",
+col=4, lwd=2)
+
+}
+
 source("~/repos/bamanalytics/R/analysis_mods.R")
 source("~/repos/detect/R/hbootindex.R")
 hbootindex2 <- hbootindex

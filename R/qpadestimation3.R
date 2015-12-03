@@ -365,55 +365,73 @@ save(resDurBAMless1_mix, resDurPcode1_mix,
     file="~/Dropbox/bam/duration_ms/revisionOct2015/xval-mix-4rnd.Rdata")
 
 
-## read all the suff
+## read all the suff, read in lines 1-86 (RND defs there!)
+
+isRND <- TRUE
 
 ## rem
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-1.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-rem-1rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-rem-1.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-rem-1rnd.Rdata"), envir=e)
 resDurBAMless1 <- e$resDurBAMless1
 resDurPcode1 <- e$resDurPcode1
 
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-2.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-rem-2rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-rem-2.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-rem-2rnd.Rdata"), envir=e)
 resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
 resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-3.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-rem-3rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-rem-3.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-rem-3rnd.Rdata"), envir=e)
 resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
 resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-rem-4.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-rem-4rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-rem-4.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-rem-4rnd.Rdata"), envir=e)
 resDurBAMless1 <- c(resDurBAMless1, e$resDurBAMless1)
 resDurPcode1 <- c(resDurPcode1, e$resDurPcode1)
 
 ## mix
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-1.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-mix-1rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-mix-1.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-mix-1rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- e$resDurBAMless1_mix
 resDurPcode1_mix <- e$resDurPcode1_mix
 
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-2.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-mix-2rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-mix-2.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-mix-2rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
 resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-3.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-mix-3rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-mix-3.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-mix-3rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
 resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
 
 e <- new.env()
-load(file.path(ROOT2, "xval-mix-4.Rdata"), envir=e)
-#load(file.path(ROOT2, "xval-mix-4rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-mix-4.Rdata"), envir=e)
+if (isRND)
+    load(file.path(ROOT2, "xval-mix-4rnd.Rdata"), envir=e)
 resDurBAMless1_mix <- c(resDurBAMless1_mix, e$resDurBAMless1_mix)
 resDurPcode1_mix <- c(resDurPcode1_mix, e$resDurPcode1_mix)
 
@@ -574,7 +592,11 @@ compare_distr <- function(mu1, var1, mu2, var2) {
     pval <- 2*pt(-abs(tval), df)
     c(t=tval, df=df, p=pval)
 }
-if (FALSE) { # Welch t-test
+if (FALSE) { 
+https://gist.github.com/psolymos/2890e9ab87946163242f#file-welch-t-test-r
+## Welch t-test
+
+### Simple Normal-Normal example
 mu1 <- 1
 mu2 <- 2
 var1 <- 1
@@ -582,8 +604,11 @@ var2 <- 0.5
 n <- 10^3
 y1 <- rnorm(n, mu1, sqrt(var1))
 y2 <- rnorm(n, mu2, sqrt(var2))
+
+## base implementation
 (tt <- t.test(y1, y2, var.equal=FALSE))
 
+## by hand
 mu1 <- mean(y1)
 mu2 <- mean(y2)
 var1 <- sd(y1)^2
@@ -592,12 +617,19 @@ var2 <- sd(y2)^2
 (df <- ((var1/n) + (var2/n))^2 / (((var1/n)^2 / (n-1)) + ((var2/n)^2 / (n-1))))
 (pval <- 2*pt(-abs(tval), df))
 
+## a function
+compare_distr <- function(mu1, var1, mu2, var2) {
+    tval <- (mu1-mu2) / sqrt(var1/n + var2/n)
+    df <- ((var1/n) + (var2/n))^2 / (((var1/n)^2 / (n-1)) + ((var2/n)^2 / (n-1)))
+    pval <- 2*pt(-abs(tval), df)
+    c(t=tval, df=df, p=pval)
+}
 compare_distr(mu1, var1, mu2, var2)
 }
 
 
-ptonly <- FALSE
-external <- TRUE
+ptonly <- FALSE # point pred (TRUE) or CI as well (FALSE)
+external <- TRUE # TRUE: (project)(the rest of BAM), FALSE: ((proj) all BAM)
 
 SPP0 <- SPP
 SPP1 <- SPP[1:60]
@@ -702,10 +734,13 @@ if (all(OK)) {
     }
 
     df <- pkDur
+    ## random or not
+    xPCODE <- if (isRND)
+        df$PCODErnd else df$PCODE
     df$y <- rowSums(xtDur[[spp]][rownames(df),])
-    df$pc <- ifelse(df$PCODE == pc, 1L, 0L)
-    df99 <- df[df$PCODE != pc,,drop=FALSE]
-    df1 <- df[df$PCODE == pc,,drop=FALSE]
+    df$pc <- ifelse(xPCODE == pc, 1L, 0L)
+    df99 <- df[xPCODE != pc,,drop=FALSE]
+    df1 <- df[xPCODE == pc,,drop=FALSE]
 
     n99 <- nrow(df99)
     n1 <- nrow(df1)
@@ -752,16 +787,18 @@ xvres[[spp]] <- tab
 #save(xvres, file=file.path(ROOT2, "xval-summary.Rdata"))
 #save(xvres, file=file.path(ROOT2, "xval-summary-rnd.Rdata"))
 
-#save(xvres, file=file.path(ROOT2, "xval-summary-1.Rdata"))
-#save(xvres, file=file.path(ROOT2, "xval-summary-2.Rdata"))
-#save(xvres, file=file.path(ROOT2, "xval-summary-3.Rdata"))
-save(xvres, file=file.path(ROOT2, "xval-summary-4.Rdata"))
-
-#save(xvres, file=file.path(ROOT2, "xval-summary-1rnd.Rdata"))
-#save(xvres, file=file.path(ROOT2, "xval-summary-2rnd.Rdata"))
-#save(xvres, file=file.path(ROOT2, "xval-summary-3rnd.Rdata"))
-#save(xvres, file=file.path(ROOT2, "xval-summary-4rnd.Rdata"))
-
+if (!isRND) {
+    #save(xvres, file=file.path(ROOT2, "xval-summary-1.Rdata"))
+    #save(xvres, file=file.path(ROOT2, "xval-summary-2.Rdata"))
+    #save(xvres, file=file.path(ROOT2, "xval-summary-3.Rdata"))
+    save(xvres, file=file.path(ROOT2, "xval-summary-4.Rdata"))
+}
+if (isRND) {
+    #save(xvres, file=file.path(ROOT2, "xval-summary-1rnd.Rdata"))
+    #save(xvres, file=file.path(ROOT2, "xval-summary-2rnd.Rdata"))
+    #save(xvres, file=file.path(ROOT2, "xval-summary-3rnd.Rdata"))
+    #save(xvres, file=file.path(ROOT2, "xval-summary-4rnd.Rdata"))
+}
 
 
 load(file.path(ROOT2, "xval-dis.Rdata"))
