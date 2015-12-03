@@ -593,7 +593,7 @@ compare_distr <- function(mu1, var1, mu2, var2) {
     c(t=tval, df=df, p=pval)
 }
 if (FALSE) { 
-https://gist.github.com/psolymos/2890e9ab87946163242f#file-welch-t-test-r
+#https://gist.github.com/psolymos/2890e9ab87946163242f#file-welch-t-test-r
 ## Welch t-test
 
 ### Simple Normal-Normal example
