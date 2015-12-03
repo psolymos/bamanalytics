@@ -586,7 +586,7 @@ waic_fun <- function(z) {
     w/sum(w)
 }
 
-compare_distr <- function(mu1, var1, mu2, var2) {
+compare_distr <- function(mu1, var1, mu2, var2, n) {
     tval <- (mu1-mu2) / sqrt(var1/n + var2/n)
     df <- ((var1/n) + (var2/n))^2 / (((var1/n)^2 / (n-1)) + ((var2/n)^2 / (n-1)))
     pval <- 2*pt(-abs(tval), df)
@@ -800,6 +800,46 @@ if (isRND) {
     #save(xvres, file=file.path(ROOT2, "xval-summary-4rnd.Rdata"))
 }
 
+
+x <- tab[[1]]
+
+c1 <- c("pr_1_m0.q3.mu", "pr_1_m0.q3.var", 
+"pr_1_m0.q5.mu", "pr_1_m0.q5.var", 
+"pr_1_m0.q10.mu", "pr_1_m0.q10.var", 
+
+"pr_1_mb.q3.mu", "pr_1_mb.q3.var", 
+"pr_1_mb.q5.mu", "pr_1_mb.q5.var", 
+"pr_1_mb.q10.mu", "pr_1_mb.q10.var", 
+
+"pr_1_best.q3.mu", "pr_1_best.q3.var", 
+"pr_1_best.q5.mu", "pr_1_best.q5.var", 
+"pr_1_best.q10.mu", "pr_1_best.q10.var") 
+
+c99 <- c("pr_99_m0.q3.mu", "pr_99_m0.q3.var", 
+"pr_99_m0.q5.mu", "pr_99_m0.q5.var", 
+"pr_99_m0.q10.mu", "pr_99_m0.q10.var", 
+
+"pr_99_mb.q3.mu", "pr_99_mb.q3.var", 
+"pr_99_mb.q5.mu", "pr_99_mb.q5.var", 
+"pr_99_mb.q10.mu", "pr_99_mb.q10.var", 
+
+"pr_99_best.q3.mu", "pr_99_best.q3.var", 
+"pr_99_best.q5.mu", "pr_99_best.q5.var", 
+"pr_99_best.q10.mu", "pr_99_best.q10.var")
+mc1 <- matrix(c1, ncol=2, byrow=TRUE)
+mc99 <- matrix(c99, ncol=2, byrow=TRUE)
+mc <- cbind(mc1, mc99)
+
+compare_distr2 <- function(x, j, level=0.95) {
+    a <- (1 - level)/2
+    a <- c(a, 1 - a)
+    fac <- qnorm(a)
+    Cols <- mc[j,]
+    ci <- x[, Cols[1]] + x[, Cols[2]] %o% fac
+    as.integer(ci[,1] <= x[, Cols[3]] & ci[,2] >= x[, Cols[3]])
+}
+compare_distr2(x, 1, 0.9)
+aa <- t(sapply(1:nrow(x), compare_distr2, j=1, x=x))
 
 load(file.path(ROOT2, "xval-dis.Rdata"))
 #load(file.path(ROOT2, "xval-summary-new.Rdata"))
