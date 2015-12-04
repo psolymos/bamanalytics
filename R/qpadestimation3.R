@@ -529,6 +529,25 @@ pred_fun <- function(X, c, v, type, ptonly=FALSE) {
     }
     out
 }
+
+logphi_fun <- function(X, c, v, level=0.95) {
+
+    tmp <- matrix(NA, nrow(X), 3)
+    a <- (1 - level)/2
+    a <- c(a, 1 - a)
+    pt <- drop(X %*% c)
+    tmp[,1] <- pt
+    v <- try(as.matrix(Matrix::nearPD(v)$mat))
+    if (inherits(v, "try-error"))
+        return(tmp)
+    cfs <- try(mvrnorm(B, c, v))
+    if (inherits(cfs, "try-error"))
+        return(tmp)
+    pr <- apply(cfs, 1, function(z) drop(X %*% z))
+    ci <- t(apply(pr, 1, quantile, a))
+    tmp[,2:3] <- ci
+    tmp
+}
 pred_fun_old <- function(X, c, v, type, ptonly=FALSE) {
     tmp <- data.frame(q3.med=NA,q3.lo=NA,q3.up=NA,
         q5.med=NA,q5.lo=NA,q5.up=NA, q10.med=NA,q10.lo=NA,q10.up=NA)
@@ -650,6 +669,7 @@ for (spp in SPP) {
 tab <- list()
 for (pc in PC) {
 
+gc()
 OK <- c(!inherits(resDurPcode1[[spp]][[pc]], "try-error"),
     !inherits(resDurBAMless1[[spp]][[pc]], "try-error"),
     !inherits(resDurPcode1_mix[[spp]][[pc]], "try-error"),
@@ -753,31 +773,35 @@ if (all(OK)) {
 
 
     ## model matrix for project based prediction
-    X1_1 <- if (ptonly && best_1 == "0")
-        matrix(1, 1, 1) else model.matrix(ff[[best_1]], df1)
-    X1_99 <- if (ptonly && best_99 == "0")
-        matrix(1, 1, 1) else model.matrix(ff[[best_99]], df1)
+#    X1_1 <- if (ptonly && best_1 == "0")
+#        matrix(1, 1, 1) else model.matrix(ff[[best_1]], df1)
+#    X1_99 <- if (ptonly && best_99 == "0")
+#        matrix(1, 1, 1) else model.matrix(ff[[best_99]], df1)
+#    X1 <- if (ptonly)
+#        matrix(1, 1, 1) else matrix(1, n1, 1)
+
+    X1_1 <- if (ptonly && best_1_m0 == "0")
+        matrix(1, 1, 1) else model.matrix(ff[[best_1_m0]], df1)
+    X1_99 <- if (ptonly && best_99_m0 == "0")
+        matrix(1, 1, 1) else model.matrix(ff[[best_99_m0]], df1)
     X1 <- if (ptonly)
         matrix(1, 1, 1) else matrix(1, n1, 1)
 
-    pr_1_m0 <- pred_fun(X1, c_1_m0, v_1_m0, "rem", ptonly=ptonly)
-    pr_1_mb <- pred_fun(X1, c_1_mb, v_1_mb, "mix", ptonly=ptonly)
-    pr_1_best <- pred_fun(X1_1, c_1_best, v_1_best, type_1_best, ptonly=ptonly)
-    pr_99_m0 <- pred_fun(X1, c_99_m0, v_99_m0, "rem", ptonly=ptonly)
-    pr_99_mb <- pred_fun(X1, c_99_mb, v_99_mb, "mix", ptonly=ptonly)
-    pr_99_best <- pred_fun(X1_99, c_99_best, v_99_best, type_99_best, ptonly=ptonly)
+    LEVEL <- 0.9
+
+    pr_1_m0 <- logphi_fun(X1, c_1_m0, v_1_m0, level=LEVEL)
+    pr_99_m0 <- logphi_fun(X1, c_99_m0, v_99_m0, level=LEVEL)
+    pr_1_best0 <- logphi_fun(X1_1, c_1_best0, v_1_best0, level=LEVEL)
+    pr_99_best0 <- logphi_fun(X1_99, c_99_best0, v_99_best0, level=LEVEL)
+    OK0 <- as.integer(pr_1_m0[,2] <= pr_99_m0[,1] & pr_1_m0[,3] >= pr_99_m0[,1])
+    OKbest0 <- as.integer(pr_1_best0[,2] <= pr_99_best0[,1] & pr_1_best0[,3] >= pr_99_best0[,1])
 
     tab[[pc]] <- data.frame(spp=spp,
         pc=pc,
         n99=n99, n1=n1, det99=det99, det1=det1, 
         best99=best_99, best1=best_1, type99=type_99_best, type1=type_1_best,
         w1_m0=w0_1_m0, w1_mb=w0_1_mb, w1=w0_1, w99_m0=w0_99_m0, w99_mb=w0_99_mb, w99=w0_99,
-        pr_1_m0=pr_1_m0, 
-        pr_1_mb=pr_1_mb, 
-        pr_1_best=pr_1_best,
-        pr_99_m0=pr_99_m0, 
-        pr_99_mb=pr_99_mb, 
-        pr_99_best=pr_99_best)
+        OK0=mean(OK0), OKbest0=mean(OKbest0))
     }
 }
 tab <- do.call(rbind, tab)
@@ -801,31 +825,66 @@ if (isRND) {
 }
 
 
-x <- tab[[1]]
+
+
+
+
+
+
+load(file.path(ROOT2, "xval-dis.Rdata"))
+#load(file.path(ROOT2, "xval-summary-new.Rdata"))
+
+
+## load stuff
+ROOT <- "c:/bam/May2015"
+ROOT2 <- "~/Dropbox/bam/duration_ms/revisionOct2015"
+library(mefa4)
+
+isRND <- TRUE
+
+e <- new.env()
+if (isRND)
+    load(file.path(ROOT2, "xval-summary-1rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-summary-1.Rdata"), envir=e)
+xvres <- e$xvres
+e <- new.env()
+if (isRND)
+    load(file.path(ROOT2, "xval-summary-2rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-summary-2.Rdata"), envir=e)
+xvres <- c(xvres, e$xvres)
+e <- new.env()
+if (isRND)
+    load(file.path(ROOT2, "xval-summary-3rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-summary-3.Rdata"), envir=e)
+xvres <- c(xvres, e$xvres)
+e <- new.env()
+if (isRND)
+    load(file.path(ROOT2, "xval-summary-4rnd.Rdata"), envir=e)
+if (!isRND)
+    load(file.path(ROOT2, "xval-summary-4.Rdata"), envir=e)
+xvres <- c(xvres, e$xvres)
 
 c1 <- c("pr_1_m0.q3.mu", "pr_1_m0.q3.var", 
-"pr_1_m0.q5.mu", "pr_1_m0.q5.var", 
-"pr_1_m0.q10.mu", "pr_1_m0.q10.var", 
-
-"pr_1_mb.q3.mu", "pr_1_mb.q3.var", 
-"pr_1_mb.q5.mu", "pr_1_mb.q5.var", 
-"pr_1_mb.q10.mu", "pr_1_mb.q10.var", 
-
-"pr_1_best.q3.mu", "pr_1_best.q3.var", 
-"pr_1_best.q5.mu", "pr_1_best.q5.var", 
-"pr_1_best.q10.mu", "pr_1_best.q10.var") 
-
+    "pr_1_m0.q5.mu", "pr_1_m0.q5.var", 
+    "pr_1_m0.q10.mu", "pr_1_m0.q10.var", 
+    "pr_1_mb.q3.mu", "pr_1_mb.q3.var", 
+    "pr_1_mb.q5.mu", "pr_1_mb.q5.var", 
+    "pr_1_mb.q10.mu", "pr_1_mb.q10.var", 
+    "pr_1_best.q3.mu", "pr_1_best.q3.var", 
+    "pr_1_best.q5.mu", "pr_1_best.q5.var", 
+    "pr_1_best.q10.mu", "pr_1_best.q10.var") 
 c99 <- c("pr_99_m0.q3.mu", "pr_99_m0.q3.var", 
-"pr_99_m0.q5.mu", "pr_99_m0.q5.var", 
-"pr_99_m0.q10.mu", "pr_99_m0.q10.var", 
-
-"pr_99_mb.q3.mu", "pr_99_mb.q3.var", 
-"pr_99_mb.q5.mu", "pr_99_mb.q5.var", 
-"pr_99_mb.q10.mu", "pr_99_mb.q10.var", 
-
-"pr_99_best.q3.mu", "pr_99_best.q3.var", 
-"pr_99_best.q5.mu", "pr_99_best.q5.var", 
-"pr_99_best.q10.mu", "pr_99_best.q10.var")
+    "pr_99_m0.q5.mu", "pr_99_m0.q5.var", 
+    "pr_99_m0.q10.mu", "pr_99_m0.q10.var", 
+    "pr_99_mb.q3.mu", "pr_99_mb.q3.var", 
+    "pr_99_mb.q5.mu", "pr_99_mb.q5.var", 
+    "pr_99_mb.q10.mu", "pr_99_mb.q10.var", 
+    "pr_99_best.q3.mu", "pr_99_best.q3.var", 
+    "pr_99_best.q5.mu", "pr_99_best.q5.var", 
+    "pr_99_best.q10.mu", "pr_99_best.q10.var")
 mc1 <- matrix(c1, ncol=2, byrow=TRUE)
 mc99 <- matrix(c99, ncol=2, byrow=TRUE)
 mc <- cbind(mc1, mc99)
@@ -840,22 +899,27 @@ compare_distr2 <- function(x, j, level=0.95) {
 }
 compare_distr2(x, 1, 0.9)
 aa <- t(sapply(1:nrow(x), compare_distr2, j=1, x=x))
+j <- 8
+xv <- list()
+for (spp in names(xvres)) {
+    
+    compare_distr2(xvres[[spp]], 1, 0.9)
+    
+    
+}
 
-load(file.path(ROOT2, "xval-dis.Rdata"))
-#load(file.path(ROOT2, "xval-summary-new.Rdata"))
+spp <- "OVEN"
+x <- xvres[[spp]]
+x <- x[rowSums(is.na(x)) == 0,]
+#lm(pr_1_best.q5.mu ~ pr_99_best.q5.mu + det1, x)
+d <- x[,"pr_1_best.q5.mu"] - x[,"pr_99_best.q5.mu"]
+plot(jitter(x$det1), abs(d), main=spp, pch=21, log="x")
 
-e <- new.env()
-load(file.path(ROOT2, "xval-summary-1rnd.Rdata"), envir=e)
-xvres <- e$xvres
-e <- new.env()
-load(file.path(ROOT2, "xval-summary-2rnd.Rdata"), envir=e)
-xvres <- c(xvres, e$xvres)
-e <- new.env()
-load(file.path(ROOT2, "xval-summary-3rnd.Rdata"), envir=e)
-xvres <- c(xvres, e$xvres)
-e <- new.env()
-load(file.path(ROOT2, "xval-summary-4rnd.Rdata"), envir=e)
-xvres <- c(xvres, e$xvres)
+plot(x[,"pr_1_best.q5.mu"], x[,"pr_99_best.q5.mu"],
+    ylim=c(-10,10), xlim=c(-10,10))
+abline(0,1,col=2)
+
+
 
 xv <- do.call(rbind, xvres)
 xv$dis <- dis[match(xv$pc, rownames(dis)), "MEAN"]
