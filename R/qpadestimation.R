@@ -1077,7 +1077,7 @@ image(xval, ts*24, pmatb,
     xlab=ifelse(mib %in% c("9","10","11","12","13","14"), 
         "Days since local springs", "Julian days"), 
     ylab="Hours since sunrise",
-    main=paste("Best model:", mi$sra))
+    main=paste("Best model:", mib))
 box()
 
 par(op)
