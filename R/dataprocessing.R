@@ -248,6 +248,7 @@ SS <- data.frame(
     TREE=SS02$TREE,
     TREE3=SS02$TREE3,
     SPRNG=SS_sprng$SPRNG,
+    #LCC05_PT=SS03$LCC05_PT, # -- FOR NICOLE
     SS03[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", "HAB_EOSD2", 
         "HAB_NALC2", "HAB_NALC1", "LCC_combo")],
     SS_grid,
@@ -1266,6 +1267,9 @@ hbootindex2 <- hbootindex
 nmin <- 25
 B <- 239
 
+## check max counts
+apply(as.matrix(YY), 2, max)
+
 ## ---------------------------------- data packages below -----------
 ## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
 ## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
@@ -1280,6 +1284,68 @@ OFF0 <- OFF
 Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
 Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
 Date <- "2015-09-02"
+
+if (FALSE) { # FIRE STUFF FOR NICOLE BEGIN
+
+    Save <- c("DAT", "YY", "OFF", "TAX", "BB")
+    Date <- "2016-01-14"
+
+    rm(DAT, TAX, YY, OFF)
+    gc()
+
+    keep <- rep(TRUE, nrow(DAT0))
+    keep[DAT0$ROAD_OK < 1] <- FALSE
+    keep[is.na(DAT0$HAB_LCC2)] <- FALSE
+    keep[DAT0$COUNTRY != "CAN"] <- FALSE
+
+    DAT1 <- droplevels(DAT0[keep,])
+    rownames(DAT1) <- DAT1$PKEY
+    DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY0)),])
+    dim(DAT1)
+    data.frame(n=colSums(is.na(DAT1)))
+    
+    DAT1 <- DAT1[,c("SS","PKEY","PCODE","METHOD","SITE","ROUND","YEAR","ROAD",
+        "X","Y","JURS","BCR", "bootg")]
+    ## need original SS here to be used
+    DAT1$LCC05 <- SS$LCC05_PT[match(DAT1$SS, SS$SS)]
+    DAT1$YearFire <- SS$YearFire[match(DAT1$SS, SS$SS)]
+    DAT1$FIRE_HA <- SS$FIRE_HA[match(DAT1$SS, SS$SS)]
+
+    set.seed(1234)
+    ## make sure that time intervals are considered as blocks
+    ## keep out 10% of the data for validation
+    id2 <- list()
+    for (l in levels(DAT1$bootg)) {
+        sset <- which(DAT1$bootg == l)
+        id2[[l]] <- sample(sset, floor(length(sset) * 0.9), FALSE)
+    }
+    KEEP_ID <- unname(unlist(id2))
+    HOLDOUT_ID <- setdiff(seq_len(nrow(DAT1)), KEEP_ID)
+
+    DAT1k <- DAT1[KEEP_ID,]
+    DAT1 <- DAT1[c(KEEP_ID, HOLDOUT_ID),]
+    DAT1k$SITE <- droplevels(DAT1k$SITE)
+    BB1 <- hbootindex2(DAT1k$SITE, DAT1k$bootg, B=B)
+
+    DAT <- DAT1
+    pk <- rownames(DAT)
+    YY <- YY0[pk,]
+    YY <- YY[,colSums(YY) >= nmin]
+    OFF <- OFF0[pk,colnames(YY)]
+    TAX <- TAX0[colnames(YY),]
+    BB <- BB1
+
+dim(DAT)
+dim(YY)
+dim(OFF)
+dim(TAX)
+dim(BB)
+
+    save(list = Save,
+        file=file.path(ROOT, "out", "data", 
+        paste0("pack_LCC05-fire-Canada_toNicole_", Date, ".Rdata")))
+
+} # FIRE STUFF FOR NICOLE END
 
 for (TEXT in c("gfw", "fre")) {
 
