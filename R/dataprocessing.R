@@ -1347,6 +1347,25 @@ dim(BB)
 
 } # FIRE STUFF FOR NICOLE END
 
+if (FALSE) { # ALL DATA FOR DIANA BEGIN
+    DAT <- DAT0
+    rownames(DAT) <- DAT$PKEY
+    pk <- intersect(rownames(DAT), rownames(YY0))
+    DAT <- DAT[pk,]
+    YY <- YY0[pk,]
+    YY <- YY[,colSums(YY) >= 0]
+    OFF <- OFF0[pk,colnames(YY)]
+    TAX <- TAX0[colnames(YY),]
+    dim(DAT)
+    dim(YY)
+    dim(TAX)
+    
+    save(DAT, YY, TAX, OFF,
+        file=file.path(ROOT, "out", "data", 
+        paste0("pack_BAMBBS_toDiana_2016feb.Rdata")))
+
+} # ALL DATA FOR DIANA END
+
 for (TEXT in c("gfw", "fre")) {
 
 rm(DAT, TAX, YY, OFF)
