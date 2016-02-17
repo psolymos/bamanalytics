@@ -92,8 +92,8 @@ getCaic <- function(res, stage=NULL, na.out=TRUE) {
     caic
 }
 
-getSummary <- function(res, stage=NULL, show0=FALSE) {
-    est <- getEst(res, stage=stage)
+getSummary <- function(res, stage=NULL, show0=FALSE, ...) {
+    est <- getEst(res, stage=stage, ...)
     if (!show0)
         est <- est[,colSums(abs(est), na.rm=TRUE) > 0]
     fr <- colMeans(abs(est) > 0, na.rm=TRUE)
