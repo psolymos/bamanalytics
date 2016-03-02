@@ -463,6 +463,11 @@ compare.sets(PCTBL$SPECIES, TAX$Species_ID)
 setdiff(PCTBL$SPECIES, TAX$Species_ID)
 levels(TAX$Species_ID)[levels(TAX$Species_ID) == "YWAR"] <- "YEWA"
 
+levels(TAX$Species_ID)[levels(TAX$Species_ID) == "SCJU"] <- "DEJU" # change SCJU to DEJU
+levels(TAX$Species_ID)[levels(TAX$Species_ID) == "MYWA"] <- "YRWA" # change MYWA to YRWA
+levels(TAX$Species_ID)[levels(TAX$Species_ID) == "COSN"] <- "WISN" # change COSN to WISN
+
+
 sp <- levels(PCTBL$SPECIES)
 spp.to.exclude <- rep(FALSE, length(sp))
 spp.to.exclude[sp %in% setdiff(PCTBL$SPECIES, TAX$Species_ID)] <- TRUE
@@ -634,7 +639,7 @@ with(PCTBL_abmi, table(period123, period1))
 
 
 ## Data package for new offsets
-dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","JULIAN",
+dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","YEAR","TSSR","JDAY","JULIAN",
     "srise","start_time","MAXDUR","MAXDIS","METHOD","DURMETH","DISMETH","ROAD")],
     SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2",
     "BCR","JURS","SPRNG","DD51","X","Y")])
@@ -655,6 +660,7 @@ dat2 <- with(PKEY_abmi, data.frame(
     PCODE="ABMI",
     PKEY=as.factor(Label),
     SS=as.factor(Label2),
+    YEAR=YEAR,
     TSSR=TSSR,
     JDAY=JDAY,
     JULIAN=JULIAN,
@@ -768,6 +774,7 @@ levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
 ## combine dat, dat2 and pc pc2
 dat <- rbind(dat, dat2[,colnames(dat)])
 pc <- rbind(pc, pc2[,colnames(pc)])
+pc <- droplevels(pc)
 
 durmat <- as.matrix(Xtab(~ DURMETH + dur, pc))
 durmat[durmat > 0] <- 1
