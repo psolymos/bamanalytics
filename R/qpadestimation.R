@@ -22,18 +22,18 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2015-10-08.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-02.Rdata"))
 
 ### Removal sampling
 
 ## non NA subset for duration related estimates
-pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH")]
+pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE")]
 pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
 ## strange methodology where all counts have been filtered
 ## thus this only leads to 0 total count and exclusion
 pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
 
-## save this and spatial variation for next version
+## save this and spatial/yearly variation for next version
 ## make sure to leave all TSSR (i.e. after noon) in the data
 if (FALSE) {
 pkDur$TSSRsin <- sin(pkDur$TSSR_orig * 2 * pi)
@@ -175,8 +175,8 @@ c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur
 resDur <- resDurOK
 
 save(resDur, resDurData,
-    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
-    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2015_mix.Rdata"))
+    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
+    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_mix.Rdata"))
 
 ### Distance sampling
 
