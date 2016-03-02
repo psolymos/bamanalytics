@@ -197,7 +197,7 @@ waic_fun <- function(z) {
     w/sum(w)
 }
 
-rownames(TAX) <- TAX$Species_ID
+
 
 ## when does model fail?
 
@@ -312,47 +312,70 @@ dat0 <- problem0[!(problem0$msg %in% ss),]
 dat0$okfit <- ifelse(is.na(dat0$logphi), 0, 1)
 dat0$okse <- ifelse(is.na(dat0$se_logphi), 0, 1)
 dat0$msg <- NULL
-mod0 <- glm(okfit ~ log(ndet+1), dat0, family=binomial)
-mod0se <- glm(okse ~ log(ndet+1), dat0, family=binomial)
+mod00 <- glm(okfit ~ log(ndet+1), dat0, family=binomial)
+mod0se0 <- glm(okse ~ log(ndet+1), dat0, family=binomial)
 
 datb <- problemb[!(problemb$msg %in% ss),]
 datb$okfit <- ifelse(is.na(datb$logphi), 0, 1)
 datb$okse <- ifelse(is.na(datb$se_logphi), 0, 1)
-#datb$okcor <- ifelse(abs(datb$cor) > 0.99, 0, 1)
 datb$msg <- NULL
-modb <- glm(okfit ~ log(ndet+1), datb, family=binomial)
-modbse <- glm(okse ~ log(ndet+1), datb, family=binomial)
-#modbcor <- glm(okcor ~ log(ndet+1), datb, family=binomial)
+modb0 <- glm(okfit ~ log(ndet+1), datb, family=binomial)
+modbse0 <- glm(okse ~ log(ndet+1), datb, family=binomial)
 
-#modb <- glm(okfit ~ log(n1+1), datb, family=binomial)
-#modbse <- glm(okse ~ log(n1+1), datb, family=binomial)
-#modb <- glm(okfit ~ log(n2+1), datb, family=binomial)
-#modbse <- glm(okse ~ log(n2+1), datb, family=binomial)
+mod01 <- glm(okfit ~ log(n1+1), dat0, family=binomial)
+mod0se1 <- glm(okse ~ log(n1+1), dat0, family=binomial)
+mod02 <- glm(okfit ~ log(n2+1), dat0, family=binomial)
+mod0se2 <- glm(okse ~ log(n2+1), dat0, family=binomial)
 
+modb1 <- glm(okfit ~ log(n1+1), datb, family=binomial)
+modbse1 <- glm(okse ~ log(n1+1), datb, family=binomial)
+modb2 <- glm(okfit ~ log(n2+1), datb, family=binomial)
+modbse2 <- glm(okse ~ log(n2+1), datb, family=binomial)
+
+
+op <- par(mfrow=c(1,3))
+for (i in 1:3) {
+if (i == 1) {
+    mod0 <- mod00
+    modb <- modb0
+    mod0se <- mod0se0
+    modbse <- modbse0
+    xlab <- "Number of >0 survey counts"
+}
+if (i == 2) {
+    mod0 <- mod01
+    modb <- modb1
+    mod0se <- mod0se1
+    modbse <- modbse1
+    xlab <- "Number of >1 survey counts"
+}
+if (i == 3) {
+    mod0 <- mod02
+    modb <- modb2
+    mod0se <- mod0se2
+    modbse <- modbse2
+    xlab <- "Number of >2 survey counts"
+}
 nmax <- 100
 ndat <- data.frame(n=2:nmax, 
     p0=plogis(coef(mod0)[1] + coef(mod0)[2]*log(1 + 2:nmax)),
     pb=plogis(coef(modb)[1] + coef(modb)[2]*log(1 + 2:nmax)),
     p0se=plogis(coef(mod0se)[1] + coef(mod0se)[2]*log(1 + 2:nmax)),
-    pbse=plogis(coef(modbse)[1] + coef(modbse)[2]*log(1 + 2:nmax)),
-    pbcor=plogis(coef(modbcor)[1] + coef(modbcor)[2]*log(1 + 2:nmax)))
+    pbse=plogis(coef(modbse)[1] + coef(modbse)[2]*log(1 + 2:nmax)))
 
 plot(ndat[,1], ndat[,2], col=2, type="l", ylim=c(0,1), lwd=2,
-    xlab="Number of >0 survey counts", ylab="Probability",
+    xlab=xlab, ylab="Probability",
     xlim=c(0,nmax))
 lines(ndat[,1], ndat[,3], col=4, lwd=2)
 lines(ndat[,1], ndat[,4], col=2, lwd=2, lty=2)
 lines(ndat[,1], ndat[,5], col=4, lwd=2, lty=2)
-#lines(ndat[,1], ndat[,6], col=4, lwd=2, lty=3)
 abline(h=0.9, lty=1)
 abline(v=ndat[which.min(abs(ndat[,2]-0.9)),1], col=2)
 abline(v=ndat[which.min(abs(ndat[,3]-0.9)),1], col=4)
-#abline(v=ndat[which.min(abs(ndat[,4]-0.9)),1], col=2, lty=2)
-#abline(v=ndat[which.min(abs(ndat[,5]-0.9)),1], col=4, lty=2)
-#legend("bottomright", col=c(2,2,4,4,4), lty=c(1,2,1,2,3), lwd=2, 
-#    legend=c("m0 fit", "m0 SE", "mb fit", "mb SE", "mb cor"), bty="n")
 legend("bottomright", col=c(2,2,4,4), lty=c(1,2,1,2), lwd=2, 
     legend=c("m0 fit", "m0 SE", "mb fit", "mb SE"), bty="n")
+}
+par(op)
 
 dat0se <- dat0[!is.na(dat0$se_logphi),]
 datbse <- datb[!is.na(datb$se_logphi),]
@@ -367,6 +390,9 @@ plot(se_logitc ~ nobs, datbse, ylim=c(0,1000), xlim=c(0, 500),
 plot(abs(cor) ~ nobs, datbse, xlim=c(0, 500),
     pch=19, col=rgb(0,0,255,50,maxColorValue=255))
 hist(datbse$cor)
+
+
+
 
 
 ## sra m0 vs mb models
@@ -422,6 +448,17 @@ f <- function(spp) {
 }
 OK <- sapply(SPP, f)
 table(OK)
+
+rownames(TAX) <- TAX$Species_ID
+tab <- droplevels(TAX[SPP,c("Species_ID", "English_Name", "Family_Sci")])
+tab$n <- np
+tab$OK <- OK
+tab$phi_0 <- round(cfall0[,1], 4)
+tab$phi_b <- round(cfallb[,1], 4)
+tab$c <- round(cfallb[,2], 4)
+
+write.csv(tab, row.names=FALSE, file=file.path(ROOT2, "duration-ms-species.csv"))
+
 SPP <- SPP[OK]
 
 w00 <- waic0[SPP,"m0_0"]
@@ -431,6 +468,8 @@ H0 <- apply(waic0[SPP,], 1, function(z) sum(z^2))
 Hb <- apply(waicb[SPP,], 1, function(z) sum(z^2))
 H <- apply(waic[SPP,], 1, function(z) sum(z^2))
 n <- np[SPP]
+
+
 
 par(mfrow=c(1,3))
 plot(n, w00, pch=21, cex=1+2*H0, log="x")
@@ -592,3 +631,17 @@ dev.off()
 
 
 
+JDAY,
+TSSR,
+JDAY + I(JDAY^2)
+TSSR + I(TSSR^2)
+JDAY + TSSR
+JDAY + I(JDAY^2) + TSSR
+JDAY + TSSR + I(TSSR^2)
+JDAY + I(JDAY^2) + TSSR + I(TSSR^2)
+TSLS
+TSLS + I(TSLS^2)
+TSLS + TSSR
+TSLS + I(TSLS^2) + TSSR
+TSLS + TSSR + I(TSSR^2)
+TSLS + I(TSLS^2) + TSSR + I(TSSR^2)
