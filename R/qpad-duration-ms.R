@@ -1,3 +1,183 @@
+## BAM-wise estimation -------------------------------------------
+
+### Preliminaries
+
+## Define root folder where data are stored
+ROOT <- "c:/bam/May2015"
+
+## Load required packages
+library(mefa4)
+library(pbapply)
+library(detect)
+
+## Load functions kept in separate file
+source("~/repos/bamanalytics/R/dataprocessing_functions.R")
+
+## Load preprocesses data
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-02.Rdata"))
+
+### Removal sampling
+
+## non NA subset for duration related estimates
+pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE")]
+pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
+## strange methodology where all counts have been filtered
+## thus this only leads to 0 total count and exclusion
+pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
+
+## save this and spatial/yearly variation for next version
+## make sure to leave all TSSR (i.e. after noon) in the data
+if (FALSE) {
+pkDur$TSSRsin <- sin(pkDur$TSSR_orig * 2 * pi)
+pkDur$TSSRcos <- cos(pkDur$TSSR_orig * 2 * pi)
+pkDur$TSSRsin2 <- sin(pkDur$TSSR_orig * 2 * pi)^2
+pkDur$TSSRcos2 <- cos(pkDur$TSSR_orig * 2 * pi)^2
+
+NAMES <- list(
+    "1"=c("INTERCEPT", "JDAY", "JDAY2", "TSSRsin", "TSSRcos"),
+    "2"=c("INTERCEPT", "JDAY", "JDAY2", "TSSRsin", "TSSRcos", "TSSRsin2", "TSSRcos2"),
+    "3"=c("INTERCEPT", "JDAY", "JDAY2", "JDAY3", "TSSRsin", "TSSRcos"),
+    "4"=c("INTERCEPT", "JDAY", "JDAY2", "JDAY3", "TSSRsin", "TSSRcos", "TSSRsin2", "TSSRcos2"),
+    "5"=c("INTERCEPT", "JDAY", "JDAY2", "JDAY3"),
+    "6"=c("INTERCEPT", "TSSRsin", "TSSRcos", "TSSRsin2", "TSSRcos2"))
+ff <- list(
+    "1"= ~ JDAY + JDAY2 + TSSRsin + TSSRcos,
+    "2"= ~ JDAY + JDAY2 + TSSRsin + TSSRcos + TSSRsin2 + TSSRcos2,
+    "3"= ~ JDAY + JDAY2 + JDAY3 + TSSRsin + TSSRcos,
+    "4"= ~ JDAY + JDAY2 + JDAY3 + TSSRsin + TSSRcos + TSSRsin2 + TSSRcos2,
+    "5"= ~ JDAY + JDAY2 + JDAY3,
+    "6"= ~ TSSRsin + TSSRcos + TSSRsin2 + TSSRcos2)
+}
+
+## models to consider
+NAMES <- list(
+    "0"="INTERCEPT",
+    "1"=c("INTERCEPT", "JDAY"),
+    "2"=c("INTERCEPT", "TSSR"),
+    "3"=c("INTERCEPT", "JDAY", "JDAY2"),
+    "4"=c("INTERCEPT", "TSSR", "TSSR2"),
+    "5"=c("INTERCEPT", "JDAY", "TSSR"),
+    "6"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR"),
+    "7"=c("INTERCEPT", "JDAY", "TSSR", "TSSR2"),
+    "8"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR", "TSSR2"),
+    "9"=c("INTERCEPT", "TSLS"),
+    "10"=c("INTERCEPT", "TSLS", "TSLS2"),
+    "11"=c("INTERCEPT", "TSLS", "TSSR"),
+    "12"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR"),
+    "13"=c("INTERCEPT", "TSLS", "TSSR", "TSSR2"),
+    "14"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR", "TSSR2"))
+ff <- list(
+    ~ 1,
+    ~ JDAY,
+    ~ TSSR,
+    ~ JDAY + I(JDAY^2),
+    ~ TSSR + I(TSSR^2),
+    ~ JDAY + TSSR,
+    ~ JDAY + I(JDAY^2) + TSSR,
+    ~ JDAY + TSSR + I(TSSR^2),
+    ~ JDAY + I(JDAY^2) + TSSR + I(TSSR^2),
+    ~ TSLS,
+    ~ TSLS + I(TSLS^2),
+    ~ TSLS + TSSR,
+    ~ TSLS + I(TSLS^2) + TSSR,
+    ~ TSLS + TSSR + I(TSSR^2),
+    ~ TSLS + I(TSLS^2) + TSSR + I(TSSR^2))
+
+## crosstab for species
+xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
+xtDur[["NONE"]] <- NULL
+
+fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
+    rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
+    X0 <- pkDur[rn,]
+    Y0 <- as.matrix(xtDur[[spp]][rn,])
+    ## make sure that columns (intervals) match up
+    stopifnot(all(colnames(Y0) == colnames(ltdur$x)))
+    stopifnot(length(setdiff(levels(X0$DURMETH), rownames(ltdur$end))) == 0)
+    ## interval end matrix
+    D <- ltdur$end[match(X0$DURMETH, rownames(ltdur$end)),]
+    ## exclude 0 sum and <1 interval rows
+    iob <- rowSums(Y0) > 0 & rowSums(!is.na(D)) > 1
+    if (sum(iob)==0)
+        return(structure("0 observation with multiple duration (1)",
+            class="try-error"))
+    if (sum(iob)==1)
+        return(structure("1 observation with multiple duration (2)",
+            class="try-error"))
+    X <- droplevels(X0[iob,])
+    Y0 <- Y0[iob,]
+    D <- D[iob,]
+    n <- nrow(D)
+    ## arranging counts into position
+    Yid <- ltdur$id[match(X$DURMETH, rownames(ltdur$id)),]
+    Y <- matrix(NA, n, ncol(ltdur$id))
+    for (i in seq_len(n)) {
+        w <- Yid[i,]
+        w <- w[!is.na(w)]
+        Y[i,seq_len(length(w))] <- Y0[i,w]
+    }
+    if (fit) {
+        res <- list()
+        for (i in seq_len(length(ff))) {
+            f <- as.formula(paste0("Y | D ", paste(as.character(ff[[i]]), collapse=" ")))
+            mod <- try(cmulti(f, X, type=type))
+            if (!inherits(mod, "try-error")) {
+                rval <- mod[c("coefficients","vcov","nobs","loglik")]
+                rval$p <- length(coef(mod))
+                rval$names <- NAMES[[i]]
+            } else {
+                rval <- mod
+            }
+            res[[names(NAMES)[i]]] <- rval
+        }
+        ## number of observations
+        #res$n <- n
+    } else {
+        res <- list(Y=Y, D=D, n=n)
+    }
+    res
+}
+
+
+SPP <- names(xtDur)
+resDur <- vector("list", length(SPP))
+for (i in 1:length(SPP)) {
+    cat("Singing rate data check for", SPP[i], "\n")
+    flush.console()
+    resDur[[i]] <- try(fitDurFun(SPP[i], FALSE))
+}
+names(resDur) <- SPP
+resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
+c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur))
+t(sapply(resDurOK, "[[", "n"))
+resDurData <- resDurOK
+
+## estimate species with data
+SPP <- names(resDurOK)
+resDur <- vector("list", length(SPP))
+for (i in 1:length(SPP)) {
+    cat("Singing rate estimation for", SPP[i], date(), "\n")
+    flush.console()
+    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
+    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
+}
+names(resDur) <- SPP
+resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
+c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur))
+resDur <- resDurOK
+
+save(resDur, resDurData,
+    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
+    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_mix.Rdata"))
+
+## project-wise estimation -------------------------------------------
+
+## 3-5-10 validation ----------------------------------------------
+
+
+
+
+## -- old
 
 ## Define root folder where data are stored
 ROOT <- "c:/bam/May2015"
