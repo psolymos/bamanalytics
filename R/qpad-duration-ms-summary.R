@@ -109,9 +109,19 @@ cfallb <- t(sapply(SPP, function(spp) {
     c(phi_b=exp(tmp[1]), c=plogis(tmp[2]))
     }))
 
-sptab$M0_phi <- round(cfall0[,1], 4)
-sptab$Mb_phi <- round(cfallb[match(SPPfull, SPP),"phi_b"], 4)
-sptab$Mb_c <- round(cfallb[match(SPPfull, SPP),"c"], 4)
+sptab$M0_phi <- cfall0[,1]
+sptab$Mb_phi <- cfallb[match(SPPfull, SPP),"phi_b"]
+sptab$Mb_c <- cfallb[match(SPPfull, SPP),"c"]
+
+## 
+
+plot(X0$JDAY, X0$TSSR, pch=19, cex=1.2, col=rgb(0,0,0,0.1))
+contour(kde2d(X0$JDAY, X0$TSSR), add=TRUE, col=2)
+
+Projects <- table(droplevels(X0$PCODE))
+SppOcc <- sapply(SPPfull, function(z) sum(rowSums(xtDur[[z]][rn,], na.rm=TRUE)>0)/length(rn))
+SppYmean <- sapply(SPPfull, function(z) mean(rowSums(xtDur[[z]][rn,], na.rm=TRUE)))
+
 
 ## sra 0 vs b models
 
@@ -211,6 +221,8 @@ sum(bestx %in% intersect(c(hasJD, hasLS), hasSR)) * 100 / length(SPP)
 sptab$M0_best <- best0
 sptab$Mb_best <- bestb[match(SPPfull, SPP)]
 sptab$Both_best <- best[match(SPPfull, SPP)]
+sptab$Occ <- SppOcc
+sptab$Ymean <- SppYmean
 write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "spptab.csv"))
 
 tt <- seq(0, 11, len=1000)
@@ -227,7 +239,8 @@ matplot(tt, matb, type="l", lty=1, main="B",
     col=rgb(50,50,50,50,maxColorValue=255), lwd=2)
 abline(v=c(3,5,10))
 
-
+save(sptab, Projects, Support,
+    file=file.path(ROOT2, "this-and-that.Rdata"))
 
 
 
@@ -345,13 +358,25 @@ dat0 <- problem0[!(problem0$msg %in% ss),]
 dat0$okfit <- ifelse(is.na(dat0$logphi), 0, 1)
 dat0$okse <- ifelse(is.na(dat0$se_logphi), 0, 1)
 dat0$msg <- NULL
-mod00 <- glm(okfit ~ log(ndet+1), dat0, family=binomial)
-mod0se0 <- glm(okse ~ log(ndet+1), dat0, family=binomial)
 
 datb <- problemb[!(problemb$msg %in% ss),]
 datb$okfit <- ifelse(is.na(datb$logphi), 0, 1)
 datb$okse <- ifelse(is.na(datb$se_logphi), 0, 1)
 datb$msg <- NULL
+
+dat0$occ <- sptab$Occ[match(dat0$spp, sptab$spp)]
+dat0$ym <- sptab$Ymean[match(dat0$spp, sptab$spp)]
+datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
+datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
+
+summary(m0x <- glm(okfit ~ log(ndet+1)+ym, dat0, family=binomial))
+summary(mbx <- glm(okfit ~ log(ndet+1)+ym, datb, family=binomial))
+summary(m0xs <- glm(okse ~ log(ndet+1)+ym, dat0, family=binomial))
+summary(mbxs <- glm(okse ~ log(ndet+1)+occ+ym, datb, family=binomial))
+
+
+mod00 <- glm(okfit ~ log(ndet+1), dat0, family=binomial)
+mod0se0 <- glm(okse ~ log(ndet+1), dat0, family=binomial)
 modb0 <- glm(okfit ~ log(ndet+1), datb, family=binomial)
 modbse0 <- glm(okse ~ log(ndet+1), datb, family=binomial)
 

@@ -734,6 +734,7 @@ lines(ng, maxBias[,i-1], lty=2, col=2, lwd=2)
 load("~/Dropbox/bam/duration_ms/revisionMarch2016/xval-Pcode1-rem.Rdata")
 load("~/Dropbox/bam/duration_ms/revisionMarch2016/xval-Pcode1-mix.Rdata")
 
+SPP <- names(resDurPcode1)
 problem <- list()
 for (spp in SPP) {
     cat(spp, "\n")
@@ -743,13 +744,14 @@ for (spp in SPP) {
         tmp2 <- tmp[[PCi]]
         ii <- rownames(pkDur)[pkDur$PCODE==PCi]
         ii <- intersect(rownames(xtDur[[spp]]), ii)
-        yy <- rowSums(xtDur[[spp]][ii, ])
+        yy <- rowSums(xtDur[[spp]][ii, ,drop=FALSE])
         if (inherits(tmp2, "try-error")) {
             out <- data.frame(spp=spp, pc=PCi, 
                 ntot=length(yy),
                 ndet=sum(yy > 0), 
                 n1=sum(yy > 1), 
                 n2=sum(yy > 2), 
+                ymean=mean(yy),
                 logphi=NA, se_logphi=NA,
                     nobs=NA,
                 msg=as.character(tmp2))
@@ -761,6 +763,7 @@ for (spp in SPP) {
                     ndet=sum(yy > 0), 
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
+                    ymean=mean(yy),
                     logphi=NA, se_logphi=NA,
                     nobs=NA,
                     msg=as.character(tmp3))
@@ -770,6 +773,7 @@ for (spp in SPP) {
                     ndet=sum(yy > 0), 
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
+                    ymean=mean(yy),
                     logphi=unname(tmp3$coefficients), 
                     se_logphi=sqrt(tmp3$vcov[1,1]),
                     nobs=tmp3$nobs,
@@ -790,13 +794,14 @@ for (spp in names(resDurPcode1_mix)) {
         tmp2 <- tmp[[PCi]]
         ii <- rownames(pkDur)[pkDur$PCODE==PCi]
         ii <- intersect(rownames(xtDur[[spp]]), ii)
-        yy <- rowSums(xtDur[[spp]][ii, ])
+        yy <- rowSums(xtDur[[spp]][ii, ,drop=FALSE])
         if (inherits(tmp2, "try-error")) {
             out <- data.frame(spp=spp, pc=PCi, 
                 ntot=length(yy),
                 ndet=sum(yy > 0), 
                 n1=sum(yy > 1), 
                 n2=sum(yy > 2), 
+                ymean=mean(yy),
                 logphi=NA, 
                 logitc=NA, 
                 se_logphi=NA,
@@ -812,6 +817,7 @@ for (spp in names(resDurPcode1_mix)) {
                     ndet=sum(yy > 0), 
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
+                    ymean=mean(yy),
                     logphi=NA, 
                     logitc=NA, 
                     se_logphi=NA,
@@ -825,6 +831,7 @@ for (spp in names(resDurPcode1_mix)) {
                     ndet=sum(yy > 0), 
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
+                    ymean=mean(yy),
                     logphi=unname(tmp3$coefficients)[1], 
                     logitc=unname(tmp3$coefficients)[2], 
                     se_logphi=sqrt(tmp3$vcov[1,1]),
