@@ -134,17 +134,17 @@ aic <- cbind(aicc0[SPP,], aiccb[SPP,])
 
 waic0 <- t(apply(aic0, 1, function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }))
 waicb <- t(apply(aicb, 1, function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }))
 waic <- t(apply(aic, 1, function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }))
 
@@ -390,7 +390,7 @@ if (i == 3) {
     xlab <- "Number of >2 survey counts"
 }
 nmax <- 100
-ndat <- data.frame(n=2:nmax, 
+ndat <- data.frame(n=2:nmax,
     p0=plogis(coef(mod0)[1] + coef(mod0)[2]*log(1 + 2:nmax)),
     pb=plogis(coef(modb)[1] + coef(modb)[2]*log(1 + 2:nmax)),
     p0se=plogis(coef(mod0se)[1] + coef(mod0se)[2]*log(1 + 2:nmax)),
@@ -405,7 +405,7 @@ lines(ndat[,1], ndat[,5], col=4, lwd=2, lty=2)
 abline(h=0.9, lty=1)
 abline(v=ndat[which.min(abs(ndat[,2]-0.9)),1], col=2)
 abline(v=ndat[which.min(abs(ndat[,3]-0.9)),1], col=4)
-legend("bottomright", col=c(2,2,4,4), lty=c(1,2,1,2), lwd=2, 
+legend("bottomright", col=c(2,2,4,4), lty=c(1,2,1,2), lwd=2,
     legend=c("m0 fit", "m0 SE", "mb fit", "mb SE"), bty="n")
 }
 par(op)
@@ -426,8 +426,32 @@ hist(datbse$cor)
 
 
 
+## compare PIF time adjustment
 
+sptab <- read.csv(file.path(ROOT2, "spptab.csv"))
+rownames(sptab) <- sptab$spp
 
+pif <- read.csv(file.path(ROOT2, "popContinental_v2_22-May-2013.csv"))
+pif <- pif[,c("Common.Name","Scientific.Name","Time.Adjust")]
 
+compare_sets(sptab$common_name, pif$Common.Name)
+compare_sets(sptab$scientific_name, pif$Scientific.Name)
 
+sptab[sptab$common_name %in% setdiff(sptab$common_name, pif$Common.Name),]
 
+sptab$tadj <- pif$Time.Adjust[match(sptab$common_name, pif$Common.Name)]
+sptab$p30 <- 1-exp(-3*sptab$M0_phi)
+sptab$p3b <- 1-sptab$Mb_c*exp(-3*sptab$Mb_phi)
+
+with(sptab, plot(p30, p3b, cex=0.2+0.02*sqrt(sptab$nfull)))
+abline(0,1)
+
+with(sptab, plot(p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
+with(sptab, plot(p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
+
+with(sptab, plot(1/p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
+    xlim=c(1,5), ylim=c(1,5)))
+abline(0,1)
+with(sptab, plot(1/p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
+    xlim=c(1,5), ylim=c(1,5)))
+abline(0,1)
