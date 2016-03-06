@@ -515,7 +515,7 @@ zb <- matrix(p3b, length(vjd), length(vsr))
 #pmax <- 1#0.2*max(p30, p3b)
 Col0 <- grey(0.2+0.8*seq(1-min(z0), 1-max(z0), len=24))
 Colb <- grey(0.2+0.8*seq(1-min(zb), 1-max(zb), len=24))
-op <- par(mfrow=c(1,3), las=1)
+op <- par(mfrow=c(1,2), las=1)
 image(vjd*365, vsr*24, z0,
     col = Col0,
     xlab="Julian days", 
@@ -528,7 +528,7 @@ image(vjd*365, vsr*24, zb,
     ylab="Hours since sunrise",
     main=paste(spp, "Mbt"))
 contour(vjd*365, vsr*24, zb, add=TRUE, col=1, labcex=1)
-plot(p30, p3b, main=round(sppCor[[spp]], 3))
+#plot(p30, p3b, main=round(sppCor[[spp]], 3))
 par(op)
 }
 dev.off()
