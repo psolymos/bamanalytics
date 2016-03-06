@@ -369,10 +369,10 @@ dat0$ym <- sptab$Ymean[match(dat0$spp, sptab$spp)]
 datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
 datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
 
-summary(m0x <- glm(okfit ~ log(ndet+1)+ym, dat0, family=binomial))
-summary(mbx <- glm(okfit ~ log(ndet+1)+ym, datb, family=binomial))
-summary(m0xs <- glm(okse ~ log(ndet+1)+ym, dat0, family=binomial))
-summary(mbxs <- glm(okse ~ log(ndet+1)+occ+ym, datb, family=binomial))
+summary(m0x <- glm(okfit ~ log(ndet+1)*log(ym), dat0, family=binomial))
+summary(mbx <- glm(okfit ~ log(ndet+1)*log(ym), datb, family=binomial))
+summary(m0xs <- glm(okse ~ log(ndet+1)*log(ym), dat0, family=binomial))
+summary(mbxs <- glm(okse ~ log(ndet+1)*log(ym), datb, family=binomial))
 
 
 mod00 <- glm(okfit ~ log(ndet+1), dat0, family=binomial)
@@ -480,3 +480,55 @@ abline(0,1)
 with(sptab, plot(1/p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
     xlim=c(1,5), ylim=c(1,5)))
 abline(0,1)
+
+## m0t mbt prediction
+
+vjd <- seq(0.38, 0.52, len=200)
+vsr <- seq(-0.13, 0.36, len=200)
+df <- expand.grid(JDAY=vjd, TSSR=vsr)
+#df$JDAY2 <- df$JDAY^2
+#df$TSSR2 <- df$TSSR^2
+#df$Jday <- df$JDAY * 365
+#df$Tssr <- df$TSSR * 24
+
+X <- model.matrix(ff[["8"]], df)
+sppCor <- list()
+
+pdf(file.path(ROOT2, "spp-pred.pdf"), onefile=TRUE, width=10, height=5)
+
+#spp <- "BBCU"
+#fff <- ff[["8"]]
+for (spp in SPP) {
+
+cf0 <- .BAMCOEFSrem$sra_estimates[[spp]][["8"]]$coefficients
+cfb <- .BAMCOEFSmix$sra_estimates[[spp]][["8"]]$coefficients
+
+p30 <- 1-exp(-3*exp(drop(X %*% cf0)))
+p3b <- 1-plogis(drop(X %*% cfb[-1]))*exp(-3*exp(cfb[1]))
+
+sppCor[[spp]] <- cor(cbind(p30,p3b))[1,2]
+cat(spp, "cor =", sppCor[[spp]], "\n");flush.console()
+
+#plot(p30, p3b)
+z0 <- matrix(p30, length(vjd), length(vsr))
+zb <- matrix(p3b, length(vjd), length(vsr))
+#pmax <- 1#0.2*max(p30, p3b)
+Col0 <- grey(0.2+0.8*seq(1-min(z0), 1-max(z0), len=24))
+Colb <- grey(0.2+0.8*seq(1-min(zb), 1-max(zb), len=24))
+op <- par(mfrow=c(1,3), las=1)
+image(vjd*365, vsr*24, z0,
+    col = Col0,
+    xlab="Julian days", 
+    ylab="Hours since sunrise",
+    main=paste(spp, "M0t"))
+contour(vjd*365, vsr*24, z0, add=TRUE, col=1, labcex=1)
+image(vjd*365, vsr*24, zb,
+    col = Colb,
+    xlab="Julian days", 
+    ylab="Hours since sunrise",
+    main=paste(spp, "Mbt"))
+contour(vjd*365, vsr*24, zb, add=TRUE, col=1, labcex=1)
+plot(p30, p3b, main=round(sppCor[[spp]], 3))
+par(op)
+}
+dev.off()
