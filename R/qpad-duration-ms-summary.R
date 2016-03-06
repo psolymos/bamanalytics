@@ -113,7 +113,7 @@ sptab$M0_phi <- cfall0[,1]
 sptab$Mb_phi <- cfallb[match(SPPfull, SPP),"phi_b"]
 sptab$Mb_c <- cfallb[match(SPPfull, SPP),"c"]
 
-## 
+##
 
 plot(X0$JDAY, X0$TSSR, pch=19, cex=1.2, col=rgb(0,0,0,0.1))
 contour(kde2d(X0$JDAY, X0$TSSR), add=TRUE, col=2)
@@ -250,6 +250,7 @@ save(sptab, Projects, Support,
 
 
 
+load(file.path(ROOT2, "this-and-that.Rdata"))
 
 
 load(file.path(ROOT2, "var-bias-res.Rdata"))
@@ -358,21 +359,46 @@ dat0 <- problem0[!(problem0$msg %in% ss),]
 dat0$okfit <- ifelse(is.na(dat0$logphi), 0, 1)
 dat0$okse <- ifelse(is.na(dat0$se_logphi), 0, 1)
 dat0$msg <- NULL
+dat0 <- dat0[dat0$ndet > 1,]
 
 datb <- problemb[!(problemb$msg %in% ss),]
 datb$okfit <- ifelse(is.na(datb$logphi), 0, 1)
 datb$okse <- ifelse(is.na(datb$se_logphi), 0, 1)
 datb$msg <- NULL
+datb <- datb[datb$ndet > 1,]
 
-dat0$occ <- sptab$Occ[match(dat0$spp, sptab$spp)]
-dat0$ym <- sptab$Ymean[match(dat0$spp, sptab$spp)]
-datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
-datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
+#dat0$occ <- sptab$Occ[match(dat0$spp, sptab$spp)]
+#dat0$ym <- sptab$Ymean[match(dat0$spp, sptab$spp)]
+#datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
+#datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
 
-summary(m0x <- glm(okfit ~ log(ndet+1)*log(ym), dat0, family=binomial))
-summary(mbx <- glm(okfit ~ log(ndet+1)*log(ym), datb, family=binomial))
-summary(m0xs <- glm(okse ~ log(ndet+1)*log(ym), dat0, family=binomial))
-summary(mbxs <- glm(okse ~ log(ndet+1)*log(ym), datb, family=binomial))
+summary(m0x <- glm(okfit ~ log(ndet)*log(ymean), dat0, family=binomial))
+summary(mbx <- glm(okfit ~ log(ndet)*log(ymean), datb, family=binomial))
+summary(m0xs <- glm(okse ~ log(ndet)*log(ymean), dat0, family=binomial))
+summary(mbxs <- glm(okse ~ log(ndet)*log(ymean), datb, family=binomial))
+
+#vnd <- seq(log(2), log(1400), len=50)
+#vnd <- seq(log(2), log(150), len=50)
+#vym <- seq(log(1), log(2.5), len=25)
+vnd <- seq(2, 25, len=100)
+vym <- seq(1, 2.5, len=100)
+df <- expand.grid(ndet=vnd, ymean=vym)
+X <- model.matrix(delete.response(terms(m0x)), df)
+
+fit0 <- matrix(plogis(drop(X %*% coef(m0x))), length(vnd), length(vym))
+fitb <- matrix(plogis(drop(X %*% coef(mbx))), length(vnd), length(vym))
+fit0s <- matrix(plogis(drop(X %*% coef(m0xs))), length(vnd), length(vym))
+fitbs <- matrix(plogis(drop(X %*% coef(mbxs))), length(vnd), length(vym))
+
+par(mfrow=c(2,2))
+image(vnd, vym, -fit0, main="m0 fit")
+contour(vnd, vym, fit0, add=TRUE)
+image(vnd, vym, -fit0s, main="m0 se")
+contour(vnd, vym, fit0s, add=TRUE)
+image(vnd, vym, -fitb, main="mb fit")
+contour(vnd, vym, fitb, add=TRUE)
+image(vnd, vym, -fitbs, main="mb se")
+contour(vnd, vym, fitbs, add=TRUE)
 
 
 mod00 <- glm(okfit ~ log(ndet+1), dat0, family=binomial)
@@ -518,13 +544,13 @@ Colb <- grey(0.2+0.8*seq(1-min(zb), 1-max(zb), len=24))
 op <- par(mfrow=c(1,2), las=1)
 image(vjd*365, vsr*24, z0,
     col = Col0,
-    xlab="Julian days", 
+    xlab="Julian days",
     ylab="Hours since sunrise",
     main=paste(spp, "M0t"))
 contour(vjd*365, vsr*24, z0, add=TRUE, col=1, labcex=1)
 image(vjd*365, vsr*24, zb,
     col = Colb,
-    xlab="Julian days", 
+    xlab="Julian days",
     ylab="Hours since sunrise",
     main=paste(spp, "Mbt"))
 contour(vjd*365, vsr*24, zb, add=TRUE, col=1, labcex=1)
