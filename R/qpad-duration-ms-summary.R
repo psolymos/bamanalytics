@@ -356,8 +356,10 @@ load(file.path(ROOT2, "problem.Rdata"))
 ss <- c("0 observation with multiple duration (1)", "1 observation with multiple duration (2)")
 
 dat0 <- problem0[!(problem0$msg %in% ss),]
-dat0$okfit <- ifelse(is.na(dat0$logphi), 0, 1)
+dat0$okfit <- ifelse(is.na(dat0$logphi) |
+    exp(dat0$logphi) < 0.001 | exp(dat0$logphi) > 5, 0, 1)
 dat0$okse <- ifelse(is.na(dat0$se_logphi), 0, 1)
+dat0$okse[dat0$okfit == 0] <- 0
 dat0$msg <- NULL
 dat0 <- dat0[dat0$ndet > 1,]
 
@@ -372,10 +374,10 @@ datb <- datb[datb$ndet > 1,]
 #datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
 #datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
 
-summary(m0x <- glm(okfit ~ log(ndet)*log(ymean), dat0, family=binomial))
-summary(mbx <- glm(okfit ~ log(ndet)*log(ymean), datb, family=binomial))
-summary(m0xs <- glm(okse ~ log(ndet)*log(ymean), dat0, family=binomial))
-summary(mbxs <- glm(okse ~ log(ndet)*log(ymean), datb, family=binomial))
+summary(m0x <- glm(okfit ~ log(ndet)+log(ymean), dat0, family=binomial))
+summary(m0xs <- glm(okse ~ log(ndet)+log(ymean), dat0, family=binomial))
+summary(mbx <- glm(okfit ~ log(ndet)+log(ymean), datb, family=binomial))
+summary(mbxs <- glm(okse ~ log(ndet)+log(ymean), datb, family=binomial))
 
 #vnd <- seq(log(2), log(1400), len=50)
 #vnd <- seq(log(2), log(150), len=50)
@@ -386,9 +388,11 @@ df <- expand.grid(ndet=vnd, ymean=vym)
 X <- model.matrix(delete.response(terms(m0x)), df)
 
 fit0 <- matrix(plogis(drop(X %*% coef(m0x))), length(vnd), length(vym))
-fitb <- matrix(plogis(drop(X %*% coef(mbx))), length(vnd), length(vym))
 fit0s <- matrix(plogis(drop(X %*% coef(m0xs))), length(vnd), length(vym))
+fitb <- matrix(plogis(drop(X %*% coef(mbx))), length(vnd), length(vym))
 fitbs <- matrix(plogis(drop(X %*% coef(mbxs))), length(vnd), length(vym))
+
+filled.contour(vnd, vym, fit0)
 
 par(mfrow=c(2,2))
 image(vnd, vym, -fit0, main="m0 fit")
