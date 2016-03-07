@@ -752,8 +752,9 @@ for (spp in SPP) {
                 n1=sum(yy > 1), 
                 n2=sum(yy > 2), 
                 ymean=mean(yy[yy>0]),
+                ymedian=unname(median(yy[yy>0])),
                 logphi=NA, se_logphi=NA,
-                    nobs=NA,
+                nobs=NA,
                 msg=as.character(tmp2))
         } else {
             tmp3 <- tmp2[["0"]]
@@ -764,6 +765,7 @@ for (spp in SPP) {
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
                     ymean=mean(yy[yy>0]),
+                    ymedian=unname(median(yy[yy>0])),
                     logphi=NA, se_logphi=NA,
                     nobs=NA,
                     msg=as.character(tmp3))
@@ -774,6 +776,7 @@ for (spp in SPP) {
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
                     ymean=mean(yy[yy>0]),
+                    ymedian=unname(median(yy[yy>0])),
                     logphi=unname(tmp3$coefficients), 
                     se_logphi=sqrt(tmp3$vcov[1,1]),
                     nobs=tmp3$nobs,
@@ -802,6 +805,7 @@ for (spp in names(resDurPcode1_mix)) {
                 n1=sum(yy > 1), 
                 n2=sum(yy > 2), 
                 ymean=mean(yy[yy>0]),
+                ymedian=unname(median(yy[yy>0])),
                 logphi=NA, 
                 logitc=NA, 
                 se_logphi=NA,
@@ -818,6 +822,7 @@ for (spp in names(resDurPcode1_mix)) {
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
                     ymean=mean(yy[yy>0]),
+                    ymedian=unname(median(yy[yy>0])),
                     logphi=NA, 
                     logitc=NA, 
                     se_logphi=NA,
@@ -832,6 +837,7 @@ for (spp in names(resDurPcode1_mix)) {
                     n1=sum(yy > 1), 
                     n2=sum(yy > 2), 
                     ymean=mean(yy[yy>0]),
+                    ymedian=unname(median(yy[yy>0])),
                     logphi=unname(tmp3$coefficients)[1], 
                     logitc=unname(tmp3$coefficients)[2], 
                     se_logphi=sqrt(tmp3$vcov[1,1]),
