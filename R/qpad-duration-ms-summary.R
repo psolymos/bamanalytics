@@ -358,39 +358,73 @@ ss <- c("0 observation with multiple duration (1)", "1 observation with multiple
 dat0 <- problem0[!(problem0$msg %in% ss),]
 dat0$okfit <- ifelse(is.na(dat0$logphi) |
     exp(dat0$logphi) < 0.001 | exp(dat0$logphi) > 5, 0, 1)
-dat0$okse <- ifelse(is.na(dat0$se_logphi), 0, 1)
+dat0$okse <- ifelse(is.na(dat0$se_logphi) | dat0$se_logphi > 10^4, 0, 1)
 dat0$okse[dat0$okfit == 0] <- 0
 dat0$msg <- NULL
 dat0 <- dat0[dat0$ndet > 1,]
 
 datb <- problemb[!(problemb$msg %in% ss),]
-datb$okfit <- ifelse(is.na(datb$logphi), 0, 1)
-datb$okse <- ifelse(is.na(datb$se_logphi), 0, 1)
+datb$okfit <- ifelse(is.na(datb$logphi) | 
+    exp(datb$logphi) < 0.001 | exp(datb$logphi) > 5, 0, 1)
+datb$okse <- ifelse(is.na(datb$se_logphi) | 
+    datb$se_logphi > 10^4 | datb$se_logitc > 10^4, 0, 1)
+datb$okse[datb$okfit == 0] <- 0
 datb$msg <- NULL
 datb <- datb[datb$ndet > 1,]
 
-#dat0$occ <- sptab$Occ[match(dat0$spp, sptab$spp)]
-#dat0$ym <- sptab$Ymean[match(dat0$spp, sptab$spp)]
-#datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
-#datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
+dat0$phi <- sptab$M0_phi[match(dat0$spp, sptab$spp)]
+dat0$occ <- sptab$Occ[match(dat0$spp, sptab$spp)]
+dat0$ym <- sptab$Ymean[match(dat0$spp, sptab$spp)]
+datb$phi <- sptab$M0_phi[match(datb$spp, sptab$spp)]
+datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
+datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
 
-summary(m0x <- glm(okfit ~ log(ndet)+log(ymean), dat0, family=binomial))
-summary(m0xs <- glm(okse ~ log(ndet)+log(ymean), dat0, family=binomial))
-summary(mbx <- glm(okfit ~ log(ndet)+log(ymean), datb, family=binomial))
-summary(mbxs <- glm(okse ~ log(ndet)+log(ymean), datb, family=binomial))
+dat0 <- dat0[dat0$spp %in% rownames(sptab),]
+datb <- datb[datb$spp %in% rownames(sptab),]
 
-#vnd <- seq(log(2), log(1400), len=50)
-#vnd <- seq(log(2), log(150), len=50)
-#vym <- seq(log(1), log(2.5), len=25)
-vnd <- seq(2, 25, len=100)
-vym <- seq(1, 2.5, len=100)
-df <- expand.grid(ndet=vnd, ymean=vym)
+summary(m0x <- glm(okfit ~ log(ndet), dat0, family=binomial))
+summary(m0xs <- glm(okse ~ log(ndet), dat0, family=binomial))
+summary(mbx <- glm(okfit ~ log(ndet), datb, family=binomial))
+summary(mbxs <- glm(okse ~ log(ndet), datb, family=binomial))
+
+vnd <- seq(2, 500, len=100)
+df <- data.frame(ndet=vnd)
+X <- model.matrix(delete.response(terms(m0x)), df)
+
+fit0 <- plogis(drop(X %*% coef(m0x)))
+fit0s <- plogis(drop(X %*% coef(m0xs)))
+fitb <- plogis(drop(X %*% coef(mbx)))
+fitbs <- plogis(drop(X %*% coef(mbxs)))
+
+plot(vnd, fit0, col=2, ylim=c(0,1), type="l")
+lines(vnd, fit0s, col=2, lty=2)
+lines(vnd, fitb, col=4, lty=1)
+lines(vnd, fitbs, col=4, lty=2)
+abline(h=0.9, lty=1)
+abline(v=vnd[which.min(abs(fit0-0.9))], col=2)
+abline(v=vnd[which.min(abs(fitb-0.9))], col=4)
+legend("bottomright", col=c(2,2,4,4), lty=c(1,2,1,2), lwd=1,
+    legend=c("m0 fit", "m0 SE", "mb fit", "mb SE"), bty="n")
+
+
+with(dat0[dat0$okse==1,], plot(logphi, se_logphi))
+with(dat0[dat0$okse==1,], plot(ym, se_logphi))
+
+summary(m0x <- glm(okfit ~ log(ndet)*log(ymedian), dat0, family=binomial))
+summary(m0xs <- glm(okse ~ log(ndet)*log(ymedian), dat0, family=binomial))
+summary(mbx <- glm(okfit ~ log(ndet)*log(ymedian), datb, family=binomial))
+summary(mbxs <- glm(okse ~ log(ndet)*log(ymedian), datb, family=binomial))
+
+vnd <- seq(2, 500, len=100)
+vym <- seq(1, 4, len=100)
+df <- expand.grid(ndet=vnd, ymedian=vym)
 X <- model.matrix(delete.response(terms(m0x)), df)
 
 fit0 <- matrix(plogis(drop(X %*% coef(m0x))), length(vnd), length(vym))
 fit0s <- matrix(plogis(drop(X %*% coef(m0xs))), length(vnd), length(vym))
 fitb <- matrix(plogis(drop(X %*% coef(mbx))), length(vnd), length(vym))
 fitbs <- matrix(plogis(drop(X %*% coef(mbxs))), length(vnd), length(vym))
+
 
 filled.contour(vnd, vym, fit0)
 
