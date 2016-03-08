@@ -19,24 +19,37 @@ for (spp in SPP) {
     res[[spp]] <- list(m0=m0, m1=m1, m2=m2, m3=m3)
 }
 
+save(res, file=file.path(ROOT, "out", "data", "roadside-bias-estimates.Rdata"))
 
-fid <- 1
-fl <- c("analysis_package_gfwfire-nalc-2015-08-14.Rdata",
-    "analysis_package_gfwfire-eosd-2015-08-14.Rdata",
-    "analysis_package_gfwfire-lcc-2015-08-14.Rdata",
-    "analysis_package_fire-nalc-2015-08-14.Rdata")
-load(file.path(ROOT, "out", "data", fl[fid]))
-load(file.path(ROOT, "out", "analysis_package_distances.Rdata"))
+aic <- t(sapply(res, function(z) sapply(z, "[[", "aic")))
+best <- find_min(aic)
+table(best$index)
+
+beta <- sapply(res, function(z) z$m2$coef["ROAD"])
+names(beta) <- names(res)
+
+betaH0 <- t(sapply(res, function(z) z$m3$coef))
+betaH <- cbind(betaH0[,"ROAD"], betaH0[,"ROAD"]+betaH0[,grepl(":", colnames(betaH0))])
+colnames(betaH) <- levels(DAT$HAB)
+betaH <- betaH[,order(apply(betaH, 2, mean))]
 
 Ymean <- as.matrix(t(groupMeans(YY[,SPP], 1, DAT$ROAD)))
 rownames(Ymean) <- SPP
 colnames(Ymean) <- c("Off-road","Roadside")
 Beta <- sort(log(Ymean[,2] / Ymean[,1]))
-plot(Beta, 1:length(Beta), type="n", axes=FALSE, ann=FALSE)
+beta <- beta[names(Beta)]
+Col <- rep("green", length(beta))
+Col[Beta < 0 & beta < 0] <- "blue"
+Col[Beta > 0 & beta > 0] <- "red"
+
+plot(Beta, 1:length(Beta), type="n", axes=FALSE, ann=FALSE, xlim=range(Beta, beta))
 abline(v=0)
-text(Beta, 1:length(Beta), names(Beta), cex=0.7, col=ifelse(Beta<0, 4,2))
+text(Beta, 1:length(Beta), names(Beta), cex=0.7, col=Col)
 axis(1)
 title(xlab="Roadside bias")
+points(beta, 1:length(beta), pch=4, col=Col)
+
+plot(beta[SPP], Beta[SPP])
 
 
 Ymean <- as.matrix(t(groupMeans(YY[,SPP], 1, interaction(DAT$ROAD, DAT$HAB))))
@@ -51,6 +64,16 @@ library(plotrix)
 boxplot(BetaH)
 abline(h=0)
 
-par(las=1)
-ladderplot(BetaH[rowSums(is.na(BetaH))==0,], vertical=FALSE, col=3)
+betaH <- betaH[rownames(BetaH),]
+betaH <- betaH[,order(apply(betaH, 2, mean))]
+
+par(las=1, mfrow=c(1,2))
+ladderplot(BetaH[rowSums(is.na(BetaH))==0,], vertical=FALSE, col=3, xlab="Roadside bias",
+    ylim=c(-5,5))
 abline(v=0)
+points(apply(BetaH[rowSums(is.na(BetaH))==0,], 2, median), 1:ncol(BetaH), pch="|", cex=2.5, col=2)
+
+ladderplot(betaH, vertical=FALSE, col=3, xlab="Roadside bias", 
+    ylim=c(-5,5))
+abline(v=0)
+points(apply(betaH, 2, mean), 1:ncol(betaH), pch="|", cex=2.5, col=2)
