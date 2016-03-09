@@ -642,7 +642,7 @@ with(PCTBL_abmi, table(period123, period1))
 dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","YEAR","TSSR","JDAY","JULIAN",
     "srise","start_time","MAXDUR","MAXDIS","METHOD","DURMETH","DISMETH","ROAD")],
     SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2",
-    "BCR","JURS","SPRNG","DD51","X","Y")])
+    "BCR","JURS","SPRNG","DD51","X","Y","BCR")], NR=NA)
 dat <- dat[dat$ROAD == 0,]
 rownames(dat) <- dat$PKEY
 ii <- intersect(dat$PKEY, levels(PCTBL$PKEY))
@@ -655,6 +655,11 @@ dat <- droplevels(dat)
 dat$TSLS <- (dat$JULIAN - dat$SPRNG) / 365
 dat$DD5 <- (dat$DD51 - 1600) / 1000
 dat$DD51 <- NULL
+
+## nat regions to filter grasslands
+luf <- read.csv("~/repos/abmianalytics/lookup/sitemetadata.csv")
+PKEY_abmi$NR <- luf$NATURAL_REGIONS[match(PKEY_abmi$ClosestABMISite, luf$SITE_ID)]
+table(PKEY_abmi$NR)
 
 dat2 <- with(PKEY_abmi, data.frame(
     PCODE="ABMI",
@@ -683,7 +688,8 @@ dat2 <- with(PKEY_abmi, data.frame(
     X=long,
     Y=lat,
     TSLS=NA,
-    DD5=NA))
+    DD5=NA,
+    NR=NR))
 rownames(dat2) <- dat2$PKEY
 #write.csv(dat2, row.names=FALSE, file="ABMI-XY.csv")
 ls_abmi <- read.csv("e:/peter/bam/May2015/ABMI_XY_JDStart_DD5.csv")
@@ -772,7 +778,8 @@ levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
 
 
 ## combine dat, dat2 and pc pc2
-dat <- rbind(dat, dat2[,colnames(dat)])
+dat <- rbind(dat[!(dat$BCR %in% c(11, 22)),], 
+    dat2[dat2$NR != "Grassland", colnames(dat)])
 pc <- rbind(pc, pc2[,colnames(pc)])
 pc <- droplevels(pc)
 
