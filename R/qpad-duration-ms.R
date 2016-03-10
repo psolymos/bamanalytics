@@ -91,6 +91,7 @@ ff <- list(
 ## crosstab for species
 xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
 xtDur[["NONE"]] <- NULL
+SPP <- names(xtDur)
 
 fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
@@ -144,7 +145,6 @@ fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
 }
 
 
-SPP <- names(xtDur)
 resDur <- vector("list", length(SPP))
 for (i in 1:length(SPP)) {
     cat("Singing rate data check for", SPP[i], "\n")
