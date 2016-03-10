@@ -642,7 +642,7 @@ with(PCTBL_abmi, table(period123, period1))
 dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","YEAR","TSSR","JDAY","JULIAN",
     "srise","start_time","MAXDUR","MAXDIS","METHOD","DURMETH","DISMETH","ROAD")],
     SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2",
-    "BCR","JURS","SPRNG","DD51","X","Y","BCR")], NR=NA)
+    "BCR","JURS","SPRNG","DD51","X","Y")], NR=NA)
 dat <- dat[dat$ROAD == 0,]
 rownames(dat) <- dat$PKEY
 ii <- intersect(dat$PKEY, levels(PCTBL$PKEY))
@@ -682,7 +682,7 @@ dat2 <- with(PKEY_abmi, data.frame(
     LCC_combo=NA,
     HAB_NALC1=NA,
     HAB_NALC2=NA,
-    BCR=6,
+    BCR=factor("6", levels(dat$BCR)),
     JURS=factor("AB", levels=levels(dat$JURS)),
     SPRNG=NA,
     X=long,

@@ -22,7 +22,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-09.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-10.Rdata"))
 
 ### Removal sampling
 
