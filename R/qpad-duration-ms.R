@@ -189,9 +189,9 @@ n.min <- 25 # (max df = 5, 5*5=25)
 
 cat(type, "\n")
 if (type == "rem")
-    load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_rem.Rdata"))
+    load(file.path(ROOT2, "estimates_SRA_QPAD_v2016_rem.Rdata"))
 if (type == "mix")
-    load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_mix.Rdata"))
+    load(file.path(ROOT2, "estimates_SRA_QPAD_v2016_mix.Rdata"))
 
 ## 0/1 table for successful model fit
 sra_mod <- t(sapply(resDur, function(z)
@@ -289,7 +289,7 @@ sra_estimates <- resDur[spp]
 
 ## species table
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-02.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-10.Rdata"), envir=e)
 tax2 <- e$TAX
 #rownames(tax2) <- tax2$Species_ID
 tax2 <- nonDuplicated(tax2, Species_ID, TRUE)
