@@ -11,7 +11,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-02.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-10.Rdata"))
 
 ## non NA subset for duration related estimates
 pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE","X","Y")]
@@ -85,13 +85,13 @@ load(file.path(ROOT2, "BAMCOEFS_duration_mix.rda"), envir=e)
 compare_sets(names(.BAMCOEFSrem$sra_n), names(.BAMCOEFSmix$sra_n))
 
 SPPfull <- sort(names(.BAMCOEFSrem$sra_n)[.BAMCOEFSrem$sra_n >= 25])
-SPPfull <- SPPfull[!(SPPfull %in% c("CBCH","CORE","PSFL","RBSA"))]
+#SPPfull <- SPPfull[!(SPPfull %in% c("CBCH","CORE","PSFL","RBSA"))]
 
 sptab <- .BAMCOEFSrem$spp_table[SPPfull,]
 sptab$nfull <- .BAMCOEFSrem$sra_n[SPPfull]
 
 SPPmix <- sort(names(.BAMCOEFSmix$sra_n)[.BAMCOEFSmix$sra_n >= 25])
-SPPmix <- SPPmix[!(SPPmix %in% c("BOBO","CLSW","DUFL","SAPH","STGR","VGSW"))]
+#SPPmix <- SPPmix[!(SPPmix %in% c("BOBO","CLSW","DUFL","SAPH","STGR","VGSW"))]
 
 sptab$model <- factor("rem", c("rem","mix","both"))
 sptab[SPPmix, "model"] <- "both"
@@ -172,16 +172,18 @@ plot(sptab[SPP, "nfull"], waic[,"m0_0"] + waic[,"mb_0"], log="x", ylim=c(0,1),
 
 MAX <- 5000
 nn <- 25:MAX
-ww <- sapply(nn, function(z) mean((rowSums(waic[,grepl("_0", colnames(waic))]))[np >= z]))
-ww2 <- sapply(nn, function(z) mean((rowSums(waic[,grepl("mb_", colnames(waic))]))[np >= z]))
+ww <- sapply(nn, function(z) mean((rowSums(waic[,grepl("_0", 
+    colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
+ww2 <- sapply(nn, function(z) mean((rowSums(waic[,grepl("mb_", 
+    colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
 
 par(mfrow=c(1,2))
 plot(nn, 100*(1-ww), type="l", ylim=100*c(0.75, 1), xlab="Number of detections",
     ylab="% time varying", xlim=c(0,MAX))
-rug(np)
+rug(sptab[rownames(waic), "nfull"])
 plot(nn, 100*ww2, type="l", ylim=100*c(0.75, 1), xlab="Number of detections",
     ylab="% mixture", xlim=c(0,MAX))
-rug(np)
+rug(sptab[rownames(waic), "nfull"])
 
 table(Timevar=!grepl("_0", best), Mixture=grepl("mb_", best))
 
