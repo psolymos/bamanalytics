@@ -71,7 +71,16 @@ points(pkDur[, c("X","Y")], pch=".",
 points(X0[rowSums(!is.na(D)) > 1, c("X","Y")], pch=19,
     col="red", cex=0.3)
 
+ld <- data.frame(table(pkDur$DURMETH))
+rownames(ld) <- ld[,1]
+ld <- data.frame(ld, ltdur$end[rownames(ld),])
+ld <- ld[rowSums(!is.na(ltdur$end[rownames(ld),])) > 1,]
 
+## data summaries
+pkDurOK <- droplevels(pkDur[pkDur$DURMETH %in% rownames(ld),])
+str(pkDurOK)
+
+## species
 e <- new.env()
 load(file.path(ROOT2, "BAMCOEFS_duration_rem.rda"), envir=e)
 .BAMCOEFSrem <- e$.BAMCOEFS
@@ -82,16 +91,25 @@ load(file.path(ROOT2, "BAMCOEFS_duration_mix.rda"), envir=e)
 
 ## species where rem model sample size is at least 25
 
+sb <- read.csv(file.path(ROOT2, "duration-ms-species_3Mar2016.csv"))
+rownames(sb) <- sb$Species_ID
+
 compare_sets(names(.BAMCOEFSrem$sra_n), names(.BAMCOEFSmix$sra_n))
 
 SPPfull <- sort(names(.BAMCOEFSrem$sra_n)[.BAMCOEFSrem$sra_n >= 25])
+table(sb[SPPfull, "Singing_birds"])
+## this comes from checking M0/Mb estimates (all BAM scale)
+SPPfull <- SPPfull[!(SPPfull %in% c("CBCH", "CORE", "PAWR", "PSFL", "RBSA"))]
+
+## it is already a subset
 #SPPfull <- SPPfull[!(SPPfull %in% c("CBCH","CORE","PSFL","RBSA"))]
 
 sptab <- .BAMCOEFSrem$spp_table[SPPfull,]
 sptab$nfull <- .BAMCOEFSrem$sra_n[SPPfull]
 
 SPPmix <- sort(names(.BAMCOEFSmix$sra_n)[.BAMCOEFSmix$sra_n >= 25])
-#SPPmix <- SPPmix[!(SPPmix %in% c("BOBO","CLSW","DUFL","SAPH","STGR","VGSW"))]
+SPPmix <- SPPmix[!(SPPmix %in% c("BEKI", "BWWA", "CERW", "CLSW", "DUFL", "MOBL", 
+    "PAWR", "WEME", "WILL"))]
 
 sptab$model <- factor("rem", c("rem","mix","both"))
 sptab[SPPmix, "model"] <- "both"
@@ -115,8 +133,8 @@ sptab$Mb_c <- cfallb[match(SPPfull, SPP),"c"]
 
 ##
 
-plot(X0$JDAY, X0$TSSR, pch=19, cex=1.2, col=rgb(0,0,0,0.1))
-contour(kde2d(X0$JDAY, X0$TSSR), add=TRUE, col=2)
+#plot(pkDurOK$JDAY, pkDurOK$TSSR, pch=19, cex=1.2, col=rgb(0,0,0,0.1))
+#contour(kde2d(pkDurOK$JDAY, pkDurOK$TSSR), add=TRUE, col=2)
 
 Projects <- table(droplevels(X0$PCODE))
 SppOcc <- sapply(SPPfull, function(z) sum(rowSums(xtDur[[z]][rn,], na.rm=TRUE)>0)/length(rn))
@@ -225,6 +243,12 @@ sptab$Mb_best <- bestb[match(SPPfull, SPP)]
 sptab$Both_best <- best[match(SPPfull, SPP)]
 sptab$Occ <- SppOcc
 sptab$Ymean <- SppYmean
+
+## check if values are sensible
+rownames(sptab)[sptab$M0_phi < 0.01]
+rownames(sptab)[!is.na(sptab$Mb_phi) & sptab$Mb_phi < 0.01]
+rownames(sptab)[!is.na(sptab$Mb_phi) & sptab$Mb_c < 0.01]
+
 write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "spptab.csv"))
 
 tt <- seq(0, 11, len=1000)
@@ -272,6 +296,8 @@ summary(aaa)
 dim(aaa)
 aaa$Mixture <- ifelse(aaa$Model %in% c("b","bt"), 1, 0)
 aaa$Timevar <- ifelse(aaa$Model %in% c("0t","bt"), 1, 0)
+aaa$logBias <- log(aaa$Bias + 0.5)
+aaa$logVar <- log(aaa$Var + 0.5)
 
 library(lme4)
 m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
@@ -286,8 +312,8 @@ cbind(fixef(m2m), coef(m2))
 #m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn)^2, aaa)
 m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
 m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn)^2, aaa)
-m1 <- step(m1)
-m2 <- step(m2)
+#m1 <- step(m1)
+#m2 <- step(m2)
 
 #m1 <- lm(Var ~ Model + Duration + logn, aaa)
 #m2 <- lm(Bias ~ Model + Duration + logn, aaa)
@@ -300,6 +326,10 @@ a2 <- anova(update(m2, . ~ . + Species))
 a2$Perc <- 100 * a2[,"Sum Sq"] / sum(a2[,"Sum Sq"])
 a1
 a2
+
+bbb <- round(data.frame(Bias=coef(summary(m2))[,c(1,2,4)], Bias.Perc=a2[-nrow(a2),"Perc"],
+    Var=coef(summary(m1))[,c(1,2,4)], Var.Perc=a1[-nrow(a1),"Perc"]), 4)
+write.csv(bbb, file=file.path(ROOT2, "var-bias-tab.csv"))
 
 ng <- 1:200
 sf <- function(x) quantile(x, 0.9, na.rm=TRUE)
@@ -541,10 +571,10 @@ with(sptab, plot(p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
 with(sptab, plot(p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
 
 with(sptab, plot(1/p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
-    xlim=c(1,5), ylim=c(1,5)))
+    xlim=c(1,10), ylim=c(1,10)))
 abline(0,1)
 with(sptab, plot(1/p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
-    xlim=c(1,5), ylim=c(1,5)))
+    xlim=c(1,10), ylim=c(1,10)))
 abline(0,1)
 
 ## m0t mbt prediction
