@@ -571,7 +571,7 @@ with(sptab, plot(p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
 with(sptab, plot(p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
 
 with(sptab, plot(1/p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
-    xlim=c(1,10), ylim=c(1,10)))
+    xlim=c(1,5), ylim=c(1,5)))
 abline(0,1)
 with(sptab, plot(1/p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
     xlim=c(1,10), ylim=c(1,10)))
