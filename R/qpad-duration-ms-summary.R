@@ -563,6 +563,8 @@ sptab[sptab$common_name %in% setdiff(sptab$common_name, pif$Common.Name),]
 sptab$tadj <- pif$Time.Adjust[match(sptab$common_name, pif$Common.Name)]
 sptab$p30 <- 1-exp(-3*sptab$M0_phi)
 sptab$p3b <- 1-sptab$Mb_c*exp(-3*sptab$Mb_phi)
+sptab$bias0 <- (1/sptab$p30) / sptab$tadj
+sptab$biasb <- (1/sptab$p3b) / sptab$tadj
 
 with(sptab, plot(p30, p3b, cex=0.2+0.02*sqrt(sptab$nfull)))
 abline(0,1)
