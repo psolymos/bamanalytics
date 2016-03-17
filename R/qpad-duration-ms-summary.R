@@ -175,6 +175,8 @@ waic <- t(apply(aic, 1, function(z) {
     w <- exp(-dAIC/2)
     w/sum(w)
 }))
+waic0b <- waic[,1:15] + waic[,16:30]
+colnames(waic0b) <- colnames(waic0)
 
 best0 <- as.character(0:14)[apply(aic0, 1, which.min)]
 bestb <- as.character(0:14)[apply(aicb, 1, which.min)]
@@ -265,16 +267,19 @@ matplot(tt, matb, type="l", lty=1, main="B",
     col=rgb(50,50,50,50,maxColorValue=255), lwd=2)
 abline(v=c(3,5,10))
 
-save(sptab, Projects, Support,
+
+
+## model support
+data.frame(w_avg=sort(colMeans(waic0b)))
+best0b <- find_max(waic0b)$index
+names(best0b) <- rownames(waic0b)
+df0b <- (1+c(0,1,1,2,2,2,3,3,4,1,2,2,3,3,4))[best0b]
+
+save(sptab, Projects, Support, waic0, waicb, waic, waic0b, best0, bestb, best, best0b,
     file=file.path(ROOT2, "this-and-that.Rdata"))
 
-
-
-
-
-
-
-
+plot(jitter(df0b), log(sptab[names(best0b),"nfull"]))
+abline(lm(log(sptab[names(best0b),"nfull"]) ~ df0b))
 
 load(file.path(ROOT2, "this-and-that.Rdata"))
 
