@@ -187,7 +187,7 @@ getFancyMid <- function(res, mods) {
 }
 #getFancyMid(res, mods)
 #getFancyMid(allres, mods, allspp=TRUE)
-getFancyMidTab <- function(res, mods, ...) {
+getFancyMidTab <- function(res, mods, truncate=50, ...) {
     x <- getFancyMid(res, mods, ...)
     for (i in 1:length(x)) {
         x[[i]] <- data.frame(Stage=rep(names(x)[i], nrow(x[[i]])),
@@ -197,6 +197,8 @@ getFancyMidTab <- function(res, mods, ...) {
     }
     out <- do.call(rbind, x)
     rownames(out) <- NULL
+    out$Terms <- as.factor(out$Terms)
+    levels(out$Terms) <- substr(levels(out$Terms), 1, truncate)
     out
 }
 getFancyModsTab <- function(mods, chmax=60) {
