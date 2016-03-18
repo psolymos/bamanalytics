@@ -437,6 +437,17 @@ PCTBL <- droplevels(PCTBL[keeppkey,])
 ## Excluding non-aerial detections
 keep <- rep(TRUE, nrow(PCTBL))
 keep[!(PCTBL$BEH %in% c("1","6","11"))] <- FALSE
+
+if (FALSE) {
+PCTBL$YEAR <- PKEY$YEAR[match(PCTBL$PKEY, PKEY$PKEY)]
+PCTBL$JURS <- SS$JURS[match(PCTBL$SS, SS$SS)]
+#PCTBL <- PCTBL[PCTBL$JURS=="AB" & PCTBL$PCODE=="BBS",]
+table(PCTBL$YEAR, PCTBL$BEH)
+PCTBL$YEAR <- PKEY$YEAR[match(PCTBL$PKEY, PKEY$PKEY)]
+PCTBL$JURS <- SS$JURS[match(PCTBL$SS, SS$SS)]
+with(PCTBL, aggregate(ABUND, list(Yr=YEAR), sum))
+}
+
 ## check species with high visual detection rates
 if (FALSE) {
     xtx <- Xtab(ABUND ~ SPECIES + BEH, PCTBL)
@@ -804,13 +815,27 @@ table(pcc=droplevels(pcc$DURMET), pkk=droplevels(pkk$DURMET), useNA="a")
 }
 
 
+save(dat, pc, ltdur, ltdis, TAX,
+    file=file.path(ROOT, "out",
+    paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
+
 save(dat2, pc2, 
     file=file.path(ROOT, "out",
     paste0("abmi_data_package_", Sys.Date(), ".Rdata")))
 
-save(dat, pc, ltdur, ltdis, TAX,
-    file=file.path(ROOT, "out",
-    paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
+PCTBL$YEAR <- PKEY$YEAR[match(PCTBL$PKEY, PKEY$PKEY)]
+PCTBL$JURS <- SS$JURS[match(PCTBL$SS, SS$SS)]
+with(PCTBL[PCTBL$JURS=="AB" & PCTBL$PCODE=="BBS",], aggregate(ABUND, list(Yr=YEAR), sum))
+
+chf <- function() {
+PCTBL$YEAR <- PKEY$YEAR[match(PCTBL$PKEY, PKEY$PKEY)]
+PCTBL$JURS <- SS$JURS[match(PCTBL$SS, SS$SS)]
+with(PCTBL[PCTBL$JURS=="AB" & PCTBL$PCODE=="BBS",], aggregate(ABUND, list(Yr=YEAR), sum))
+}
+
+pcbbs$YEAR <- PKEY$YEAR[match(pcbbs$PKEY, PKEY$PKEY)]
+pcbbs$JURS <- SS$JURS[match(pcbbs$SS, SS$SS)]
+with(pcbbs[pcbbs$JURS=="AB",], aggregate(ABUND, list(Yr=YEAR), sum))
 
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT, "out",
