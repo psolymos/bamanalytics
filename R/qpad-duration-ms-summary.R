@@ -197,12 +197,12 @@ ww <- sapply(nn, function(z) mean((rowSums(waic[,grepl("_0",
 ww2 <- sapply(nn, function(z) mean((rowSums(waic[,grepl("mb_", 
     colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
 
-par(mfrow=c(1,2))
-plot(nn, 100*(1-ww), type="l", ylim=100*c(0.75, 1), xlab="Number of detections",
-    ylab="% time varying", xlim=c(0,MAX))
+par(mfrow=c(1,2), las=1)
+plot(nn, 100*(1-ww), type="l", ylim=100*c(0.75, 1), xlab="Sample size",
+    ylab="% time varying", xlim=c(0,MAX), lwd=2)
 rug(sptab[rownames(waic), "nfull"])
-plot(nn, 100*ww2, type="l", ylim=100*c(0.75, 1), xlab="Number of detections",
-    ylab="% mixture", xlim=c(0,MAX))
+plot(nn, 100*ww2, type="l", ylim=100*c(0.75, 1), xlab="Sample size",
+    ylab="% mixture", xlim=c(0,MAX), lwd=2)
 rug(sptab[rownames(waic), "nfull"])
 
 table(Timevar=!grepl("_0", best), Mixture=grepl("mb_", best))
@@ -251,18 +251,18 @@ rownames(sptab)[sptab$M0_phi < 0.01]
 rownames(sptab)[!is.na(sptab$Mb_phi) & sptab$Mb_phi < 0.01]
 rownames(sptab)[!is.na(sptab$Mb_phi) & sptab$Mb_c < 0.01]
 
-write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "spptab.csv"))
+#write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "spptab.csv"))
 
 tt <- seq(0, 11, len=1000)
 mat0 <- sapply(SPPfull, function(z) 1-exp(-tt*cfall0[z, 1]))
 matb <- sapply(SPP, function(z) 1-cfallb[z, "c"]*exp(-tt*cfallb[z, "phi_b"]))
 
-par(mfrow=c(1,2))
-matplot(tt, mat0, type="l", lty=1, main="A",
+par(mfrow=c(1,2), las=1)
+matplot(tt, mat0, type="l", lty=1, main="M0",
     xlab="Point count duration (minutes)", ylab="P(availability)",
     col=rgb(50,50,50,50,maxColorValue=255), lwd=2)
 abline(v=c(3,5,10))
-matplot(tt, matb, type="l", lty=1, main="B",
+matplot(tt, matb, type="l", lty=1, main="Mb",
     xlab="Point count duration (minutes)", ylab="P(availability)",
     col=rgb(50,50,50,50,maxColorValue=255), lwd=2)
 abline(v=c(3,5,10))
@@ -304,13 +304,16 @@ aaa$Timevar <- ifelse(aaa$Model %in% c("0t","bt"), 1, 0)
 aaa$logBias <- log(aaa$Bias + 0.5)
 aaa$logVar <- log(aaa$Var + 0.5)
 
+## retain species where both models worked fine
+aaa <- droplevels(aaa[aaa$Species %in% SPP,])
+
 library(lme4)
 m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
 m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn)^2, aaa)
 m1m <- lmer(Var ~ (Mixture + Timevar + Duration + logn)^2 + (1 | Species), aaa)
 m2m <- lmer(Bias ~ (Mixture + Timevar + Duration + logn)^2 + (1 | Species), aaa)
-cbind(fixef(m1m), coef(m1))
-cbind(fixef(m2m), coef(m2))
+round(cbind(fixef(m1m), coef(m1)), 4)
+round(cbind(fixef(m2m), coef(m2)), 4)
 ## minor diffs: use lm
 
 #m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
@@ -336,7 +339,7 @@ bbb <- round(data.frame(Bias=coef(summary(m2))[,c(1,2,4)], Bias.Perc=a2[-nrow(a2
     Var=coef(summary(m1))[,c(1,2,4)], Var.Perc=a1[-nrow(a1),"Perc"]), 4)
 write.csv(bbb, file=file.path(ROOT2, "var-bias-tab.csv"))
 
-ng <- 1:200
+ng <- 2:220
 sf <- function(x) quantile(x, 0.9, na.rm=TRUE)
 maxVar <- cbind(max3_0 = sapply(ng, function(z)
         sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
@@ -374,12 +377,35 @@ maxBias <- cbind(max3_0 = sapply(ng, function(z)
 par(mfrow=c(4,2))
 for (i in c(1,3,5,7)+1) {
 plot(ng, maxVar[,i], main=paste("Var", colnames(maxVar)[i]),
-    type="l", lwd=2, col=2, ylim=c(0, max(maxVar)))
+    type="l", lwd=2, col=2, ylim=c(0, max(maxVar)), xlim=c(2,200))
 lines(ng, maxVar[,i-1], lty=2, col=2, lwd=2)
 plot(ng, maxBias[,i], main=paste("Bias", colnames(maxVar)[i]),
-    type="l", lwd=2, col=2, ylim=c(min(maxBias), max(maxBias)))
+    type="l", lwd=2, col=2, ylim=c(0, max(maxBias)))
 lines(ng, maxBias[,i-1], lty=2, col=2, lwd=2)
 }
+
+MOD <- c("M0", "M0", "Mb", "Mb", "M0t", "M0t", "Mbt", "Mbt")
+par(mfrow=c(4,2), las=1)
+for (i in c(1,3,5,7)+1) {
+plot(ng, maxVar[,i], main=paste("Variance", MOD[i]),
+    xlab="Sample size", ylab="Variance",
+    type="n", lwd=2, col=2, ylim=c(0, max(maxVar)), xlim=c(2,200))
+polygon(c(ng, rev(ng)), c(maxVar[,i-1], rep(-1, length(ng))),
+    col="grey", border="grey")
+polygon(c(ng, rev(ng)), c(maxVar[,i], rep(-1, length(ng))),
+    col="black")
+box()
+
+plot(ng, maxBias[,i], main=paste("Bias", MOD[i]),
+    xlab="Sample size", ylab="Bias",
+    type="n", lwd=2, col=2, ylim=c(0, max(maxBias)), xlim=c(2,200))
+polygon(c(ng, rev(ng)), c(maxBias[,i-1], rep(-1, length(ng))),
+    col="grey", border="grey")
+polygon(c(ng, rev(ng)), c(maxBias[,i], rep(-1, length(ng))),
+    col="black")
+box()
+}
+
 
 ## =============================================================================
 ## species specific predictions plots
@@ -416,15 +442,20 @@ datb$phi <- sptab$M0_phi[match(datb$spp, sptab$spp)]
 datb$occ <- sptab$Occ[match(datb$spp, sptab$spp)]
 datb$ym <- sptab$Ymean[match(datb$spp, sptab$spp)]
 
-dat0 <- dat0[dat0$spp %in% rownames(sptab),]
-datb <- datb[datb$spp %in% rownames(sptab),]
+dat0 <- droplevels(dat0[dat0$spp %in% SPPfull,])
+datb <- droplevels(datb[datb$spp %in% SPPfull,])
+
+#m1 <- glm(okfit ~ ndet, dat0, family=binomial)
+#m2 <- glm(okfit ~ log(ndet), dat0, family=binomial)
+#m3 <- glm(okfit ~ sqrt(ndet), dat0, family=binomial)
+#AIC(m1,m2,m3) # log(n) is best
 
 summary(m0x <- glm(okfit ~ log(ndet), dat0, family=binomial))
 summary(m0xs <- glm(okse ~ log(ndet), dat0, family=binomial))
 summary(mbx <- glm(okfit ~ log(ndet), datb, family=binomial))
 summary(mbxs <- glm(okse ~ log(ndet), datb, family=binomial))
 
-vnd <- seq(2, 500, len=100)
+vnd <- seq(2, 1400, len=100)
 df <- data.frame(ndet=vnd)
 X <- model.matrix(delete.response(terms(m0x)), df)
 
@@ -433,15 +464,26 @@ fit0s <- plogis(drop(X %*% coef(m0xs)))
 fitb <- plogis(drop(X %*% coef(mbx)))
 fitbs <- plogis(drop(X %*% coef(mbxs)))
 
-plot(vnd, fit0, col=2, ylim=c(0,1), type="l")
-lines(vnd, fit0s, col=2, lty=2)
-lines(vnd, fitb, col=4, lty=1)
-lines(vnd, fitbs, col=4, lty=2)
-abline(h=0.9, lty=1)
-abline(v=vnd[which.min(abs(fit0-0.9))], col=2)
-abline(v=vnd[which.min(abs(fitb-0.9))], col=4)
-legend("bottomright", col=c(2,2,4,4), lty=c(1,2,1,2), lwd=1,
-    legend=c("m0 fit", "m0 SE", "mb fit", "mb SE"), bty="n")
+par(las=1)
+plot(vnd, fit0, col=1, ylim=c(0,1), type="n", lwd=2,
+    xlab="Sample size", ylab="Probability of success")
+abline(h=0.9, lty=1, col="grey")
+lines(vnd, fit0, col=1, lty=1, lwd=2)
+lines(vnd, fitb, col=1, lty=2, lwd=2)
+lines(vnd, fitbs, col=1, lty=3, lwd=2)
+#abline(v=vnd[which.min(abs(fit0-0.9))], col=2, lty=2)
+#abline(v=vnd[which.min(abs(fitb-0.9))], col=4, lty=2)
+#abline(v=vnd[which.min(abs(fit0s-0.9))], col=2, lty=2)
+#abline(v=vnd[which.min(abs(fitbs-0.9))], col=4, lty=2)
+legend("bottomright", col=1, lty=c(1,2,3), lwd=2, bty="n",
+    legend=c(
+        paste0("M0 fit & SE (90% = ", ceiling(vnd[which.min(abs(fit0-0.9))]), ")"),
+        paste0("Mb fit (90% = ", ceiling(vnd[which.min(abs(fitb-0.9))]), ")"),
+        paste0("M0 SE (90% = ", ceiling(vnd[which.min(abs(fitbs-0.9))]), ")")))
+ceiling(vnd[which.min(abs(fit0-0.9))])
+ceiling(vnd[which.min(abs(fitb-0.9))])
+ceiling(vnd[which.min(abs(fit0s-0.9))])
+ceiling(vnd[which.min(abs(fitbs-0.9))])
 
 
 with(dat0[dat0$okse==1,], plot(logphi, se_logphi))
