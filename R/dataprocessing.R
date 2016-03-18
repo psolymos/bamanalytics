@@ -823,6 +823,7 @@ save(dat2, pc2,
     file=file.path(ROOT, "out",
     paste0("abmi_data_package_", Sys.Date(), ".Rdata")))
 
+if (FALSE) {
 PCTBL$YEAR <- PKEY$YEAR[match(PCTBL$PKEY, PKEY$PKEY)]
 PCTBL$JURS <- SS$JURS[match(PCTBL$SS, SS$SS)]
 with(PCTBL[PCTBL$JURS=="AB" & PCTBL$PCODE=="BBS",], aggregate(ABUND, list(Yr=YEAR), sum))
@@ -836,6 +837,7 @@ with(PCTBL[PCTBL$JURS=="AB" & PCTBL$PCODE=="BBS",], aggregate(ABUND, list(Yr=YEA
 pcbbs$YEAR <- PKEY$YEAR[match(pcbbs$PKEY, PKEY$PKEY)]
 pcbbs$JURS <- SS$JURS[match(pcbbs$SS, SS$SS)]
 with(pcbbs[pcbbs$JURS=="AB",], aggregate(ABUND, list(Yr=YEAR), sum))
+}
 
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT, "out",
