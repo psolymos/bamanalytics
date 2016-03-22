@@ -252,13 +252,13 @@ sum(bestx %in% c(hasJD, hasLS)) * 100 / length(SPP)
 ## JDAY or TSLS & TSSR
 sum(bestx %in% intersect(c(hasJD, hasLS), hasSR)) * 100 / length(SPP)
 
-summary(rowSums(waic[,hasJD]))
-summary(rowSums(waic[,hasSR]))
-summary(rowSums(waic[,hasLS]))
-summary(rowSums(waic[,union(hasJD, hasLS)]))
-summary(rowSums(waic[,union(hasSR, hasJD)]))
-summary(rowSums(waic[,union(hasSR, hasLS)]))
-summary(rowSums(waic[,union(union(hasSR, hasJD), hasLS)]))
+mean(rowSums(waic[,hasJD]))
+mean(rowSums(waic[,hasSR]))
+mean(rowSums(waic[,hasLS]))
+mean(rowSums(waic[,union(hasJD, hasLS)]))
+mean(rowSums(waic[,union(hasSR, hasJD)]))
+mean(rowSums(waic[,union(hasSR, hasLS)]))
+mean(rowSums(waic[,union(union(hasSR, hasJD), hasLS)]))
 
 sptab$M0_best <- best0
 sptab$Mb_best <- bestb[match(SPPfull, SPP)]
@@ -313,7 +313,6 @@ aaa <- data.frame(Var=as.numeric(sapply(res2, "[[", "Var")),
     Model=rep(c("0","b","0t","bt"), each=2),
     Duration=c("3","5"),
     Species=as.factor(rep(names(res2), each=8)))
-aaa$B2 <- aaa$MSE - aaa$Var
 aaa$n <- nob[match(aaa$Species, names(nob))]
 aaa$logn <- log(aaa$n)
 dim(aaa)
@@ -322,8 +321,8 @@ summary(aaa)
 dim(aaa)
 aaa$Mixture <- ifelse(aaa$Model %in% c("b","bt"), 1, 0)
 aaa$Timevar <- ifelse(aaa$Model %in% c("0t","bt"), 1, 0)
-aaa$logBias <- log(aaa$Bias + 0.5)
-aaa$logVar <- log(aaa$Var + 0.5)
+#aaa$logBias <- log(aaa$Bias + 0.5)
+#aaa$logVar <- log(aaa$Var + 0.5)
 
 ## retain species where both models worked fine
 aaa <- droplevels(aaa[aaa$Species %in% SPP,])
@@ -388,49 +387,123 @@ sptab$Resid_var <- zz$var_res[match(rownames(sptab), rownames(zz))]
 write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "tabfig", "spptab.csv"))
 
 
-ng <- 2:220
-sf <- function(x) quantile(x, 0.9, na.rm=TRUE)
-maxVar <- cbind(max3_0 = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
+ng <- 2:400
+sf0 <- function(x) quantile(x, 0.5, na.rm=TRUE)
+sf1 <- function(x) quantile(x, 0.9, na.rm=TRUE)
+sf2 <- function(x) quantile(x, 0.95, na.rm=TRUE)
+sf3 <- function(x) quantile(x, 0.05, na.rm=TRUE)
+maxVar1 <- cbind(max3_0 = sapply(ng, function(z)
+        sf2(aaa$Var[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
     max5_0 = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
+        sf2(aaa$Var[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
     max3_b = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
+        sf2(aaa$Var[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
     max5_b = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
+        sf2(aaa$Var[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
     max3_0t = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
+        sf2(aaa$Var[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
     max5_0t = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
+        sf2(aaa$Var[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
     max3_bt = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
+        sf2(aaa$Var[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
     max5_bt = sapply(ng, function(z)
-        sf(aaa$Var[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
-maxBias <- cbind(max3_0 = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
+        sf2(aaa$Var[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
+maxVar2 <- cbind(max3_0 = sapply(ng, function(z)
+        sf3(aaa$Var[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
     max5_0 = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
+        sf3(aaa$Var[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
     max3_b = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
+        sf3(aaa$Var[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
     max5_b = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
+        sf3(aaa$Var[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
     max3_0t = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
+        sf3(aaa$Var[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
     max5_0t = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
+        sf3(aaa$Var[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
     max3_bt = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
+        sf3(aaa$Var[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
     max5_bt = sapply(ng, function(z)
-        sf(aaa$Bias[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
+        sf3(aaa$Var[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
+maxVar0 <- cbind(max3_0 = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
+    max5_0 = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
+    max3_b = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
+    max5_b = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
+    max3_0t = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
+    max5_0t = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
+    max3_bt = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
+    max5_bt = sapply(ng, function(z)
+        sf0(aaa$Var[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
+maxBias0 <- cbind(max3_0 = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
+    max5_0 = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
+    max3_b = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
+    max5_b = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
+    max3_0t = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
+    max5_0t = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
+    max3_bt = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
+    max5_bt = sapply(ng, function(z)
+        sf0(aaa$Bias[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
+maxBias1 <- cbind(max3_0 = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
+    max5_0 = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
+    max3_b = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
+    max5_b = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
+    max3_0t = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
+    max5_0t = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
+    max3_bt = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
+    max5_bt = sapply(ng, function(z)
+        sf2(aaa$Bias[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
+maxBias2 <- cbind(max3_0 = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0" & aaa$n >= z])),
+    max5_0 = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0" & aaa$n >= z])),
+    max3_b = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "3" & aaa$Model == "b" & aaa$n >= z])),
+    max5_b = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "5" & aaa$Model == "b" & aaa$n >= z])),
+    max3_0t = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "3" & aaa$Model == "0t" & aaa$n >= z])),
+    max5_0t = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "5" & aaa$Model == "0t" & aaa$n >= z])),
+    max3_bt = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "3" & aaa$Model == "bt" & aaa$n >= z])),
+    max5_bt = sapply(ng, function(z)
+        sf3(aaa$Bias[aaa$Duration == "5" & aaa$Model == "bt" & aaa$n >= z])))
 
 par(mfrow=c(4,2))
 for (i in c(1,3,5,7)+1) {
 plot(ng, maxVar[,i], main=paste("Var", colnames(maxVar)[i]),
-    type="l", lwd=2, col=2, ylim=c(0, max(maxVar)), xlim=c(2,200))
+    type="l", lwd=2, col=2, ylim=c(0, max(maxVar)))
 lines(ng, maxVar[,i-1], lty=2, col=2, lwd=2)
-plot(ng, maxBias[,i], main=paste("Bias", colnames(maxVar)[i]),
-    type="l", lwd=2, col=2, ylim=c(0, max(maxBias)))
-lines(ng, maxBias[,i-1], lty=2, col=2, lwd=2)
+lines(ng, maxVar0[,i], lty=1, col=4, lwd=2)
+lines(ng, maxVar0[,i-1], lty=2, col=4, lwd=2)
+plot(ng, maxBias1[,i], main=paste("Bias", colnames(maxVar)[i]),
+    type="l", lwd=2, col=2, ylim=range(maxBias1,maxBias2))
+lines(ng, maxBias1[,i-1], lty=2, col=2, lwd=2)
+lines(ng, maxBias2[,i], lty=1, col=2, lwd=2)
+lines(ng, maxBias2[,i-1], lty=2, col=2, lwd=2)
+lines(ng, maxBias0[,i], lty=1, col=4, lwd=2)
+lines(ng, maxBias0[,i-1], lty=2, col=4, lwd=2)
+abline(h=0)
 }
 
 MOD <- c("M0", "M0", "Mb", "Mb", "M0t", "M0t", "Mbt", "Mbt")
@@ -439,20 +512,25 @@ par(mfrow=c(4,2), las=1)
 for (i in c(1,3,5,7)+1) {
 plot(ng, maxVar[,i], main=paste("Variance", MOD[i]),
     xlab="Sample size", ylab="Variance",
-    type="n", lwd=2, col=2, ylim=c(0, max(maxVar)), xlim=c(2,200))
-polygon(c(ng, rev(ng)), c(maxVar[,i-1], rep(-1, length(ng))),
+    type="n", lwd=2, col=2, ylim=c(0,max(maxVar1, maxVar2)), xlim=c(2,400))
+polygon(c(ng, rev(ng)), c(maxVar1[,i-1], rev(maxVar2[,i-1])),
     col="grey", border="grey")
-polygon(c(ng, rev(ng)), c(maxVar[,i], rep(-1, length(ng))),
+polygon(c(ng, rev(ng)), c(maxVar1[,i], rev(maxVar2[,i])),
     col="black")
+#lines(ng, maxVar0[,i], lty=1, col="white", lwd=2)
+#lines(ng, maxVar0[,i-1], lty=2, col="white", lwd=2)
 box()
 
-plot(ng, maxBias[,i], main=paste("Bias", MOD[i]),
+plot(ng, maxBias1[,i], main=paste("Bias", MOD[i]),
     xlab="Sample size", ylab="Bias",
-    type="n", lwd=2, col=2, ylim=c(0, max(maxBias)), xlim=c(2,200))
-polygon(c(ng, rev(ng)), c(maxBias[,i-1], rep(-1, length(ng))),
+    type="n", lwd=2, col=2, 
+    ylim=max(abs(maxBias1),abs(maxBias2))*c(-1,1), xlim=c(2,400))
+polygon(c(ng, rev(ng)), c(maxBias1[,i-1], rev(maxBias2[,i-1])),
     col="grey", border="grey")
-polygon(c(ng, rev(ng)), c(maxBias[,i], rep(-1, length(ng))),
+polygon(c(ng, rev(ng)), c(maxBias1[,i], rev(maxBias2[,i])),
     col="black")
+lines(ng, maxBias0[,i], lty=1, col="white", lwd=2)
+lines(ng, maxBias0[,i-1], lty=2, col="white", lwd=2)
 box()
 }
 dev.off()
@@ -735,7 +813,7 @@ Xpk <- model.matrix(ff[["4"]], pkDur)
 Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur)
 sppTadj <- list()
 
-for (spp in SPP) {
+for (spp in rownames(sptab)[sptab$model == "both" & !is.na(sptab$tadj)]) {
 cf0 <- .BAMCOEFSrem$sra_estimates[[spp]][["4"]]$coefficients
 cfb <- .BAMCOEFSmix$sra_estimates[[spp]][["4"]]$coefficients
 best0 <- as.character((0:14)[which.max(waic0[spp,])])
@@ -758,8 +836,8 @@ tadjb2 <- max(p3bpk2) / mean(p3bpk2)
 sppTadj[[spp]] <- c(PIF=sptab[spp, "tadj"], 
     M0t_sr=tadj0, Mbt_sr=tadjb, 
     M0t_jdsr=tadj02, Mbt_jdsr=tadjb2,
-    M0t_sr_mean=mean(1/p30pk), Mbt_sr_mean=mean(1/p3bpk), 
-    M0t_jdsr_mean=mean(1/p30pk2), Mbt_jdsr_mean=mean(1/p3bpk2))
+    M0t_sr_mean=1/mean(p30pk), Mbt_sr_mean=1/mean(p3bpk), 
+    M0t_jdsr_mean=1/mean(p30pk2), Mbt_jdsr_mean=1/mean(p3bpk2))
 }
 
 sppTadj <- data.frame(do.call(rbind, sppTadj))
@@ -767,13 +845,14 @@ sppTadj <- data.frame(do.call(rbind, sppTadj))
 with(sppTadj, plot(PIF, M0t_sr_mean, ylim=c(0,5), xlim=c(0,5)))
 
 cn <- c("Mbt_jdsr_mean", "M0t_jdsr_mean", "Mbt_sr", "M0t_sr", "PIF")
+png(file.path(ROOT2, "tabfig", "FigX_tadj.png"), height=450, width=450)
 par(las=1, mar=c(5, 6, 4, 2) + 0.1)
 boxplot(sppTadj[,cn], 
     xlab="Time adjustment",
     ylim=c(1,5), horizontal=TRUE, col="grey",
     names=rev(c("Tadj (PIF)", "Tadj (M0t)", "Tadj (Mbt)", "1/p (M0t)", "1/p (Mbt)")))
 abline(v=median(sppTadj[,1], na.rm=TRUE))
-
+dev.off()
 
 ##
 
@@ -784,92 +863,10 @@ abline(v=median(sppTadj[,1], na.rm=TRUE))
 ## sra m0 vs mb models
 
 
-aic0 <- .BAMCOEFS$sra_aic
-aicb <- .BAMCOEFSmix$sra_aic
-colnames(aic0) <- paste0("m0_", colnames(aic0))
-colnames(aicb) <- paste0("mb_", colnames(aicb))
-SPP <- sort(intersect(rownames(aic0), rownames(aicb)))
-aic <- cbind(aic0[SPP,], aicb[SPP,])
-np <- sapply(SPP, function(z) selectmodelBAMspecies(z)$sra$nobs[1])
-
-waic0 <- t(apply(aic0, 1, function(z) {
-    dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
-    w/sum(w)
-}))
-waicb <- t(apply(aicb, 1, function(z) {
-    dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
-    w/sum(w)
-}))
-waic <- t(apply(aic, 1, function(z) {
-    dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
-    w/sum(w)
-}))
-
-best <- colnames(aic)[apply(aic, 1, which.min)]
-data.frame(table(best))
-by(np, best %in% c("m0_0", "mb_0"), summary)
-
-
 R <- 1000
+t <- 0:100/10
 
-cfall0 <- sapply(SPP, function(spp) exp(coefBAMspecies(spp, 0, 0)$sra))
-dim(cfall0) <- c(length(SPP), 1)
-dimnames(cfall0) <- list(SPP, "phi_0")
-cfallb <- t(sapply(SPP, function(spp) {
-    tmp <- unname(.BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients)
-    c(phi_b=exp(tmp[1]), c=plogis(tmp[2]))
-    }))
-
-t <- seq(0, 10, 0.1)
-pp0 <- sapply(SPP, function(spp) 1-exp(-t*cfall0[spp,"phi_0"]))
-ppb <- sapply(SPP, function(spp) 1-cfallb[spp,"c"]*exp(-t*cfallb[spp,"phi_b"]))
-
-f <- function(spp) {
-    cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
-    vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
-    !inherits(try(mvrnorm(R, cfi0b, vci0b)), "try-error")
-}
-OK <- sapply(SPP, f)
-table(OK)
-
-rownames(TAX) <- TAX$Species_ID
-tab <- droplevels(TAX[SPP,c("Species_ID", "English_Name", "Family_Sci")])
-tab$n <- np
-tab$OK <- OK
-tab$phi_0 <- round(cfall0[,1], 4)
-tab$phi_b <- round(cfallb[,1], 4)
-tab$c <- round(cfallb[,2], 4)
-
-write.csv(tab, row.names=FALSE, file=file.path(ROOT2, "duration-ms-species.csv"))
-
-SPP <- SPP[OK]
-
-w00 <- waic0[SPP,"m0_0"]
-w0b <- waicb[SPP,"mb_0"]
-w0 <- pmax(w00, w0b)
-H0 <- apply(waic0[SPP,], 1, function(z) sum(z^2))
-Hb <- apply(waicb[SPP,], 1, function(z) sum(z^2))
-H <- apply(waic[SPP,], 1, function(z) sum(z^2))
-n <- np[SPP]
-
-
-
-par(mfrow=c(1,3))
-plot(n, w00, pch=21, cex=1+2*H0, log="x")
-lines(n[order(n)], fitted(glm(w00 ~ n, family=binomial, weights=H0))[order(n)], col=2)
-plot(n, w0b, pch=21, cex=1+2*Hb, log="x")
-lines(n[order(n)], fitted(glm(w0b ~ n, family=binomial, weights=Hb))[order(n)], col=2)
-plot(n, w0, pch=21, cex=1+2*H, log="x")
-lines(n[order(n)], fitted(glm(w0 ~ n, family=binomial, weights=H))[order(n)], col=2)
-
-## best model is 0
-table((1:ncol(waic))[apply(waic[SPP,], 1, which.max)] <= 15)
-
-
-pdf(paste0(ROOT2, "/m0-vs-mb.pdf"), onefile=TRUE, width=10, height=12)
+pdf(file.path(ROOT2, "tabfig", "pred.pdf"), onefile=TRUE, width=10, height=12)
 for (spp in SPP) {
 
 cat(spp, "\n");flush.console()
@@ -879,18 +876,18 @@ wp <- waic0[spp,]
 wq <- waicb[spp,]
 names(wp) <- colnames(waic0)
 names(wq) <- colnames(waicb)
-wph <- waic[spp,names(wp)]
-wqh <- waic[spp,names(wq)]
+wph <- waic[spp,1:15]
+wqh <- waic[spp,16:30]
 names(wp) <- 0:14
 names(wq) <- 0:14
 
 
 ## covariate effects
-mi <- bestmodelBAMspecies(spp, type="AIC")
-cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
-vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
+mi0 <- as.character(0:14)[which.min(aicc0[spp,])]
+cfi0 <- .BAMCOEFSrem$sra_estimates[[spp]][[mi0]]$coefficients
+vci0 <- .BAMCOEFSrem$sra_estimates[[spp]][[mi0]]$vcov
 
-mib <- as.character(0:14)[which.min(aicb[spp,])]
+mib <- as.character(0:14)[which.min(aiccb[spp,])]
 cfib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$coefficients
 vcib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$vcov
 
@@ -903,8 +900,8 @@ vcib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$vcov
 # Max.   : 0.520   Max.   :0.641   Max.   : 0.442  
 # NA's   :8455     NA's   :5804    NA's   :17255  
 jd <- seq(0.35, 0.55, 0.01)
-ts <- seq(-0.3, 0.5, 0.01)
-ls <- seq(-0.1, 0.4, len=length(jd))
+ts <- seq(-0.25, 0.5, 0.01)
+ls <- seq(0, 0.3, len=length(jd))
 
 xp1 <- expand.grid(JDAY=jd, # ---------- CHECK !!!
     TSSR=ts)
@@ -925,13 +922,17 @@ colnames(Xp1)[1] <- "INTERCEPT"
 Xp2 <- model.matrix(~., xp2)
 colnames(Xp2)[1] <- "INTERCEPT"
 
-Xp <- if (mi$sra %in% c("9","10","11","12","13","14"))
+names(cfi0) <- sapply(strsplit(names(cfi0), "_"), "[[", 2)
+names(cfi0)[1] <- "INTERCEPT"
+names(cfi0)[names(cfi0) == "I(TSSR^2)"] <- "TSSR2"
+names(cfi0)[names(cfi0) == "I(TSLS^2)"] <- "TSLS2"
+names(cfi0)[names(cfi0) == "I(JDAY^2)"] <- "JDAY2"
+Xp <- if (mi0 %in% c("9","10","11","12","13","14"))
     Xp2 else Xp1
-Xp <- Xp[,names(cfi$sra),drop=FALSE]
-lphi1 <- drop(Xp %*% cfi$sra)
+Xp <- Xp[,names(cfi0),drop=FALSE]
+lphi1 <- drop(Xp %*% cfi0)
 pmat <- matrix(exp(lphi1), length(jd), length(ts))
-pmax <- sra_fun(10, max(exp(lphi1)))
-pmat <- sra_fun(3, pmat)
+pmat <- 1-exp(-3 * pmat)
 pmax <- 1
 
 Xpb <- if (mib %in% c("9","10","11","12","13","14"))
@@ -949,8 +950,8 @@ lphi1b <- 1-plogis(drop(Xpb %*% cfib2))*exp(-3*cfib1)
 pmatb <- matrix(lphi1b, length(jd), length(ts))
 
 ## CI for m0, m0
-cfi00 <- coefBAMspecies(spp, "0", mi$edr)$sra
-vci00 <- drop(vcovBAMspecies(spp, "0", mi$edr)$sra)
+cfi00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+vci00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$vcov
 phi00 <- exp(rnorm(R, cfi00, sqrt(vci00)))
 ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
 
@@ -959,44 +960,45 @@ vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
 pcf1b <- mvrnorm(R, cfi0b, vci0b)
 ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
 
+np <- .BAMCOEFSrem$sra_n
 
 op <- par(las=1, mfrow=c(3,2))
 
 barplot(wp, space=0, col=grey(1-wp), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", np[spp], ") v", getBAMversion(),
+    main=paste0(spp, " (n=", np[spp], ")", 
     " w0=", round(sum(wph),2)),
     ylab="Model weight", xlab="Model ID")
 barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", np[spp], ") v", getBAMversion(),
+    main=paste0(spp, " (n=", np[spp], ")", 
     " wb=", round(sum(wqh),2)),
     ylab="Model weight", xlab="Model ID")
 
-plot(t, pp0[,spp], type="n", ylim=c(0,1),
+plot(t, 1-exp(-t*exp(cfi00)), type="n", ylim=c(0,1),
      xlab="Point count duration (min)",
      ylab="Probability of singing")
 #polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
 #        col="grey", border="grey")
 #matlines(t, pp0, col="grey", lwd=1, lty=1)
 matlines(t, ci00, col="grey", lwd=1, lty=1)
-lines(t, pp0[,spp], col=1, lwd=2)
+lines(t, 1-exp(-t*exp(cfi00)), col=1, lwd=2)
 
-plot(t, ppb[,spp], type="n", ylim=c(0,1),
+plot(t, 1-plogis(cfi0b[2])*exp(-t*exp(cfi0b[1])), type="n", ylim=c(0,1),
      xlab="Point count duration (min)",
      ylab="Probability of singing")
 #polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
 #        col="grey", border="grey")
 #matlines(t, ppb, col="grey", lwd=1, lty=1)
 matlines(t, ci0b, col="grey", lwd=1, lty=1)
-lines(t, ppb[,spp], col=1, lwd=2)
+lines(t, 1-plogis(cfi0b[2])*exp(-t*exp(cfi0b[1])), col=1, lwd=2)
 
-xval <- if (mi$sra %in% c("9","10","11","12","13","14"))
+xval <- if (mi0 %in% c("9","10","11","12","13","14"))
     ls*365 else jd*365
 image(xval, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"), 
+    xlab=ifelse(mi0 %in% c("9","10","11","12","13","14"), 
         "Days since local springs", "Julian days"), 
     ylab="Hours since sunrise",
-    main=paste("Best model:", mi$sra))
+    main=paste("Best model:", mi0))
 box()
 
 xval <- if (mib %in% c("9","10","11","12","13","14"))
