@@ -617,7 +617,8 @@ xvfun <- function(spp, B=1000, ymin=1) {
 
     MSE <- colSums((theta_hat - theta)^2) / B
     Var <- colSums(t(t(theta_hat) - colMeans(theta_hat))^2) / B
-    Bias <- sqrt(MSE - Var)
+    #Bias <- sqrt(MSE - Var)
+    Bias <- colSums(theta_hat - theta) / B
     data.frame(MSE=MSE, Var=Var, Bias=Bias)
 }
 xtfun <- function(spp, ymin=1) {
