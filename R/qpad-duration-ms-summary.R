@@ -11,7 +11,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-10.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
 
 ## non NA subset for duration related estimates
 pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE","X","Y")]
@@ -219,7 +219,11 @@ best0bx <- sapply(strsplit(bestx, "_"), "[[", 2)
 Support <- t(sapply(as.character(0:14), function(z) {
     c(m0=sum(best0x == z), mb=sum(bestbx == z), Combined=sum(best0bx == z))
 }))
+Support <- cbind(Support, w0=colMeans(waic0),
+    wb=colMeans(waicb), w0b=colMeans(waic0b))
 Support
+write.csv(Support, file=file.path(ROOT2, "support.csv"))
+
 
 ## m0 and mb combined here, only spp >=25 det
 ## constant
@@ -239,6 +243,13 @@ sum(bestx %in% c(hasJD, hasLS)) * 100 / length(SPP)
 ## JDAY or TSLS & TSSR
 sum(bestx %in% intersect(c(hasJD, hasLS), hasSR)) * 100 / length(SPP)
 
+summary(rowSums(waic[,hasJD]))
+summary(rowSums(waic[,hasSR]))
+summary(rowSums(waic[,hasLS]))
+summary(rowSums(waic[,union(hasJD, hasLS)]))
+summary(rowSums(waic[,union(hasSR, hasJD)]))
+summary(rowSums(waic[,union(hasSR, hasLS)]))
+summary(rowSums(waic[,union(union(hasSR, hasJD), hasLS)]))
 
 sptab$M0_best <- best0
 sptab$Mb_best <- bestb[match(SPPfull, SPP)]
@@ -251,7 +262,6 @@ rownames(sptab)[sptab$M0_phi < 0.01]
 rownames(sptab)[!is.na(sptab$Mb_phi) & sptab$Mb_phi < 0.01]
 rownames(sptab)[!is.na(sptab$Mb_phi) & sptab$Mb_c < 0.01]
 
-#write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "spptab.csv"))
 
 tt <- seq(0, 11, len=1000)
 mat0 <- sapply(SPPfull, function(z) 1-exp(-tt*cfall0[z, 1]))
@@ -335,9 +345,37 @@ a2$Perc <- 100 * a2[,"Sum Sq"] / sum(a2[,"Sum Sq"])
 a1
 a2
 
-bbb <- round(data.frame(Bias=coef(summary(m2))[,c(1,2,4)], Bias.Perc=a2[-nrow(a2),"Perc"],
-    Var=coef(summary(m1))[,c(1,2,4)], Var.Perc=a1[-nrow(a1),"Perc"]), 4)
+RN <- union(rownames(coef(summary(m2))), rownames(a2))
+RN1 <- c("(Intercept)", "Mixture", "Timevar", "Duration5", "logn", "Mixture:Timevar", 
+    "Mixture:Duration5", "Mixture:logn", "Timevar:Duration5", "Timevar:logn", 
+    "Duration5:logn", "Species", "Residuals")
+RN2 <- c("(Intercept)", "Mixture", "Timevar", "Duration", "logn", "Mixture:Timevar", 
+    "Mixture:Duration", "Mixture:logn", "Timevar:Duration", "Timevar:logn", 
+    "Duration:logn", "Species", "Residuals")
+bbb <- round(data.frame(
+    Bias=coef(summary(m2))[match(RN1, rownames(coef(summary(m2)))),c(1,2,4)], 
+    Bias.Perc=a2[match(RN2, rownames(a2)),"Perc"],
+    Var=coef(summary(m1))[match(RN1, rownames(coef(summary(m1)))),c(1,2,4)], 
+    Var.Perc=a1[match(RN2, rownames(a1)),"Perc"]), 4)
+rownames(bbb) <- RN2
 write.csv(bbb, file=file.path(ROOT2, "var-bias-tab.csv"))
+
+
+## looking at residuals to figure out what species have high/low var/bias
+aaa$var_hat <- fitted(m1)
+aaa$var_res <- aaa$Var - aaa$var_hat
+aaa$bias_hat <- fitted(m2)
+aaa$bias_res <- aaa$Bias - aaa$bias_hat
+
+zz <- aggregate(aaa[,c("var_res", "bias_res")], list(Spp=aaa$Species), mean)
+rownames(zz) <- zz[,1]
+zz <- zz[,-1]
+round(zz, 3)[order(abs(zz[,1]), decreasing=TRUE),]
+
+sptab$Resid_bias <- zz$bias_res[match(rownames(sptab), rownames(zz))]
+sptab$Resid_var <- zz$var_res[match(rownames(sptab), rownames(zz))]
+write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "spptab.csv"))
+
 
 ng <- 2:220
 sf <- function(x) quantile(x, 0.9, na.rm=TRUE)
@@ -677,3 +715,43 @@ contour(vjd*365, vsr*24, zb, add=TRUE, col=1, labcex=1)
 par(op)
 }
 dev.off()
+
+## time of day vs Tadj
+#vsr <- seq(-0.13, 0.36, len=200)
+#df <- data.frame(TSSR=vsr)
+#X <- model.matrix(ff[["4"]], df)
+Xpk <- model.matrix(ff[["4"]], pkDur)
+Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur)
+sppTadj <- list()
+
+for (spp in SPP) {
+cf0 <- .BAMCOEFSrem$sra_estimates[[spp]][["4"]]$coefficients
+cfb <- .BAMCOEFSmix$sra_estimates[[spp]][["4"]]$coefficients
+best0 <- as.character((0:14)[which.max(waic0[spp,])])
+bestb <- as.character((0:14)[which.max(waicb[spp,])])
+cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
+cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
+
+#p30 <- 1-exp(-3*exp(drop(X %*% cf0)))
+#p3b <- 1-plogis(drop(X %*% cfb[-1]))*exp(-3*exp(cfb[1]))
+p30pk <- 1-exp(-3*exp(drop(Xpk %*% cf0)))
+p3bpk <- 1-plogis(drop(Xpk %*% cfb[-1]))*exp(-3*exp(cfb[1]))
+p30pk2 <- 1-exp(-3*exp(drop(Xpk2[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+p3bpk2 <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*% cfb2[-1])) * 
+    exp(-3*exp(cfb2[1]))
+
+tadj0 <- max(p30pk) / mean(p30pk)
+tadjb <- max(p3bpk) / mean(p3bpk)
+tadj02 <- max(p30pk2) / mean(p30pk2)
+tadjb2 <- max(p3bpk2) / mean(p3bpk2)
+sppTadj[[spp]] <- c(PIF=sptab[spp, "tadj"], 
+    M0t_sr=tadj0, Mbt_sr=tadjb, 
+    M0t_jdsr=tadj02, Mbt_jdsr=tadjb2,
+    M0t_sr_mean=1/mean(p30pk), Mbt_sr_mean=1/mean(p3bpk), 
+    M0t_jdsr_mean=1/mean(p30pk2), Mbt_jdsr_mean=1/mean(p3bpk2))
+}
+
+sppTadj <- data.frame(do.call(rbind, sppTadj))
+
+with(sppTadj, plot(PIF, M0t_sr_mean, ylim=c(0,5), xlim=c(0,5)))
+boxplot(sppTadj, ylim=c(0,3))

@@ -16,7 +16,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-10.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
 
 ## =============================================================================
 ## BAM-wise estimation -------------------------------------------
@@ -163,8 +163,8 @@ resDur <- vector("list", length(SPP))
 for (i in 1:length(SPP)) {
     cat("Singing rate estimation for", SPP[i], date(), "\n")
     flush.console()
-    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
-    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
+    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
+    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
 }
 names(resDur) <- SPP
 resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
@@ -172,8 +172,8 @@ c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur
 resDur <- resDurOK
 
 save(resDur, resDurData,
-    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_rem.Rdata"))
-    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_mix.Rdata"))
+    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_rem.Rdata"))
+    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_mix.Rdata"))
 
 ## =============================================================================
 ## summarize results a la QPAD (no distance sampling this time) --------------
@@ -289,7 +289,7 @@ sra_estimates <- resDur[spp]
 
 ## species table
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-10.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"), envir=e)
 tax2 <- e$TAX
 #rownames(tax2) <- tax2$Species_ID
 tax2 <- nonDuplicated(tax2, Species_ID, TRUE)

@@ -792,8 +792,13 @@ levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
 
 
 ## combine dat, dat2 and pc pc2
-dat <- rbind(dat[!(dat$BCR %in% c(11, 22)),], 
-    dat2[dat2$NR != "Grassland", colnames(dat)])
+dat$BOREALLOC <- SS$BOREALLOC[match(dat$SS, SS$SS)]
+dat2$BOREALLOC <- NA
+dat0 <- dat
+dat <- rbind(
+#    dat[!(dat$BCR %in% c(11, 22)),], 
+    dat0[!is.na(dat$BOREALLOC) & dat$BOREALLOC != "OUT",], 
+    dat2[dat2$NR != "Grassland", colnames(dat0)])
 pc <- rbind(pc, pc2[,colnames(pc)])
 pc <- droplevels(pc)
 
