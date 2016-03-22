@@ -957,7 +957,7 @@ ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
 
 cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
 vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
-pcf1b <- mvrnorm(R, cfi0b, vci0b)
+pcf1b <- mvrnorm(R, cfi0b, Matrix::nearPD(vci0b)$mat)
 ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
 
 np <- .BAMCOEFSrem$sra_n
@@ -965,7 +965,7 @@ np <- .BAMCOEFSrem$sra_n
 op <- par(las=1, mfrow=c(3,2))
 
 barplot(wp, space=0, col=grey(1-wp), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", np[spp], ")", 
+    main=paste0(as.character(sptab[spp,"common_name"]), " (n=", np[spp], ")", 
     " w0=", round(sum(wph),2)),
     ylab="Model weight", xlab="Model ID")
 barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
@@ -1017,20 +1017,4 @@ dev.off()
 
 
 
-
-
-JDAY,
-TSSR,
-JDAY + I(JDAY^2)
-TSSR + I(TSSR^2)
-JDAY + TSSR
-JDAY + I(JDAY^2) + TSSR
-JDAY + TSSR + I(TSSR^2)
-JDAY + I(JDAY^2) + TSSR + I(TSSR^2)
-TSLS
-TSLS + I(TSLS^2)
-TSLS + TSSR
-TSLS + I(TSLS^2) + TSSR
-TSLS + TSSR + I(TSSR^2)
-TSLS + I(TSLS^2) + TSSR + I(TSSR^2)
 
