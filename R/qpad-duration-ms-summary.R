@@ -78,6 +78,8 @@ rownames(ld) <- ld[,1]
 ld <- data.frame(ld, ltdur$end[rownames(ld),])
 ld <- ld[rowSums(!is.na(ltdur$end[rownames(ld),])) > 1,]
 
+datx <- droplevels(dat[rownames(X0)[rowSums(!is.na(D)) > 1],])
+
 ## data summaries
 pkDurOK <- droplevels(pkDur[pkDur$DURMETH %in% rownames(ld),])
 str(pkDurOK)
@@ -382,9 +384,8 @@ rownames(zz) <- zz[,1]
 zz <- zz[,-1]
 round(zz, 3)[order(abs(zz[,1]), decreasing=TRUE),]
 
-sptab$Resid_bias <- zz$bias_res[match(rownames(sptab), rownames(zz))]
-sptab$Resid_var <- zz$var_res[match(rownames(sptab), rownames(zz))]
-write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "tabfig", "spptab.csv"))
+#sptab$Resid_bias <- zz$bias_res[match(rownames(sptab), rownames(zz))]
+#sptab$Resid_var <- zz$var_res[match(rownames(sptab), rownames(zz))]
 
 
 ng <- 2:400
@@ -491,12 +492,12 @@ maxBias2 <- cbind(max3_0 = sapply(ng, function(z)
 
 par(mfrow=c(4,2))
 for (i in c(1,3,5,7)+1) {
-plot(ng, maxVar[,i], main=paste("Var", colnames(maxVar)[i]),
-    type="l", lwd=2, col=2, ylim=c(0, max(maxVar)))
-lines(ng, maxVar[,i-1], lty=2, col=2, lwd=2)
+plot(ng, maxVar1[,i], main=paste("Var", colnames(maxVar1)[i]),
+    type="l", lwd=2, col=2, ylim=c(0, max(maxVar1)))
+lines(ng, maxVar1[,i-1], lty=2, col=2, lwd=2)
 lines(ng, maxVar0[,i], lty=1, col=4, lwd=2)
 lines(ng, maxVar0[,i-1], lty=2, col=4, lwd=2)
-plot(ng, maxBias1[,i], main=paste("Bias", colnames(maxVar)[i]),
+plot(ng, maxBias1[,i], main=paste("Bias", colnames(maxBias1)[i]),
     type="l", lwd=2, col=2, ylim=range(maxBias1,maxBias2))
 lines(ng, maxBias1[,i-1], lty=2, col=2, lwd=2)
 lines(ng, maxBias2[,i], lty=1, col=2, lwd=2)
@@ -510,7 +511,7 @@ MOD <- c("M0", "M0", "Mb", "Mb", "M0t", "M0t", "Mbt", "Mbt")
 png(file.path(ROOT2, "tabfig", "Fig6_var-bias.png"), width=600, height=4*250)
 par(mfrow=c(4,2), las=1)
 for (i in c(1,3,5,7)+1) {
-plot(ng, maxVar[,i], main=paste("Variance", MOD[i]),
+plot(ng, maxVar1[,i], main=paste("Variance", MOD[i]),
     xlab="Sample size", ylab="Variance",
     type="n", lwd=2, col=2, ylim=c(0,max(maxVar1, maxVar2)), xlim=c(2,400))
 polygon(c(ng, rev(ng)), c(maxVar1[,i-1], rev(maxVar2[,i-1])),
@@ -603,7 +604,7 @@ legend("bottomright", col=1, lty=c(1,2,3), lwd=2, bty="n",
     legend=c(
         paste0("M0 fit & SE (90% = ", ceiling(vnd[which.min(abs(fit0-0.9))]), ")"),
         paste0("Mb fit (90% = ", ceiling(vnd[which.min(abs(fitb-0.9))]), ")"),
-        paste0("M0 SE (90% = ", ceiling(vnd[which.min(abs(fitbs-0.9))]), ")")))
+        paste0("Mb SE (90% = ", ceiling(vnd[which.min(abs(fitbs-0.9))]), ")")))
 dev.off()
 
 
@@ -611,7 +612,6 @@ ceiling(vnd[which.min(abs(fit0-0.9))])
 ceiling(vnd[which.min(abs(fitb-0.9))])
 ceiling(vnd[which.min(abs(fit0s-0.9))])
 ceiling(vnd[which.min(abs(fitbs-0.9))])
-
 
 with(dat0[dat0$okse==1,], plot(logphi, se_logphi))
 with(dat0[dat0$okse==1,], plot(ym, se_logphi))
@@ -735,23 +735,14 @@ compare_sets(sptab$scientific_name, pif$Scientific.Name)
 sptab[sptab$common_name %in% setdiff(sptab$common_name, pif$Common.Name),]
 
 sptab$tadj <- pif$Time.Adjust[match(sptab$common_name, pif$Common.Name)]
-sptab$p30 <- 1-exp(-3*sptab$M0_phi)
-sptab$p3b <- 1-sptab$Mb_c*exp(-3*sptab$Mb_phi)
-sptab$bias0 <- (1/sptab$p30) / sptab$tadj
-sptab$biasb <- (1/sptab$p3b) / sptab$tadj
+sptab$Inv_p30 <- 1/(1-exp(-3*sptab$M0_phi))
+sptab$Inv_p3b <- 1/(1-sptab$Mb_c*exp(-3*sptab$Mb_phi))
+#sptab$bias0 <- (1/sptab$p30) / sptab$tadj
+#sptab$biasb <- (1/sptab$p3b) / sptab$tadj
+write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "tabfig", "spptab.csv"))
 
-with(sptab, plot(p30, p3b, cex=0.2+0.02*sqrt(sptab$nfull)))
-abline(0,1)
+boxplot(sptab[,c("tadj","Inv_p30","Inv_p3b")])
 
-with(sptab, plot(p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
-with(sptab, plot(p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull)))
-
-with(sptab, plot(1/p30, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
-    xlim=c(1,5), ylim=c(1,5)))
-abline(0,1)
-with(sptab, plot(1/p3b, tadj, cex=0.2+0.02*sqrt(sptab$nfull),
-    xlim=c(1,10), ylim=c(1,10)))
-abline(0,1)
 
 ## m0t mbt prediction
 
