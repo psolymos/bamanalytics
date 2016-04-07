@@ -30,6 +30,15 @@ rownames(ids) <- 1:8
 Stage <- 6
 fid <- 1
 
+## height histograms
+if (FALSE) {
+Height <- xn$HGT*50
+HabClass <- xn$HAB
+library(lattice)
+densityplot(~ Height | HabClass)
+
+}
+
 for (fid in 1:6) {
 
 e <- new.env()
@@ -167,7 +176,7 @@ par(op)
 dev.off()
 
 
-HGT <- seq(0,1,by=0.01)
+HGT <- seq(0,0.5,by=0.01)
 xn2 <- expand.grid(HAB=factor(c("Conif", "Decid", "Mixed", "Wet"), levels(xn$HAB)), 
     HGT=HGT)
 xn2$TR3 <- factor("Dense", levels(xn$TR3))
