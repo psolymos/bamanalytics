@@ -719,7 +719,99 @@ plot(abs(cor) ~ nobs, datbse, xlim=c(0, 500),
     pch=19, col=rgb(0,0,255,50,maxColorValue=255))
 hist(datbse$cor)
 
+## average responses across species
 
+library(MASS)
+
+pf <- function(var, mod, n=10^4) {
+    if (mod == "0")
+        sppPred <- sppPred0
+    if (mod == "b")
+        sppPred <- sppPredb
+    var <- switch(var, 
+        "TSSR"=pkDur$TSSR[iii]*24,
+        "JDAY"=pkDur$JDAY[iii]*365,
+        "TSLS"=pkDur$TSLS[iii]*365)
+    ix <- rep(var, ncol(sppPred))
+    iy <- as.numeric(sppPred)
+    is <- sample.int(length(ix), n)
+    kde2d(ix[is], iy[is], n=30)
+}
+
+iii <- rep(TRUE, nrow(pkDur))
+iii[pkDur$TSSR < quantile(pkDur$TSSR, 0.025)] <- FALSE
+iii[pkDur$TSSR > quantile(pkDur$TSSR, 0.975)] <- FALSE
+iii[pkDur$JDAY < quantile(pkDur$JDAY, 0.025)] <- FALSE
+iii[pkDur$JDAY > quantile(pkDur$JDAY, 0.975)] <- FALSE
+iii[pkDur$TSLS < quantile(pkDur$TSLS, 0.025)] <- FALSE
+iii[pkDur$TSLS > quantile(pkDur$TSLS, 0.975)] <- FALSE
+
+TT <- 3
+
+OUT <- list()
+
+for (WHAT in c("TSSR","JDAY","TSLS")) {
+
+Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur[iii,])
+sppPred0 <- matrix(NA, nrow(Xpk2), length(SPPfull))
+colnames(sppPred0) <- SPPfull
+sppPredb <- matrix(NA, nrow(Xpk2), length(SPP))
+colnames(sppPredb) <- SPP
+
+
+    mc <- which(!grepl(WHAT, colnames(Xpk2)))[-1]
+    for (cc in mc)
+        Xpk2[,cc] <- mean(Xpk2[,cc])
+    COOL <- names(ff)[sapply(NAMES, function(z) any(grepl(WHAT, z)))]
+
+for (spp in SPPfull) {
+best0 <- as.character((0:14)[which.max(waic0[spp,])])
+if (best0 %in% COOL) {
+cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
+sppPred0[,spp] <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+}
+}
+sppPred0 <- sppPred0[,colSums(is.na(sppPred0))==0]
+
+for (spp in SPP) {
+bestb <- as.character((0:14)[which.max(waicb[spp,])])
+if (bestb %in% COOL) {
+cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
+sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*% 
+    cfb2[-1])) * exp(-TT*exp(cfb2[1]))
+}
+}
+sppPredb <- sppPredb[,colSums(is.na(sppPredb))==0]
+
+
+b0 <- pf(WHAT, "0", n=5*10^4)
+bb <- pf(WHAT, "b", n=5*10^4)
+
+OUT[[WHAT]] <- list("0"=b0, "b"=bb)
+}
+
+plf <- function(b, ...) {
+    image(b, col=col, ...)
+    contour(b, add=TRUE, nlevels=nl)
+    box()
+}
+
+
+
+col <- colorRampPalette(c("white", "black"))(30)[1:27]
+nl <- 5
+
+png(file.path(ROOT2, "tabfig", "FigX_responses.png"), height=800, width=1600, res=150)
+#par(las=1, mar=c(5, 6, 4, 2) + 0.1)
+op <- par(mfrow=c(2,3), las=1)
+plf(OUT[["TSSR"]][["0"]], ylab="P(3 min) 0", xlab="Time since sunrise (h)")
+plf(OUT[["JDAY"]][["0"]], ylab="P(3 min) 0", xlab="Julian day")
+plf(OUT[["TSLS"]][["0"]], ylab="P(3 min) 0", xlab="Days since spring")
+plf(OUT[["TSSR"]][["b"]], ylab="P(3 min) b ", xlab="Time since sunrise (h)")
+plf(OUT[["JDAY"]][["b"]], ylab="P(3 min) b", xlab="Julian day")
+plf(OUT[["TSLS"]][["b"]], ylab="P(3 min) b", xlab="Days since spring")
+par(op)
+dev.off()
 
 ## compare PIF time adjustment
 
