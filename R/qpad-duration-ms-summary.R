@@ -798,7 +798,7 @@ plf <- function(b, ...) {
 
 
 
-col <- colorRampPalette(c("white", "black"))(30)[1:27]
+col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
 nl <- 5
 
 png(file.path(ROOT2, "tabfig", "FigX_responses.png"), height=800, width=1600, res=150)
