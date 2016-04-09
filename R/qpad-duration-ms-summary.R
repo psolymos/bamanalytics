@@ -113,7 +113,7 @@ sptab <- .BAMCOEFSrem$spp_table[SPPfull,]
 sptab$nfull <- .BAMCOEFSrem$sra_n[SPPfull]
 
 SPPmix <- sort(names(.BAMCOEFSmix$sra_n)[.BAMCOEFSmix$sra_n >= 25])
-#SPPmix <- SPPmix[!(SPPmix %in% c("BEKI", "BWWA", "CERW", "CLSW", "DUFL", "MOBL", 
+#SPPmix <- SPPmix[!(SPPmix %in% c("BEKI", "BWWA", "CERW", "CLSW", "DUFL", "MOBL",
 #    "PAWR", "WEME", "WILL"))]
 SPPmix <- SPPmix[!(SPPmix %in% c("BEKI", "BWWA", "CLSW", "COGR"))]
 
@@ -198,9 +198,9 @@ plot(sptab[SPP, "nfull"], waic[,"m0_0"] + waic[,"mb_0"], log="x", ylim=c(0,1),
 
 MAX <- 5000
 nn <- 25:MAX
-ww <- sapply(nn, function(z) mean((rowSums(waic[,grepl("_0", 
+ww <- sapply(nn, function(z) mean((rowSums(waic[,grepl("_0",
     colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
-ww2 <- sapply(nn, function(z) mean((rowSums(waic[,grepl("mb_", 
+ww2 <- sapply(nn, function(z) mean((rowSums(waic[,grepl("mb_",
     colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
 
 png(file.path(ROOT2, "tabfig", "Fig4_weights.png"), width=800, height=450)
@@ -211,9 +211,9 @@ rug(sptab[rownames(waic), "nfull"])
 plot(nn, 100*ww2, type="l", ylim=100*c(0.75, 1), xlab="Sample size",
     ylab="% mixture", xlim=c(0,MAX), lwd=2)
 rug(sptab[rownames(waic), "nfull"])
-abline(v=nn[which.min((1-ww2) - 0.9)], lty=2)
+abline(v=nn[which(ww2 > 0.9)[1]], lty=2)
 dev.off()
-nn[which.min((1-ww2) - 0.9)]
+nn[which(ww2 > 0.9)[1]]
 
 
 table(Timevar=!grepl("_0", best), Mixture=grepl("mb_", best))
@@ -235,6 +235,10 @@ Support <- cbind(Support, w0=colMeans(waic0),
 Support
 write.csv(Support, file=file.path(ROOT2, "tabfig", "support.csv"))
 
+
+zzz <- table(bestx)
+sum(zzz[grep("mb_", names(zzz))])
+sum(zzz[grep("m0_", names(zzz))])
 
 ## m0 and mb combined here, only spp >=25 det
 ## constant
@@ -290,6 +294,12 @@ matplot(tt, matb, type="l", lty=1, main="Mb",
 abline(v=c(3,5,10))
 dev.off()
 
+tt <- c(3,5,10)
+mat0 <- t(sapply(SPPfull, function(z) 1-exp(-tt*cfall0[z, 1])))
+matb <- t(sapply(SPP, function(z) 1-cfallb[z, "c"]*exp(-tt*cfallb[z, "phi_b"])))
+summary(mat0)
+summary(matb)
+
 
 ## model support
 data.frame(w_avg=sort(colMeans(waic0b)))
@@ -336,6 +346,13 @@ m1m <- lmer(Var ~ (Mixture + Timevar + Duration + logn)^2 + (1 | Species), aaa)
 m2m <- lmer(Bias ~ (Mixture + Timevar + Duration + logn)^2 + (1 | Species), aaa)
 round(cbind(fixef(m1m), coef(m1)), 4)
 round(cbind(fixef(m2m), coef(m2)), 4)
+
+coef(summary(m1))
+coef(summary(m1m))
+
+coef(summary(m2))
+coef(summary(m2m))
+
 ## minor diffs: use lm
 
 #m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
@@ -358,16 +375,16 @@ a1
 a2
 
 RN <- union(rownames(coef(summary(m2))), rownames(a2))
-RN1 <- c("(Intercept)", "Mixture", "Timevar", "Duration5", "logn", "Mixture:Timevar", 
-    "Mixture:Duration5", "Mixture:logn", "Timevar:Duration5", "Timevar:logn", 
+RN1 <- c("(Intercept)", "Mixture", "Timevar", "Duration5", "logn", "Mixture:Timevar",
+    "Mixture:Duration5", "Mixture:logn", "Timevar:Duration5", "Timevar:logn",
     "Duration5:logn", "Species", "Residuals")
-RN2 <- c("(Intercept)", "Mixture", "Timevar", "Duration", "logn", "Mixture:Timevar", 
-    "Mixture:Duration", "Mixture:logn", "Timevar:Duration", "Timevar:logn", 
+RN2 <- c("(Intercept)", "Mixture", "Timevar", "Duration", "logn", "Mixture:Timevar",
+    "Mixture:Duration", "Mixture:logn", "Timevar:Duration", "Timevar:logn",
     "Duration:logn", "Species", "Residuals")
 bbb <- round(data.frame(
-    Bias=coef(summary(m2))[match(RN1, rownames(coef(summary(m2)))),c(1,2,4)], 
+    Bias=coef(summary(m2))[match(RN1, rownames(coef(summary(m2)))),c(1,2,4)],
     Bias.Perc=a2[match(RN2, rownames(a2)),"Perc"],
-    Var=coef(summary(m1))[match(RN1, rownames(coef(summary(m1)))),c(1,2,4)], 
+    Var=coef(summary(m1))[match(RN1, rownames(coef(summary(m1)))),c(1,2,4)],
     Var.Perc=a1[match(RN2, rownames(a1)),"Perc"]), 4)
 rownames(bbb) <- RN2
 write.csv(bbb, file=file.path(ROOT2, "tabfig", "var-bias-tab.csv"))
@@ -524,7 +541,7 @@ box()
 
 plot(ng, maxBias1[,i], main=paste("Bias", MOD[i]),
     xlab="Sample size", ylab="Bias",
-    type="n", lwd=2, col=2, 
+    type="n", lwd=2, col=2,
     ylim=max(abs(maxBias1),abs(maxBias2))*c(-1,1), xlim=c(2,400))
 polygon(c(ng, rev(ng)), c(maxBias1[,i-1], rev(maxBias2[,i-1])),
     col="grey", border="grey")
@@ -551,9 +568,9 @@ dat0$msg <- NULL
 dat0 <- dat0[dat0$ndet > 1,]
 
 datb <- problemb[!(problemb$msg %in% ss),]
-datb$okfit <- ifelse(is.na(datb$logphi) | 
+datb$okfit <- ifelse(is.na(datb$logphi) |
     exp(datb$logphi) < 0.001 | exp(datb$logphi) > 5, 0, 1)
-datb$okse <- ifelse(is.na(datb$se_logphi) | 
+datb$okse <- ifelse(is.na(datb$se_logphi) |
     datb$se_logphi > 10^4 | datb$se_logitc > 10^4, 0, 1)
 datb$okse[datb$okfit == 0] <- 0
 datb$msg <- NULL
@@ -728,7 +745,7 @@ pf <- function(var, mod, n=10^4) {
         sppPred <- sppPred0
     if (mod == "b")
         sppPred <- sppPredb
-    var <- switch(var, 
+    var <- switch(var,
         "TSSR"=pkDur$TSSR[iii]*24,
         "JDAY"=pkDur$JDAY[iii]*365,
         "TSLS"=pkDur$TSLS[iii]*365)
@@ -777,7 +794,7 @@ for (spp in SPP) {
 bestb <- as.character((0:14)[which.max(waicb[spp,])])
 if (bestb %in% COOL) {
 cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
-sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*% 
+sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
     cfb2[-1])) * exp(-TT*exp(cfb2[1]))
 }
 }
@@ -909,17 +926,17 @@ cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
 p30pk <- 1-exp(-3*exp(drop(Xpk %*% cf0)))
 p3bpk <- 1-plogis(drop(Xpk %*% cfb[-1]))*exp(-3*exp(cfb[1]))
 p30pk2 <- 1-exp(-3*exp(drop(Xpk2[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
-p3bpk2 <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*% cfb2[-1])) * 
+p3bpk2 <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*% cfb2[-1])) *
     exp(-3*exp(cfb2[1]))
 
 tadj0 <- max(p30pk) / mean(p30pk)
 tadjb <- max(p3bpk) / mean(p3bpk)
 tadj02 <- max(p30pk2) / mean(p30pk2)
 tadjb2 <- max(p3bpk2) / mean(p3bpk2)
-sppTadj[[spp]] <- c(PIF=sptab[spp, "tadj"], 
-    M0t_sr=tadj0, Mbt_sr=tadjb, 
+sppTadj[[spp]] <- c(PIF=sptab[spp, "tadj"],
+    M0t_sr=tadj0, Mbt_sr=tadjb,
     M0t_jdsr=tadj02, Mbt_jdsr=tadjb2,
-    M0t_sr_mean=1/mean(p30pk), Mbt_sr_mean=1/mean(p3bpk), 
+    M0t_sr_mean=1/mean(p30pk), Mbt_sr_mean=1/mean(p3bpk),
     M0t_jdsr_mean=1/mean(p30pk2), Mbt_jdsr_mean=1/mean(p3bpk2))
 }
 
@@ -930,7 +947,7 @@ with(sppTadj, plot(PIF, M0t_sr_mean, ylim=c(0,5), xlim=c(0,5)))
 cn <- c("Mbt_jdsr_mean", "M0t_jdsr_mean", "Mbt_sr", "M0t_sr", "PIF")
 png(file.path(ROOT2, "tabfig", "FigX_tadj.png"), height=450, width=450)
 par(las=1, mar=c(5, 6, 4, 2) + 0.1)
-boxplot(sppTadj[,cn], 
+boxplot(sppTadj[,cn],
     xlab="Time adjustment",
     ylim=c(1,5), horizontal=TRUE, col="grey",
     names=rev(c("Tadj (PIF)", "Tadj (M0t)", "Tadj (Mbt)", "1/p (M0t)", "1/p (Mbt)")))
@@ -974,14 +991,14 @@ mib <- as.character(0:14)[which.min(aiccb[spp,])]
 cfib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$coefficients
 vcib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$vcov
 
-#     TSSR             JDAY            TSLS       
-# Min.   :-0.315   Min.   :0.351   Min.   :-0.101  
-# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103  
-# Median : 0.149   Median :0.455   Median : 0.131  
-# Mean   : 0.141   Mean   :0.455   Mean   : 0.133  
-# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164  
-# Max.   : 0.520   Max.   :0.641   Max.   : 0.442  
-# NA's   :8455     NA's   :5804    NA's   :17255  
+#     TSSR             JDAY            TSLS
+# Min.   :-0.315   Min.   :0.351   Min.   :-0.101
+# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103
+# Median : 0.149   Median :0.455   Median : 0.131
+# Mean   : 0.141   Mean   :0.455   Mean   : 0.133
+# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164
+# Max.   : 0.520   Max.   :0.641   Max.   : 0.442
+# NA's   :8455     NA's   :5804    NA's   :17255
 jd <- seq(0.35, 0.55, 0.01)
 ts <- seq(-0.25, 0.5, 0.01)
 ls <- seq(0, 0.3, len=length(jd))
@@ -1048,11 +1065,11 @@ np <- .BAMCOEFSrem$sra_n
 op <- par(las=1, mfrow=c(3,2))
 
 barplot(wp, space=0, col=grey(1-wp), border="grey", ylim=c(0,1),
-    main=paste0(as.character(sptab[spp,"common_name"]), " (n=", np[spp], ")", 
+    main=paste0(as.character(sptab[spp,"common_name"]), " (n=", np[spp], ")",
     " w0=", round(sum(wph),2)),
     ylab="Model weight", xlab="Model ID")
 barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", np[spp], ")", 
+    main=paste0(spp, " (n=", np[spp], ")",
     " wb=", round(sum(wqh),2)),
     ylab="Model weight", xlab="Model ID")
 
@@ -1078,8 +1095,8 @@ xval <- if (mi0 %in% c("9","10","11","12","13","14"))
     ls*365 else jd*365
 image(xval, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mi0 %in% c("9","10","11","12","13","14"), 
-        "Days since local springs", "Julian days"), 
+    xlab=ifelse(mi0 %in% c("9","10","11","12","13","14"),
+        "Days since local springs", "Julian days"),
     ylab="Hours since sunrise",
     main=paste("Best model:", mi0))
 box()
@@ -1088,8 +1105,8 @@ xval <- if (mib %in% c("9","10","11","12","13","14"))
     ls*365 else jd*365
 image(xval, ts*24, pmatb,
     col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mib %in% c("9","10","11","12","13","14"), 
-        "Days since local springs", "Julian days"), 
+    xlab=ifelse(mib %in% c("9","10","11","12","13","14"),
+        "Days since local springs", "Julian days"),
     ylab="Hours since sunrise",
     main=paste("Best model:", mib))
 box()
