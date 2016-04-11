@@ -315,6 +315,12 @@ abline(lm(log(sptab[names(best0b),"nfull"]) ~ df0b))
 
 load(file.path(ROOT2, "this-and-that.Rdata"))
 
+lht <- read.csv("~/Dropbox/bam/LifeHistoryToUpdate.csv")
+compare_sets(lht$SPECIES, SPPfull)
+setdiff(SPPfull, lht$SPECIES)
+rownames(lht) <- lht$SPECIES
+lht <- droplevels(lht[SPPfull,1:6])
+lht[is.na(lht$DATABASE_MIG_TYPE),]
 
 load(file.path(ROOT2, "var-bias-res.Rdata"))
 res2 <- res[!sapply(res, inherits, "try-error")]
@@ -335,6 +341,8 @@ aaa$Mixture <- ifelse(aaa$Model %in% c("b","bt"), 1, 0)
 aaa$Timevar <- ifelse(aaa$Model %in% c("0t","bt"), 1, 0)
 #aaa$logBias <- log(aaa$Bias + 0.5)
 #aaa$logVar <- log(aaa$Var + 0.5)
+aaa$MigT <- lht$DATABASE_MIG_TYPE[match(aaa$Species, lht$SPECIES)]
+aaa$phi0 <- sptab$M0_phi[match(aaa$Species, rownames(sptab))]
 
 ## retain species where both models worked fine
 aaa <- droplevels(aaa[aaa$Species %in% SPP,])
@@ -353,12 +361,16 @@ coef(summary(m1m))
 coef(summary(m2))
 coef(summary(m2m))
 
+summary(step(lm(Var ~ Mixture + Timevar + Duration + logn + MigT + phi0, aaa), trace=0))
+summary(step(lm(Bias ~ Mixture + Timevar + Duration + logn + MigT + phi0, aaa), trace=0))
+
+
 ## minor diffs: use lm
 
 #m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
 #m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn)^2, aaa)
-m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
-m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn)^2, aaa)
+m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
+m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
 #m1 <- step(m1)
 #m2 <- step(m2)
 
@@ -375,12 +387,16 @@ a1
 a2
 
 RN <- union(rownames(coef(summary(m2))), rownames(a2))
-RN1 <- c("(Intercept)", "Mixture", "Timevar", "Duration5", "logn", "Mixture:Timevar",
-    "Mixture:Duration5", "Mixture:logn", "Timevar:Duration5", "Timevar:logn",
-    "Duration5:logn", "Species", "Residuals")
-RN2 <- c("(Intercept)", "Mixture", "Timevar", "Duration", "logn", "Mixture:Timevar",
-    "Mixture:Duration", "Mixture:logn", "Timevar:Duration", "Timevar:logn",
-    "Duration:logn", "Species", "Residuals")
+RN1 <- c("(Intercept)", "Mixture", "Timevar", "Duration5", "logn", "phi0",
+    "Mixture:Timevar",
+    "Mixture:Duration5", "Mixture:logn", "Mixture:phi0",
+    "Timevar:Duration5", "Timevar:logn", "Timevar:phi0",
+    "Duration5:logn", "Duration5:phi0", "logn:phi0", "Species", "Residuals")
+RN2 <- c("(Intercept)", "Mixture", "Timevar", "Duration", "logn", "phi0",
+    "Mixture:Timevar",
+    "Mixture:Duration", "Mixture:logn", "Mixture:phi0",
+    "Timevar:Duration", "Timevar:logn", "Timevar:phi0",
+    "Duration:logn", "Duration:phi0", "logn:phi0", "Species", "Residuals")
 bbb <- round(data.frame(
     Bias=coef(summary(m2))[match(RN1, rownames(coef(summary(m2)))),c(1,2,4)],
     Bias.Perc=a2[match(RN2, rownames(a2)),"Perc"],
@@ -763,8 +779,27 @@ iii[pkDur$JDAY > quantile(pkDur$JDAY, 0.975)] <- FALSE
 iii[pkDur$TSLS < quantile(pkDur$TSLS, 0.025)] <- FALSE
 iii[pkDur$TSLS > quantile(pkDur$TSLS, 0.975)] <- FALSE
 
-TT <- 3
+MigtRes <- rownames(lht)[lht$DATABASE_MIG_TYPE=="W"]
+#MigtMig <- rownames(lht)[lht$DATABASE_MIG_TYPE!="W"]
 
+TT <- 3
+#MigW <- TRUE
+
+allOUT <- list()
+
+for (TT in c(3,10)) {
+#for (MigW in c(TRUE, FALSE)) {
+#cat(paste0("t", TT, "_", ifelse(MigW, "Res", "Mig")), "\n");flush.console()
+
+mSPPfull <- SPPfull
+mSPP <- SPP
+#if (MigW) {
+#    mSPPfull <- SPPfull[(SPPfull %in% MigtRes)]
+#    mSPP <- SPP[(SPP %in% MigtRes)]
+#} else {
+#    mSPPfull <- SPPfull[!(SPPfull %in% MigtRes)]
+#    mSPP <- SPP[!(SPP %in% MigtRes)]
+#}
 OUT <- list()
 
 for (WHAT in c("TSSR","JDAY","TSLS")) {
@@ -781,7 +816,7 @@ colnames(sppPredb) <- SPP
         Xpk2[,cc] <- mean(Xpk2[,cc])
     COOL <- names(ff)[sapply(NAMES, function(z) any(grepl(WHAT, z)))]
 
-for (spp in SPPfull) {
+for (spp in mSPPfull) {
 best0 <- as.character((0:14)[which.max(waic0[spp,])])
 if (best0 %in% COOL) {
 cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
@@ -790,7 +825,7 @@ sppPred0[,spp] <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "", names(cf02)),dro
 }
 sppPred0 <- sppPred0[,colSums(is.na(sppPred0))==0]
 
-for (spp in SPP) {
+for (spp in mSPP) {
 bestb <- as.character((0:14)[which.max(waicb[spp,])])
 if (bestb %in% COOL) {
 cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
@@ -807,16 +842,20 @@ bb <- pf(WHAT, "b", n=5*10^4)
 OUT[[WHAT]] <- list("0"=b0, "b"=bb)
 }
 
+allOUT[[paste0("t", TT, "_", ifelse(MigW, "Res", "Mig"))]] <- OUT
+}
+#}
+
 plf <- function(b, ...) {
     image(b, col=col, ...)
     contour(b, add=TRUE, nlevels=nl)
     box()
 }
 
-
-
 col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
 nl <- 5
+
+OUT <- allOUT[[1]]
 
 png(file.path(ROOT2, "tabfig", "FigX_responses.png"), height=800, width=1600, res=150)
 #par(las=1, mar=c(5, 6, 4, 2) + 0.1)
@@ -827,6 +866,32 @@ plf(OUT[["TSLS"]][["0"]], ylab="P(3 min) 0", xlab="Days since spring")
 plf(OUT[["TSSR"]][["b"]], ylab="P(3 min) b ", xlab="Time since sunrise (h)")
 plf(OUT[["JDAY"]][["b"]], ylab="P(3 min) b", xlab="Julian day")
 plf(OUT[["TSLS"]][["b"]], ylab="P(3 min) b", xlab="Days since spring")
+par(op)
+dev.off()
+
+plf2 <- function(b1, b2, levels=0.1, ...) {
+#    contour(b1, levels=levels, lty=1, ...)
+#    contour(b2, add=TRUE, levels=levels, lty=2)
+    image(b1, col=col, ...)
+    contour(b1, add=TRUE, levels=levels, lty=2, labels="")
+    contour(b2, add=TRUE, levels=levels, lty=1, labels="")
+    box()
+}
+#LEVEL <- 0.05
+png(file.path(ROOT2, "tabfig", "FigX_responses.png"), height=1200, width=1600, res=150)
+op <- par(mfrow=c(2,3), las=1)
+plf2(allOUT[[1]][["TSSR"]][["0"]], allOUT[[2]][["TSSR"]][["0"]], levels=0.1,
+    ylab="Probability (M0)", xlab="Time since sunrise (h)")
+plf2(allOUT[[1]][["JDAY"]][["0"]], allOUT[[2]][["JDAY"]][["0"]], levels=0.02,
+    ylab="Probability (M0)", xlab="Julian day")
+plf2(allOUT[[1]][["TSLS"]][["0"]], allOUT[[2]][["TSLS"]][["0"]], levels=0.02,
+    ylab="Probability (M0)", xlab="Days since spring")
+plf2(allOUT[[1]][["TSSR"]][["b"]], allOUT[[2]][["TSSR"]][["b"]], levels=0.1,
+    ylab="Probability (Mb)", xlab="Time since sunrise (h)")
+plf2(allOUT[[1]][["JDAY"]][["b"]], allOUT[[2]][["JDAY"]][["b"]], levels=0.02,
+    ylab="Probability (Mb)", xlab="Julian day")
+plf2(allOUT[[1]][["TSLS"]][["b"]], allOUT[[2]][["TSLS"]][["b"]], levels=0.02,
+    ylab="Probability (Mb)", xlab="Days since spring")
 par(op)
 dev.off()
 
