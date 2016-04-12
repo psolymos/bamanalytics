@@ -342,67 +342,48 @@ aaa$Timevar <- ifelse(aaa$Model %in% c("0t","bt"), 1, 0)
 #aaa$logBias <- log(aaa$Bias + 0.5)
 #aaa$logVar <- log(aaa$Var + 0.5)
 aaa$MigT <- lht$DATABASE_MIG_TYPE[match(aaa$Species, lht$SPECIES)]
+
 aaa$phi0 <- sptab$M0_phi[match(aaa$Species, rownames(sptab))]
+#aaa$phi0 <- as.integer(cut(aaa$phi0, c(0, 0.2, 0.3, 0.5, 1))) - 1
+aaa$phi0 <- (as.integer(cut(aaa$phi0, c(0, 0.2, 0.4, Inf))) - 1) / 2
+table(aaa$phi0)
 
 ## retain species where both models worked fine
 aaa <- droplevels(aaa[aaa$Species %in% SPP,])
 
-library(lme4)
-m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
-m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn)^2, aaa)
-m1m <- lmer(Var ~ (Mixture + Timevar + Duration + logn)^2 + (1 | Species), aaa)
-m2m <- lmer(Bias ~ (Mixture + Timevar + Duration + logn)^2 + (1 | Species), aaa)
-round(cbind(fixef(m1m), coef(m1)), 4)
-round(cbind(fixef(m2m), coef(m2)), 4)
-
-coef(summary(m1))
-coef(summary(m1m))
-
-coef(summary(m2))
-coef(summary(m2m))
-
-summary(step(lm(Var ~ Mixture + Timevar + Duration + logn + MigT + phi0, aaa), trace=0))
-summary(step(lm(Bias ~ Mixture + Timevar + Duration + logn + MigT + phi0, aaa), trace=0))
-
-
-## minor diffs: use lm
-
-#m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn)^2, aaa)
-#m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn)^2, aaa)
 m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
 m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
 #m1 <- step(m1)
 #m2 <- step(m2)
-
-#m1 <- lm(Var ~ Model + Duration + logn, aaa)
-#m2 <- lm(Bias ~ Model + Duration + logn, aaa)
-summary(m1)
 summary(m2)
+summary(m1)
 
-a1 <- anova(update(m1, . ~ . + Species))
+a1 <- anova(m1)
+#a1 <- anova(update(m1, . ~ . + Species))
 a1$Perc <- 100 * a1[,"Sum Sq"] / sum(a1[,"Sum Sq"])
-a2 <- anova(update(m2, . ~ . + Species))
+a2 <- anova(m2)
+#a2 <- anova(update(m2, . ~ . + Species))
 a2$Perc <- 100 * a2[,"Sum Sq"] / sum(a2[,"Sum Sq"])
+rownames(a1) <- gsub("Duration", "Duration5", rownames(a1))
+rownames(a2) <- gsub("Duration", "Duration5", rownames(a2))
+
+summary(m1)
 a1
+summary(m2)
 a2
 
+
 RN <- union(rownames(coef(summary(m2))), rownames(a2))
-RN1 <- c("(Intercept)", "Mixture", "Timevar", "Duration5", "logn", "phi0",
-    "Mixture:Timevar",
-    "Mixture:Duration5", "Mixture:logn", "Mixture:phi0",
-    "Timevar:Duration5", "Timevar:logn", "Timevar:phi0",
-    "Duration5:logn", "Duration5:phi0", "logn:phi0", "Species", "Residuals")
-RN2 <- c("(Intercept)", "Mixture", "Timevar", "Duration", "logn", "phi0",
-    "Mixture:Timevar",
-    "Mixture:Duration", "Mixture:logn", "Mixture:phi0",
-    "Timevar:Duration", "Timevar:logn", "Timevar:phi0",
-    "Duration:logn", "Duration:phi0", "logn:phi0", "Species", "Residuals")
+#RN1 <- union(rownames(coef(summary(m1))), rownames(a1))
+#RN <- union(RN1, RN2)
+tmp <- coef(summary(m2))[match(RN, rownames(coef(summary(m2)))),c(1,2,4)]
+rownames(tmp)[nrow(tmp)] <- "Residuals"
 bbb <- round(data.frame(
-    Bias=coef(summary(m2))[match(RN1, rownames(coef(summary(m2)))),c(1,2,4)],
-    Bias.Perc=a2[match(RN2, rownames(a2)),"Perc"],
-    Var=coef(summary(m1))[match(RN1, rownames(coef(summary(m1)))),c(1,2,4)],
-    Var.Perc=a1[match(RN2, rownames(a1)),"Perc"]), 4)
-rownames(bbb) <- RN2
+    Bias=tmp,
+    Bias.Perc=a2[match(RN, rownames(a2)),"Perc"],
+    Var=coef(summary(m1))[match(RN, rownames(coef(summary(m1)))),c(1,2,4)],
+    Var.Perc=a1[match(RN, rownames(a1)),"Perc"]), 4)
+rownames(bbb) <- RN
 write.csv(bbb, file=file.path(ROOT2, "tabfig", "var-bias-tab.csv"))
 
 
@@ -544,17 +525,6 @@ MOD <- c("M0", "M0", "Mb", "Mb", "M0t", "M0t", "Mbt", "Mbt")
 png(file.path(ROOT2, "tabfig", "Fig6_var-bias.png"), width=600, height=4*250)
 par(mfrow=c(4,2), las=1)
 for (i in c(1,3,5,7)+1) {
-plot(ng, maxVar1[,i], main=paste("Variance", MOD[i]),
-    xlab="Sample size", ylab="Variance",
-    type="n", lwd=2, col=2, ylim=c(0,max(maxVar1, maxVar2)), xlim=c(2,400))
-polygon(c(ng, rev(ng)), c(maxVar1[,i-1], rev(maxVar2[,i-1])),
-    col="grey", border="grey")
-polygon(c(ng, rev(ng)), c(maxVar1[,i], rev(maxVar2[,i])),
-    col="black")
-#lines(ng, maxVar0[,i], lty=1, col="white", lwd=2)
-#lines(ng, maxVar0[,i-1], lty=2, col="white", lwd=2)
-box()
-
 plot(ng, maxBias1[,i], main=paste("Bias", MOD[i]),
     xlab="Sample size", ylab="Bias",
     type="n", lwd=2, col=2,
@@ -565,6 +535,17 @@ polygon(c(ng, rev(ng)), c(maxBias1[,i], rev(maxBias2[,i])),
     col="black")
 lines(ng, maxBias0[,i], lty=1, col="white", lwd=2)
 lines(ng, maxBias0[,i-1], lty=2, col="white", lwd=2)
+box()
+
+plot(ng, maxVar1[,i], main=paste("Variance", MOD[i]),
+    xlab="Sample size", ylab="Variance",
+    type="n", lwd=2, col=2, ylim=c(0,max(maxVar1, maxVar2)), xlim=c(2,400))
+polygon(c(ng, rev(ng)), c(maxVar1[,i-1], rev(maxVar2[,i-1])),
+    col="grey", border="grey")
+polygon(c(ng, rev(ng)), c(maxVar1[,i], rev(maxVar2[,i])),
+    col="black")
+#lines(ng, maxVar0[,i], lty=1, col="white", lwd=2)
+#lines(ng, maxVar0[,i-1], lty=2, col="white", lwd=2)
 box()
 }
 dev.off()
