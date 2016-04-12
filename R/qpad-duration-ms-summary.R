@@ -351,8 +351,13 @@ table(aaa$phi0)
 ## retain species where both models worked fine
 aaa <- droplevels(aaa[aaa$Species %in% SPP,])
 
-m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
-m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
+m1 <- lm(Var ~ (Mixture + Timevar + Duration)^2 + (logn + phi0)^2, aaa)
+m2 <- lm(Bias ~ (Mixture + Timevar + Duration)^2 + (logn + phi0)^2, aaa)
+
+#m1 <- lm(Var ~ Mixture * Timevar + Duration + logn * phi0, aaa)
+#m2 <- lm(Bias ~ Mixture * Timevar + Duration + logn * phi0, aaa)
+#m1 <- lm(Var ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
+#m2 <- lm(Bias ~ (Mixture + Timevar + Duration + logn + phi0)^2, aaa)
 #m1 <- step(m1)
 #m2 <- step(m2)
 summary(m2)
@@ -367,11 +372,10 @@ a2$Perc <- 100 * a2[,"Sum Sq"] / sum(a2[,"Sum Sq"])
 rownames(a1) <- gsub("Duration", "Duration5", rownames(a1))
 rownames(a2) <- gsub("Duration", "Duration5", rownames(a2))
 
-summary(m1)
-a1
-summary(m2)
-a2
-
+#summary(m1)
+#a1
+#summary(m2)
+#a2
 
 RN <- union(rownames(coef(summary(m2))), rownames(a2))
 #RN1 <- union(rownames(coef(summary(m1))), rownames(a1))
@@ -384,6 +388,7 @@ bbb <- round(data.frame(
     Var=coef(summary(m1))[match(RN, rownames(coef(summary(m1)))),c(1,2,4)],
     Var.Perc=a1[match(RN, rownames(a1)),"Perc"]), 4)
 rownames(bbb) <- RN
+bbb
 write.csv(bbb, file=file.path(ROOT2, "tabfig", "var-bias-tab.csv"))
 
 
@@ -986,11 +991,16 @@ sppTadj[[spp]] <- c(PIF=sptab[spp, "tadj"],
     M0t_jdsr_mean=1/mean(p30pk2), Mbt_jdsr_mean=1/mean(p3bpk2))
 }
 
-sppTadj <- data.frame(do.call(rbind, sppTadj))
+sppTadj0 <- data.frame(do.call(rbind, sppTadj))
 
-with(sppTadj, plot(PIF, M0t_sr_mean, ylim=c(0,5), xlim=c(0,5)))
+with(sppTadj0, plot(PIF, M0t_sr_mean, ylim=c(0,5), xlim=c(0,5)))
 
 cn <- c("Mbt_jdsr_mean", "M0t_jdsr_mean", "Mbt_sr", "M0t_sr", "PIF")
+
+sppTadj <- sppTadj0[!(rownames(sppTadj0) %in% c("EVGR", "MAWR", "WIPT")),rev(cn)] # MAWR WIPT EVGR
+
+cor.test(sppTadj[,1], sppTadj[,2])
+
 png(file.path(ROOT2, "tabfig", "FigX_tadj.png"), height=450, width=450)
 par(las=1, mar=c(5, 6, 4, 2) + 0.1)
 boxplot(sppTadj[,cn],
