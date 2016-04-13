@@ -21,17 +21,28 @@ library(detect)
 ## Load functions kept in separate file
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
+sppt <- read.csv("~/repos/bamanalytics/lookup/singing-species.csv")
+rownames(sppt) <- sppt$Species_ID
+spp_singing <- sort(rownames(sppt)[sppt$Singing_birds])
+
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-10.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
 
 ### Removal sampling
 
 ## non NA subset for duration related estimates
 pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE")]
-pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
+pkDur$TSSR2 <- pkDur$TSSR^2
+pkDur$JDAY2 <- pkDur$JDAY^2
+pkDur$DSLS <- pkDur$TSLS
+pkDur$DSLS2 <- pkDur$DSLS^2
+## JDAY outliers
+pkDur$JDAY[pkDur$JDAY > 0.55] <- NA
 ## strange methodology where all counts have been filtered
 ## thus this only leads to 0 total count and exclusion
 pkDur <- droplevels(pkDur[pkDur$DURMETH != "J",])
+pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
+pkDur$TSLS <- NULL
 
 ## save this and spatial/yearly variation for next version
 ## make sure to leave all TSSR (i.e. after noon) in the data
@@ -59,41 +70,43 @@ ff <- list(
 
 ## models to consider
 NAMES <- list(
-    "0"="INTERCEPT",
-    "1"=c("INTERCEPT", "JDAY"),
-    "2"=c("INTERCEPT", "TSSR"),
-    "3"=c("INTERCEPT", "JDAY", "JDAY2"),
-    "4"=c("INTERCEPT", "TSSR", "TSSR2"),
-    "5"=c("INTERCEPT", "JDAY", "TSSR"),
-    "6"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR"),
-    "7"=c("INTERCEPT", "JDAY", "TSSR", "TSSR2"),
-    "8"=c("INTERCEPT", "JDAY", "JDAY2", "TSSR", "TSSR2"),
-    "9"=c("INTERCEPT", "TSLS"),
-    "10"=c("INTERCEPT", "TSLS", "TSLS2"),
-    "11"=c("INTERCEPT", "TSLS", "TSSR"),
-    "12"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR"),
-    "13"=c("INTERCEPT", "TSLS", "TSSR", "TSSR2"),
-    "14"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR", "TSSR2"))
+    "0"="(Intercept)",
+    "1"=c("(Intercept)", "JDAY"),
+    "2"=c("(Intercept)", "TSSR"),
+    "3"=c("(Intercept)", "JDAY", "JDAY2"),
+    "4"=c("(Intercept)", "TSSR", "TSSR2"),
+    "5"=c("(Intercept)", "JDAY", "TSSR"),
+    "6"=c("(Intercept)", "JDAY", "JDAY2", "TSSR"),
+    "7"=c("(Intercept)", "JDAY", "TSSR", "TSSR2"),
+    "8"=c("(Intercept)", "JDAY", "JDAY2", "TSSR", "TSSR2"),
+    "9"=c("(Intercept)", "DSLS"),
+    "10"=c("(Intercept)", "DSLS", "DSLS2"),
+    "11"=c("(Intercept)", "DSLS", "TSSR"),
+    "12"=c("(Intercept)", "DSLS", "DSLS2", "TSSR"),
+    "13"=c("(Intercept)", "DSLS", "TSSR", "TSSR2"),
+    "14"=c("(Intercept)", "DSLS", "DSLS2", "TSSR", "TSSR2"))
 ff <- list(
     ~ 1,
     ~ JDAY,
     ~ TSSR,
-    ~ JDAY + I(JDAY^2),
-    ~ TSSR + I(TSSR^2),
+    ~ JDAY + JDAY2,
+    ~ TSSR + TSSR2,
     ~ JDAY + TSSR,
-    ~ JDAY + I(JDAY^2) + TSSR,
-    ~ JDAY + TSSR + I(TSSR^2),
-    ~ JDAY + I(JDAY^2) + TSSR + I(TSSR^2),
-    ~ TSLS,
-    ~ TSLS + I(TSLS^2),
-    ~ TSLS + TSSR,
-    ~ TSLS + I(TSLS^2) + TSSR,
-    ~ TSLS + TSSR + I(TSSR^2),
-    ~ TSLS + I(TSLS^2) + TSSR + I(TSSR^2))
+    ~ JDAY + JDAY2 + TSSR,
+    ~ JDAY + TSSR + TSSR2,
+    ~ JDAY + JDAY2 + TSSR + TSSR2,
+    ~ DSLS,
+    ~ DSLS + DSLS2,
+    ~ DSLS + TSSR,
+    ~ DSLS + DSLS2 + TSSR,
+    ~ DSLS + TSSR + TSSR2,
+    ~ DSLS + DSLS2 + TSSR + TSSR2)
+names(ff) <- 0:14
 
 ## crosstab for species
 xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
-xtDur[["NONE"]] <- NULL
+#xtDur[["NONE"]] <- NULL
+xtDur <- xtDur[spp_singing]
 
 fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
@@ -167,7 +180,6 @@ for (i in 1:length(SPP)) {
     cat("Singing rate estimation for", SPP[i], date(), "\n")
     flush.console()
     resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
-    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
 }
 names(resDur) <- SPP
 resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
@@ -176,7 +188,6 @@ resDur <- resDurOK
 
 save(resDur, resDurData,
     file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
-    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_mix.Rdata"))
 
 ### Distance sampling
 
@@ -199,8 +210,16 @@ levels(pkDis$WNALCTREE)[levels(pkDis$WNALCTREE) %in% c("Agr","Barren","Devel",
 pkDis$NALCTREE <- pkDis$WNALCTREE
 levels(pkDis$NALCTREE)[levels(pkDis$NALCTREE) %in% c("Wet")] <- "Open"
 
+pkDis$LCC2 <- as.factor(ifelse(pkDis$WNALC %in% c("Open", "Wet"), "OpenWet", "Forest"))
+pkDis$LCC4 <- pkDis$WNALC
+levels(pkDis$LCC4) <- c(levels(pkDis$LCC4), "DecidMixed")
+pkDis$LCC4[pkDis$WNALC %in% c("Decid", "Mixed")] <- "DecidMixed"
+pkDis$LCC4 <- droplevels(pkDis$LCC4)
+pkDis$LCC4 <- relevel(pkDis$LCC4, "DecidMixed")
+
 ## models to consider
 
+if (FALSE) {
 NAMES <- list(
     "0"="INTERCEPT",
     "1"=c("INTERCEPT", "TREE"),
@@ -226,10 +245,28 @@ ff <- list(
 #    ~ CTREE, # 2
 #    ~ NALCTREE, # 7
 #    ~ WNALCTREE) # 8
+}
+
+NAMES <- list(
+    "0"="(Intercept)",
+    "1"=c("(Intercept)", "TREE"),
+    "2"=c("(Intercept)", "LCC2OpenWet"),
+    "3"=c("(Intercept)", "LCC4Conif", "LCC4Open", "LCC4Wet"),
+    "4"=c("(Intercept)", "LCC2OpenWet", "TREE"),
+    "5"=c("(Intercept)", "LCC4Conif", "LCC4Open", "LCC4Wet", "TREE"))
+ff <- list(
+    ~ 1, # 0
+    ~ TREE, # 1
+    ~ LCC2, # 2
+    ~ LCC4, # 3
+    ~ LCC2 + TREE, # 4
+    ~ LCC4 + TREE) # 5
+names(ff) <- 0:5
 
 ## crosstab for species
 xtDis <- Xtab(ABUND ~ PKEY + dis + SPECIES, pc)
-xtDis[["NONE"]] <- NULL
+#xtDis[["NONE"]] <- NULL
+xtDis <- xtDis[spp_singing]
 
 fitDisFun <- function(spp, fit=TRUE) {
     rn <- intersect(rownames(pkDis), rownames(xtDis[[spp]]))
@@ -311,7 +348,7 @@ c(OK=length(resDisOK), failed=length(resDis)-length(resDisOK), all=length(resDis
 resDis <- resDisOK
 
 save(resDis, resDisData,
-    file=file.path(ROOT, "out", "estimates_EDR_QPAD_v2015.Rdata"))
+    file=file.path(ROOT, "out", "estimates_EDR_QPAD_v2016.Rdata"))
 
 
 ### Putting things together
@@ -620,7 +657,7 @@ mi <- bestmodelBAMspecies(spp)
 cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
 vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
 
-#     TSSR             JDAY            TSLS       
+#     TSSR             JDAY            DSLS       
 # Min.   :-0.315   Min.   :0.351   Min.   :-0.101  
 # 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103  
 # Median : 0.149   Median :0.455   Median : 0.131  
