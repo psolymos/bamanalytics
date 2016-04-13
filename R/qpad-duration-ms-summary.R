@@ -14,7 +14,7 @@ source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
 
 ## non NA subset for duration related estimates
-pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE","X","Y")]
+pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE","X","Y","SS")]
 pkDur <- droplevels(pkDur[rowSums(is.na(pkDur)) == 0,])
 ## strange methodology where all counts have been filtered
 ## thus this only leads to 0 total count and exclusion
@@ -83,6 +83,19 @@ datx <- droplevels(dat[rownames(X0)[rowSums(!is.na(D)) > 1],])
 ## data summaries
 pkDurOK <- droplevels(pkDur[pkDur$DURMETH %in% rownames(ld),])
 str(pkDurOK)
+
+if (FALSE) {
+## export data for Fig 1
+ss <- droplevels(nonDuplicated(pkDurOK, SS))
+ss <- ss[,c("SS","PCODE","DURMETH","X","Y")]
+
+ll <- apply(ltdur$end[rownames(ld),], 1, function(z) {
+    paste(c(0, z[!is.na(z)]), collapse="-")
+    })
+ss$INTERVALS <- as.factor(ll[match(ss$DURMETH, names(ll))])
+data.frame(table(ss$INTERVALS))
+write.csv(ss, row.names=FALSE, file="~/Downloads/removal-ms-points-for-fig-1.csv")
+}
 
 ## species
 e <- new.env()
