@@ -1,0 +1,295 @@
+Species_ID,English_Name,Family_Sci,Singing_birds
+BAEA,Bald Eagle,Accipitridae,FALSE
+BWHA,Broad-winged Hawk,Accipitridae,FALSE
+COHA,Cooper's Hawk,Accipitridae,FALSE
+NOGO,Northern Goshawk,Accipitridae,FALSE
+NOHA,Northern Harrier,Accipitridae,FALSE
+RSHA,Red-shouldered Hawk,Accipitridae,FALSE
+RTHA,Red-tailed Hawk,Accipitridae,FALSE
+SSHA,Sharp-shinned Hawk,Accipitridae,FALSE
+SWHA,Swainson's Hawk,Accipitridae,FALSE
+HOLA,Horned Lark,Alaudidae,TRUE
+BEKI,Belted Kingfisher,Alcedinidae,TRUE
+AMWI,American Wigeon,Anatidae,FALSE
+BLSC,Black Scoter,Anatidae,FALSE
+BWTE,Blue-winged Teal,Anatidae,FALSE
+BUFF,Bufflehead,Anatidae,FALSE
+CANG,Canada Goose,Anatidae,FALSE
+COGO,Common Goldeneye,Anatidae,FALSE
+COME,Common Merganser,Anatidae,FALSE
+GADW,Gadwall,Anatidae,FALSE
+GRSC,Greater Scaup,Anatidae,FALSE
+GWFG,Greater White-fronted Goose,Anatidae,FALSE
+GWTE,Green-winged Teal,Anatidae,FALSE
+LESC,Lesser Scaup,Anatidae,FALSE
+MALL,Mallard,Anatidae,FALSE
+NOPI,Northern Pintail,Anatidae,FALSE
+NSHO,Northern Shoveler,Anatidae,FALSE
+RNDU,Ring-necked Duck,Anatidae,FALSE
+RUDU,Ruddy Duck,Anatidae,FALSE
+SNGO,Snow Goose,Anatidae,FALSE
+TRUS,Trumpeter Swan,Anatidae,FALSE
+TUSW,Tundra Swan,Anatidae,FALSE
+WODU,Wood Duck,Anatidae,FALSE
+CHSW,Chimney Swift,Apodidae,TRUE
+AMBI,American Bittern,Ardeidae,FALSE
+GBHE,Great Blue Heron,Ardeidae,FALSE
+GRHE,Green Heron,Ardeidae,FALSE
+BOWA,Bohemian Waxwing,Bombycillidae,TRUE
+CEDW,Cedar Waxwing,Bombycillidae,TRUE
+LALO,Lapland Longspur,Calcariidae,TRUE
+SMLO,Smith's Longspur,Calcariidae,TRUE
+SNBU,Snow Bunting,Calcariidae,TRUE
+CONI,Common Nighthawk,Caprimulgidae,FALSE
+EWPW,Eastern Whip-poor-will,Caprimulgidae,FALSE
+INBU,Indigo Bunting,Cardinalidae,TRUE
+NOCA,Northern Cardinal,Cardinalidae,TRUE
+RBGR,Rose-breasted Grosbeak,Cardinalidae,TRUE
+SCTA,Scarlet Tanager,Cardinalidae,TRUE
+WETA,Western Tanager,Cardinalidae,TRUE
+BRCR,Brown Creeper,Certhiidae,TRUE
+AMGP,American Golden-Plover,Charadriidae,TRUE
+KILL,Killdeer,Charadriidae,TRUE
+SEPL,Semipalmated Plover,Charadriidae,TRUE
+MODO,Mourning Dove,Columbidae,TRUE
+ROPI,Rock Pigeon,Columbidae,TRUE
+AMCR,American Crow,Corvidae,TRUE
+BBMA,Black-billed Magpie,Corvidae,TRUE
+BLJA,Blue Jay,Corvidae,TRUE
+CORA,Common Raven,Corvidae,TRUE
+GRAJ,Gray Jay,Corvidae,TRUE
+NOCR,Northwestern Crow,Corvidae,TRUE
+BBCU,Black-billed Cuckoo,Cuculidae,TRUE
+YBCU,Yellow-billed Cuckoo,Cuculidae,TRUE
+ATSP,American Tree Sparrow,Emberizidae,TRUE
+BRSP,Brewer's Sparrow,Emberizidae,TRUE
+CHSP,Chipping Sparrow,Emberizidae,TRUE
+CCSP,Clay-colored Sparrow,Emberizidae,TRUE
+DEJU,Dark-eyed Junco,Emberizidae,TRUE
+EATO,Eastern Towhee,Emberizidae,TRUE
+FISP,Field Sparrow,Emberizidae,TRUE
+FOSP,Fox Sparrow,Emberizidae,TRUE
+GCSP,Golden-crowned Sparrow,Emberizidae,TRUE
+GRSP,Grasshopper Sparrow,Emberizidae,TRUE
+LCSP,Le Conte's Sparrow,Emberizidae,TRUE
+LISP,Lincoln's Sparrow,Emberizidae,TRUE
+NESP,Nelson's Sparrow,Emberizidae,TRUE
+SAVS,Savannah Sparrow,Emberizidae,TRUE
+SOSP,Song Sparrow,Emberizidae,TRUE
+SWSP,Swamp Sparrow,Emberizidae,TRUE
+VESP,Vesper Sparrow,Emberizidae,TRUE
+WCSP,White-crowned Sparrow,Emberizidae,TRUE
+WTSP,White-throated Sparrow,Emberizidae,TRUE
+AMKE,American Kestrel,Falconidae,FALSE
+MERL,Merlin,Falconidae,FALSE
+AMGO,American Goldfinch,Fringillidae,TRUE
+EVGR,Evening Grosbeak,Fringillidae,TRUE
+GCRF,Gray-crowned Rosy-Finch,Fringillidae,TRUE
+HOFI,House Finch,Fringillidae,TRUE
+PIGR,Pine Grosbeak,Fringillidae,TRUE
+PISI,Pine Siskin,Fringillidae,TRUE
+PUFI,Purple Finch,Fringillidae,TRUE
+RECR,Red Crossbill,Fringillidae,TRUE
+WWCR,White-winged Crossbill,Fringillidae,TRUE
+COLO,Common Loon,Gaviidae,FALSE
+SACR,Sandhill Crane,Gruidae,FALSE
+BANS,Bank Swallow,Hirundinidae,TRUE
+BARS,Barn Swallow,Hirundinidae,TRUE
+CLSW,Cliff Swallow,Hirundinidae,TRUE
+NRWS,Northern Rough-winged Swallow,Hirundinidae,TRUE
+PUMA,Purple Martin,Hirundinidae,TRUE
+TRES,Tree Swallow,Hirundinidae,TRUE
+VGSW,Violet-green Swallow,Hirundinidae,TRUE
+BAOR,Baltimore Oriole,Icteridae,TRUE
+BOBO,Bobolink,Icteridae,TRUE
+BRBL,Brewer's Blackbird,Icteridae,TRUE
+BHCO,Brown-headed Cowbird,Icteridae,TRUE
+COGR,Common Grackle,Icteridae,TRUE
+EAME,Eastern Meadowlark,Icteridae,TRUE
+OROR,Orchard Oriole,Icteridae,TRUE
+RWBL,Red-winged Blackbird,Icteridae,TRUE
+RUBL,Rusty Blackbird,Icteridae,TRUE
+WEME,Western Meadowlark,Icteridae,TRUE
+YHBL,Yellow-headed Blackbird,Icteridae,TRUE
+BLTE,Black Tern,Laridae,FALSE
+BOGU,Bonaparte's Gull,Laridae,FALSE
+FOTE,Forster's Tern,Laridae,FALSE
+FRGU,Franklin's Gull,Laridae,FALSE
+GWGU,Glaucous-winged Gull,Laridae,FALSE
+HERG,Herring Gull,Laridae,FALSE
+MEGU,Mew Gull,Laridae,FALSE
+RBGU,Ring-billed Gull,Laridae,FALSE
+BRTH,Brown Thrasher,Mimidae,TRUE
+GRCA,Gray Catbird,Mimidae,TRUE
+AMPI,American Pipit,Motacillidae,TRUE
+NOWH,Northern Wheatear,Muscicapidae,TRUE
+OSPR,Osprey,Pandionidae,FALSE
+BCCH,Black-capped Chickadee,Paridae,TRUE
+BOCH,Boreal Chickadee,Paridae,TRUE
+MOCH,Mountain Chickadee,Paridae,TRUE
+TUTI,Tufted Titmouse,Paridae,TRUE
+AMRE,American Redstart,Parulidae,TRUE
+BAWA,Bachman's Warbler,Parulidae,TRUE
+BBWA,Bay-breasted Warbler,Parulidae,TRUE
+BAWW,Black-and-white Warbler,Parulidae,TRUE
+BLBW,Blackburnian Warbler,Parulidae,TRUE
+BLPW,Blackpoll Warbler,Parulidae,TRUE
+BTBW,Black-throated Blue Warbler,Parulidae,TRUE
+BTNW,Black-throated Green Warbler,Parulidae,TRUE
+BWWA,Blue-winged Warbler,Parulidae,TRUE
+CAWA,Canada Warbler,Parulidae,TRUE
+CMWA,Cape May Warbler,Parulidae,TRUE
+CERW,Cerulean Warbler,Parulidae,TRUE
+CSWA,Chestnut-sided Warbler,Parulidae,TRUE
+COYE,Common Yellowthroat,Parulidae,TRUE
+CONW,Connecticut Warbler,Parulidae,TRUE
+GWWA,Golden-winged Warbler,Parulidae,TRUE
+MGWA,MacGillivray's Warbler,Parulidae,TRUE
+MAWA,Magnolia Warbler,Parulidae,TRUE
+MOWA,Mourning Warbler,Parulidae,TRUE
+NAWA,Nashville Warbler,Parulidae,TRUE
+NOPA,Northern Parula,Parulidae,TRUE
+NOWA,Northern Waterthrush,Parulidae,TRUE
+OCWA,Orange-crowned Warbler,Parulidae,TRUE
+OVEN,Ovenbird,Parulidae,TRUE
+PAWA,Palm Warbler,Parulidae,TRUE
+PIWA,Pine Warbler,Parulidae,TRUE
+TEWA,Tennessee Warbler,Parulidae,TRUE
+TOWA,Townsend's Warbler,Parulidae,TRUE
+WIWA,Wilson's Warbler,Parulidae,TRUE
+YEWA,Yellow Warbler,Parulidae,TRUE
+YRWA,Yellow-rumped Warbler,Parulidae,TRUE
+HOSP,House Sparrow,Passeridae,TRUE
+RNEP,Ring-necked Pheasant,Phasianidae,FALSE
+ROPT,Rock Ptarmigan,Phasianidae,TRUE
+RUGR,Ruffed Grouse,Phasianidae,TRUE
+STGR,Sharp-tailed Grouse,Phasianidae,TRUE
+SOGR,Sooty Grouse,Phasianidae,TRUE
+SPGR,Spruce Grouse,Phasianidae,TRUE
+WITU,Wild Turkey,Phasianidae,TRUE
+WIPT,Willow Ptarmigan,Phasianidae,TRUE
+ARWA,Arctic Warbler,Phylloscopidae,TRUE
+ATTW,American Three-toed Woodpecker,Picidae,TRUE
+BBWO,Black-backed Woodpecker,Picidae,TRUE
+DOWO,Downy Woodpecker,Picidae,TRUE
+HAWO,Hairy Woodpecker,Picidae,TRUE
+NOFL,Northern Flicker,Picidae,TRUE
+PIWO,Pileated Woodpecker,Picidae,TRUE
+RBWO,Red-bellied Woodpecker,Picidae,TRUE
+RHWO,Red-headed Woodpecker,Picidae,TRUE
+YBSA,Yellow-bellied Sapsucker,Picidae,TRUE
+HOGR,Horned Grebe,Podicipedidae,FALSE
+PBGR,Pied-billed Grebe,Podicipedidae,FALSE
+RNGR,Red-necked Grebe,Podicipedidae,FALSE
+BGGN,Blue-gray Gnatcatcher,Polioptilidae,TRUE
+AMCO,American Coot,Rallidae,FALSE
+SORA,Sora,Rallidae,FALSE
+VIRA,Virginia Rail,Rallidae,FALSE
+YERA,Yellow Rail,Rallidae,FALSE
+GCKI,Golden-crowned Kinglet,Regulidae,TRUE
+RCKI,Ruby-crowned Kinglet,Regulidae,TRUE
+AMWO,American Woodcock,Scolopacidae,TRUE
+BASA,Baird's Sandpiper,Scolopacidae,TRUE
+DUNL,Dunlin,Scolopacidae,TRUE
+GRYE,Greater Yellowlegs,Scolopacidae,TRUE
+LESA,Least Sandpiper,Scolopacidae,TRUE
+LEYE,Lesser Yellowlegs,Scolopacidae,TRUE
+MAGO,Marbled Godwit,Scolopacidae,TRUE
+SBDO,Short-billed Dowitcher,Scolopacidae,TRUE
+SOSA,Solitary Sandpiper,Scolopacidae,TRUE
+SPSA,Spotted Sandpiper,Scolopacidae,TRUE
+SURF,Surfbird,Scolopacidae,TRUE
+UPSA,Upland Sandpiper,Scolopacidae,TRUE
+WHIM,Whimbrel,Scolopacidae,TRUE
+WISN,Wilson's Snipe,Scolopacidae,TRUE
+RBNU,Red-breasted Nuthatch,Sittidae,TRUE
+WBNU,White-breasted Nuthatch,Sittidae,TRUE
+LTJA,Long-tailed Jaeger,Stercorariidae,FALSE
+BADO,Barred Owl,Strigidae,FALSE
+BOOW,Boreal Owl,Strigidae,FALSE
+GGOW,Great Gray Owl,Strigidae,FALSE
+GHOW,Great Horned Owl,Strigidae,FALSE
+LEOW,Long-eared Owl,Strigidae,FALSE
+NHOW,Northern Hawk Owl,Strigidae,FALSE
+NOPO,Northern Pygmy-Owl,Strigidae,FALSE
+NSWO,Northern Saw-whet Owl,Strigidae,FALSE
+EUST,European Starling,Sturnidae,TRUE
+RTHU,Ruby-throated Hummingbird,Trochilidae,TRUE
+HOWR,House Wren,Troglodytidae,TRUE
+MAWR,Marsh Wren,Troglodytidae,TRUE
+PAWR,Pacific Wren,Troglodytidae,TRUE
+SEWR,Sedge Wren,Troglodytidae,TRUE
+WIWR,Winter Wren,Troglodytidae,TRUE
+AMRO,American Robin,Turdidae,TRUE
+EABL,Eastern Bluebird,Turdidae,TRUE
+GCTH,Gray-cheeked Thrush,Turdidae,TRUE
+HETH,Hermit Thrush,Turdidae,TRUE
+MOBL,Mountain Bluebird,Turdidae,TRUE
+SWTH,Swainson's Thrush,Turdidae,TRUE
+TOSO,Townsend's Solitaire,Turdidae,TRUE
+VATH,Varied Thrush,Turdidae,TRUE
+VEER,Veery,Turdidae,TRUE
+WOTH,Wood Thrush,Turdidae,TRUE
+ALFL,Alder Flycatcher,Tyrannidae,TRUE
+DUFL,Dusky Flycatcher,Tyrannidae,TRUE
+EAKI,Eastern Kingbird,Tyrannidae,TRUE
+EAPH,Eastern Phoebe,Tyrannidae,TRUE
+EAWP,Eastern Wood-Pewee,Tyrannidae,TRUE
+GCFL,Great Crested Flycatcher,Tyrannidae,TRUE
+HAFL,Hammond's Flycatcher,Tyrannidae,TRUE
+LEFL,Least Flycatcher,Tyrannidae,TRUE
+OSFL,Olive-sided Flycatcher,Tyrannidae,TRUE
+SAPH,Say's Phoebe,Tyrannidae,TRUE
+WEWP,Western Wood-Pewee,Tyrannidae,TRUE
+WIFL,Willow Flycatcher,Tyrannidae,TRUE
+YBFL,Yellow-bellied Flycatcher,Tyrannidae,TRUE
+BHVI,Blue-headed Vireo,Vireonidae,TRUE
+CAVI,Cassin's Vireo,Vireonidae,TRUE
+PHVI,Philadelphia Vireo,Vireonidae,TRUE
+REVI,Red-eyed Vireo,Vireonidae,TRUE
+WAVI,Warbling Vireo,Vireonidae,TRUE
+YTVI,Yellow-throated Vireo,Vireonidae,TRUE
+ABDU,American Black Duck,Anatidae,FALSE
+ACFL,Acadian Flycatcher,Tyrannidae,TRUE
+AMAV,American Avocet,Recurvirostridae,FALSE
+AWPE,American White Pelican,Pelecanidae,FALSE
+BAIS,Baird's Sparrow,Emberizidae,TRUE
+BHGR,Black-headed Grosbeak,Cardinalidae,TRUE
+CAGU,California Gull,Laridae,FALSE
+CANV,Canvasback,Anatidae,FALSE
+CBCH,Chestnut-backed Chickadee,Paridae,TRUE
+CCLO,Chestnut-collared Longspur,Calcariidae,TRUE
+CORE,Common Redpoll,Fringillidae,TRUE
+COTE,Common Tern,Laridae,FALSE
+EAGR,Eared Grebe,Podicipedidae,FALSE
+FTSP,Fork-tailed Storm-Petrel,Hydrobatidae,FALSE
+GRAP,Gray Partridge,Phasianidae,FALSE
+LARB,Lark Bunting,Emberizidae,TRUE
+LASP,Lark Sparrow,Emberizidae,TRUE
+LBCU,Long-billed Curlew,Scolopacidae,TRUE
+LESP,Leach's Storm-Petrel,Hydrobatidae,FALSE
+LOWA,Louisiana Waterthrush,Parulidae,TRUE
+PALO,Pacific Loon,Gaviidae,FALSE
+PEFA,Peregrine Falcon,Falconidae,FALSE
+PROW,Prothonotary Warbler,Parulidae,TRUE
+PSFL,Pacific-slope Flycatcher,Tyrannidae,TRUE
+RBME,Red-breasted Merganser,Anatidae,FALSE
+RBSA,Red-breasted Sapsucker,Picidae,TRUE
+REDH,Redhead,Anatidae,FALSE
+RNPH,Red-necked Phalarope,Scolopacidae,TRUE
+ROSA,Rock Sandpiper,Scolopacidae,TRUE
+ROWR,Rock Wren,Troglodytidae,TRUE
+RTLO,Red-throated Loon,Gaviidae,FALSE
+RUHU,Rufous Hummingbird,Trochilidae,TRUE
+SEOW,Short-eared Owl,Strigidae,FALSE
+SPPI,Sprague's Pipit,Motacillidae,TRUE
+SPTO,Spotted Towhee,Emberizidae,TRUE
+STJA,Steller's Jay,Corvidae,TRUE
+UPCH,Unidentified Poecile Chickadee,Paridae,FALSE
+WATA,Wandering Tattler,Scolopacidae,TRUE
+WEKI,Western Kingbird,Tyrannidae,TRUE
+WILL,Willet,Scolopacidae,TRUE
+WIPH,Wilson's Phalarope,Scolopacidae,TRUE
+BANO,Barn Owl,Tytonidae,FALSE
+COFL,Cordilleran Flycatcher,Tyrannidae,TRUE
+MCLO,McCown's Longspur,Calcariidae,TRUE
