@@ -87,6 +87,7 @@ str(pkDurOK)
 if (FALSE) {
 ## export data for Fig 1
 ss <- droplevels(nonDuplicated(pkDurOK, SS))
+#ss <- droplevels(pkDurOK)
 ss <- ss[,c("SS","PCODE","DURMETH","X","Y")]
 
 ll <- apply(ltdur$end[rownames(ld),], 1, function(z) {
