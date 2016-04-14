@@ -357,16 +357,11 @@ ROOT <- "c:/bam/May2015"
 
 ## n.min is threshold above which all models are considered
 ## n.con is threshold above which the 0 constant model is considered
-n.con <- 25
-n.min <- 75
-
+n.con <- 50#25
+n.min <- 50#75
 type <- "rem"
-
-if (type == "rem")
-    load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015.Rdata"))
-if (type == "mix")
-    load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2015_mix.Rdata"))
-load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2015.Rdata"))
+load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
+load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2016.Rdata"))
 
 ## 0/1 table for successful model fit
 edr_mod <- t(sapply(resDis, function(z)
@@ -449,6 +444,7 @@ table(rowSums(sra_models), rowSums(edr_models))
 
 ## spp to keep
 spp <- tmp[rowSums(edr_models) > 0 & rowSums(sra_models) > 0]
+length(spp)
 
 edr_models <- edr_models[spp,]
 sra_models <- sra_models[spp,]
@@ -466,8 +462,9 @@ sra_estimates <- resDur[spp]
 
 ## species table
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2015-10-08.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"), envir=e)
 tax <- e$TAX
+tax <- tax[!duplicated(tax$Species_ID),]
 rownames(tax) <- tax$Species_ID
 spp_table <- data.frame(spp=spp,
     scientific_name=tax[spp, "Scientific_Name"],
@@ -497,33 +494,35 @@ for (i in spp) { # species
     }
 }
 
-
 ## AIC/BIC
-sra_aic <- sra_bic <- sra_loglik
+sra_aic <- sra_aicc <- sra_bic <- sra_loglik
 sra_aic[] <- Inf
+sra_aicc[] <- Inf
 sra_bic[] <- Inf
-edr_aic <- edr_bic <- edr_loglik
+edr_aic <- edr_aicc <- edr_bic <- edr_loglik
 edr_aic[] <- Inf
+edr_aicc[] <- Inf
 edr_bic[] <- Inf
 for (i in spp) {
     sra_aic[i,] <- -2*sra_loglik[i,] + 2*sra_df
+    sra_aicc[i,] <- sra_aic[i,] + (2*sra_df*(sra_df+1)) / (sra_n[i]-sra_df-1)
     sra_bic[i,] <- -2*sra_loglik[i,] + log(sra_n[i])*sra_df
     edr_aic[i,] <- -2*edr_loglik[i,] + 2*edr_df
+    edr_aicc[i,] <- edr_aic[i,] + (2*edr_df*(edr_df+1)) / (edr_n[i]-edr_df-1)
     edr_bic[i,] <- -2*edr_loglik[i,] + log(edr_n[i])*edr_df
 }
 
-if (FALSE) { ## --------------------------------------------------- CHECK !!!
 ## constrain TREE (-) estimates
 for (i in spp) {
     ## TREE
     if (edr_models[i, "1"] == 1) {
         if (edr_estimates[[i]][["1"]]$coef[2] > 0) {
-            edr_aic[i, "1"] <- Inf
-            edr_bic[i, "1"] <- Inf
+#            edr_aic[i, "1"] <- Inf
+#            edr_aicc[i, "1"] <- Inf
+#            edr_bic[i, "1"] <- Inf
             cat(i, "tree", round(edr_estimates[[i]][["1"]]$coef[2], 4), "\n")
         }
     }
-}
 }
 
 ## model ranking
@@ -531,19 +530,31 @@ sra_aicrank <- t(apply(sra_aic, 1, rank))*sra_models
 sra_aicrank[sra_aicrank==0] <- NA
 edr_aicrank <- t(apply(edr_aic, 1, rank))*edr_models
 edr_aicrank[edr_aicrank==0] <- NA
+
+sra_aiccrank <- t(apply(sra_aicc, 1, rank))*sra_models
+sra_aiccrank[sra_aiccrank==0] <- NA
+edr_aiccrank <- t(apply(edr_aicc, 1, rank))*edr_models
+edr_aiccrank[edr_aiccrank==0] <- NA
+
 sra_bicrank <- t(apply(sra_bic, 1, rank))*sra_models
 sra_bicrank[sra_bicrank==0] <- NA
 edr_bicrank <- t(apply(edr_bic, 1, rank))*edr_models
 edr_bicrank[edr_bicrank==0] <- NA
 
 sra_aicbest <- apply(sra_aicrank, 1, function(z) colnames(sra_models)[which.min(z)])
+sra_aiccbest <- apply(sra_aiccrank, 1, function(z) colnames(sra_models)[which.min(z)])
 sra_bicbest <- apply(sra_bicrank, 1, function(z) colnames(sra_models)[which.min(z)])
 edr_aicbest <- apply(edr_aicrank, 1, function(z) colnames(edr_models)[which.min(z)])
+edr_aiccbest <- apply(edr_aiccrank, 1, function(z) colnames(edr_models)[which.min(z)])
 edr_bicbest <- apply(edr_bicrank, 1, function(z) colnames(edr_models)[which.min(z)])
 
 table(edr_aicbest, sra_aicbest)
 rowSums(table(edr_aicbest, sra_aicbest))
 colSums(table(edr_aicbest, sra_aicbest))
+
+table(edr_aiccbest, sra_aiccbest)
+rowSums(table(edr_aiccbest, sra_aiccbest))
+colSums(table(edr_aiccbest, sra_aiccbest))
 
 table(edr_bicbest, sra_bicbest)
 rowSums(table(edr_bicbest, sra_bicbest))
@@ -565,14 +576,20 @@ bamcoefs <- list(spp=spp,
     sra_loglik=sra_loglik,
     edr_aic=edr_aic,
     sra_aic=sra_aic,
+    edr_aicc=edr_aicc,
+    sra_aicc=sra_aicc,
     edr_bic=edr_bic,
     sra_bic=sra_bic,
     edr_aicrank=edr_aicrank,
     sra_aicrank=sra_aicrank,
+    edr_aiccrank=edr_aiccrank,
+    sra_aiccrank=sra_aiccrank,
     edr_bicrank=edr_bicrank,
     sra_bicrank=sra_bicrank,
     edr_aicbest=edr_aicbest,
     sra_aicbest=sra_aicbest,
+    edr_aiccbest=edr_aiccbest,
+    sra_aiccbest=sra_aiccbest,
     edr_bicbest=edr_bicbest,
     sra_bicbest=sra_bicbest,
     edr_estimates=edr_estimates,
@@ -580,16 +597,10 @@ bamcoefs <- list(spp=spp,
     version=version)
 .BAMCOEFS <- list2env(bamcoefs)
 
-if (type == "rem") {
-    save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
-    toDump <- as.list(.BAMCOEFS)
-    dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.Rdump"))
-}
-if (type == "mix") {
-    save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.rda"))
-    toDump <- as.list(.BAMCOEFS)
-    dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.Rdump"))
-}
+save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+toDump <- as.list(.BAMCOEFS)
+dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.Rdump"))
+
 
 ### Plot species specific results
 
@@ -602,19 +613,51 @@ version <- 3
 prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
 
 library(MASS)
-library(detect)
-load_BAM_QPAD(1)
-.BAMCOEFS$version
-if (version > 2)
-    #load("~/Dropbox/bam/qpad_v3/BAMCOEFS_QPAD_v3.rda")
-    load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+library(QPAD)
+load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
 .BAMCOEFS$version
 
-e <- new.env()
-load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.rda"), envir=e)
-.BAMCOEFSmix <- e$.BAMCOEFS
-.BAMCOEFSmix$version
+jd <- seq(0.35, 0.55, 0.01) # TSSR
+ts <- seq(-0.25, 0.5, 0.01) # JDAY
+ls <- seq(0, 0.25, len=length(jd)) # DSLS
 
+xp1 <- expand.grid(JDAY=jd, # ---------- CHECK !!!
+    TSSR=ts)
+xp1$JDAY2 <- xp1$JDAY^2
+xp1$TSSR2 <- xp1$TSSR^2
+xp1$Jday <- xp1$JDAY * 365
+xp1$Tssr <- xp1$TSSR * 24
+
+xp2 <- expand.grid(DSLS=ls, # ---------- CHECK !!!
+    TSSR=ts)
+xp2$DSLS2 <- xp2$DSLS^2
+xp2$TSSR2 <- xp2$TSSR^2
+xp2$Dsls <- xp2$DSLS * 365
+xp2$Tssr <- xp2$TSSR * 24
+
+Xp1 <- model.matrix(~., xp1)
+#colnames(Xp1)[1] <- "INTERCEPT"
+Xp2 <- model.matrix(~., xp2)
+#colnames(Xp2)[1] <- "INTERCEPT"
+
+if (getBAMversion() < 3) {
+    lc <- seq(1, 5, 1)
+    tr <- seq(0, 1, 0.01)
+    xq <- expand.grid(LCC=as.factor(lc),
+        TREE=tr)
+} else {
+#    lc2 <- factor(c("Forest", "OpenWet"), c("Forest", "OpenWet"))
+    lc <- factor(c("DecidMixed", "Conif", "Open", "Wet"),
+        c("DecidMixed", "Conif", "Open", "Wet"))
+    tr <- seq(0, 1, 0.1)
+    xq <- expand.grid(LCC4=lc, TREE=tr)
+    xq$LCC2 <- as.character(xq$LCC4)
+    xq$LCC2[xq$LCC2 %in% c("DecidMixed", "Conif")] <- "Forest"
+    xq$LCC2[xq$LCC2 %in% c("Open", "Wet")] <- "OpenWet"
+    xq$LCC2 <- factor(xq$LCC2, c("Forest", "OpenWet"))
+}
+Xq0 <- model.matrix(~., xq)
+#colnames(Xq)[1] <- "INTERCEPT"
 
 SPP <- getBAMspecieslist()
 cfall <- exp(t(sapply(SPP, function(spp)
@@ -657,37 +700,6 @@ mi <- bestmodelBAMspecies(spp)
 cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
 vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
 
-#     TSSR             JDAY            DSLS       
-# Min.   :-0.315   Min.   :0.351   Min.   :-0.101  
-# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103  
-# Median : 0.149   Median :0.455   Median : 0.131  
-# Mean   : 0.141   Mean   :0.455   Mean   : 0.133  
-# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164  
-# Max.   : 0.520   Max.   :0.641   Max.   : 0.442  
-# NA's   :8455     NA's   :5804    NA's   :17255  
-jd <- seq(0.35, 0.55, 0.01)
-ts <- seq(-0.3, 0.5, 0.01)
-ls <- seq(-0.1, 0.4, len=length(jd))
-
-xp1 <- expand.grid(JDAY=jd, # ---------- CHECK !!!
-    TSSR=ts)
-xp1$JDAY2 <- xp1$JDAY^2
-xp1$TSSR2 <- xp1$TSSR^2
-xp1$Jday <- xp1$JDAY * 365
-xp1$Tssr <- xp1$TSSR * 24
-
-xp2 <- expand.grid(TSLS=ls, # ---------- CHECK !!!
-    TSSR=ts)
-xp2$TSLS2 <- xp2$TSLS^2
-xp2$TSSR2 <- xp2$TSSR^2
-xp2$Tsls <- xp2$TSLS * 365
-xp2$Tssr <- xp2$TSSR * 24
-
-Xp1 <- model.matrix(~., xp1)
-colnames(Xp1)[1] <- "INTERCEPT"
-Xp2 <- model.matrix(~., xp2)
-colnames(Xp2)[1] <- "INTERCEPT"
-
 Xp <- if (mi$sra %in% c("9","10","11","12","13","14"))
     Xp2 else Xp1
 Xp <- Xp[,names(cfi$sra),drop=FALSE]
@@ -701,50 +713,7 @@ pmax <- sra_fun(10, max(exp(lphi1)))
 pmat <- sra_fun(3, pmat)
 pmax <- 1
 
-if (getBAMversion() < 3) {
-    lc <- seq(1, 5, 1)
-    tr <- seq(0, 1, 0.01)
-    xq <- expand.grid(LCC=as.factor(lc),
-        TREE=tr)
-} else {
-    lc <- seq(1, 5, 1) # WNALC
-    tr <- seq(0, 1, 0.1)
-    xq <- expand.grid(WNALC=as.factor(lc),
-        TREE=tr)
-    xq$CTREE <- factor("Open", c("Open","Sparse","Dense"))
-    xq$CTREE[xq$TREE > 0.25] <- "Sparse"
-    xq$CTREE[xq$TREE > 0.60] <- "Dense"
-    levels(xq$WNALC) <- c("Conif",
-                          "Open",
-                          "Decid",
-                          "Mixed",
-                          "Wet")
-    xq$NALC <- xq$WNALC
-    levels(xq$NALC)[levels(xq$NALC) == "Wet"] <- "Open"
-    xq$WNALCTREE <- factor(NA, c("ConifDense",
-                                 "Open",
-                                 "ConifSparse",
-                                 "DecidDense",
-                                 "DecidSparse",
-                                 "MixedDense",
-                                 "MixedSparse",
-                                 "Wet"))
-    xq$WNALCTREE[xq$WNALC == "Open"] <- "Open"
-    xq$WNALCTREE[xq$WNALC == "Wet"] <- "Wet"
-    xq$WNALCTREE[xq$WNALC != "Wet" & xq$TREE <= 0.25] <- "Open"
-    xq$WNALCTREE[xq$WNALC == "Conif" & xq$TREE > 0.25] <- "ConifSparse"
-    xq$WNALCTREE[xq$WNALC == "Decid" & xq$TREE > 0.25] <- "DecidSparse"
-    xq$WNALCTREE[xq$WNALC == "Mixed" & xq$TREE > 0.25] <- "MixedSparse"
-    xq$WNALCTREE[xq$WNALC == "Conif" & xq$TREE > 0.60] <- "ConifDense"
-    xq$WNALCTREE[xq$WNALC == "Decid" & xq$TREE > 0.60] <- "DecidDense"
-    xq$WNALCTREE[xq$WNALC == "Mixed" & xq$TREE > 0.60] <- "MixedDense"
-    xq$NALCTREE <- xq$WNALCTREE
-    levels(xq$NALCTREE)[levels(xq$NALCTREE) == "Wet"] <- "Open"
-
-}
-Xq <- model.matrix(~., xq)
-colnames(Xq)[1] <- "INTERCEPT"
-Xq <- Xq[,names(cfi$edr),drop=FALSE]
+Xq <- Xq0[,names(cfi$edr),drop=FALSE]
 ltau1 <- drop(Xq %*% cfi$edr)
 #pcf1 <- mvrnorm(R, cfi$edr, vci$edr)
 #ltaupi1 <- t(apply(apply(pcf1, 1, function(z) drop(Xq %*% z)),
@@ -754,8 +723,6 @@ qmat <- matrix(exp(ltau1), length(lc), length(tr))
 qmax <- edr_fun(0.5, max(exp(ltau1)))
 qmat <- edr_fun(1, qmat)
 qmax <- 1
-
-
 
 #library(lattice)
 #levelplot(px[,1] ~ Jday * Tssr, xp)
@@ -797,14 +764,14 @@ image(xval, ts*24, pmat,
     ylab="Hours since sunrise",
     main=paste("Best model:", mi$sra))
 box()
-image(lc, tr*100, qmat,
+image(1:nlevels(xq$LCC4), tr*100, qmat,
       col = rev(grey(seq(0, qmax, len=12))), axes=FALSE,
       xlab="Land cover types", ylab="Percent tree cover",
       main=paste("Best model:", mi$edr))
 if (version < 3)
     axis(1, 1:5, c("DConif","DDecid","SConif","SDecid","Open"))
 if (version > 2)
-    axis(1, 1:nlevels(xq$WNALC), levels(xq$WNALC))
+    axis(1, 1:nlevels(xq$LCC4), levels(xq$LCC4))
 axis(2)
 box()
 
