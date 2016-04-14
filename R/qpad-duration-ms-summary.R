@@ -93,7 +93,9 @@ ll <- apply(ltdur$end[rownames(ld),], 1, function(z) {
     paste(c(0, z[!is.na(z)]), collapse="-")
     })
 ss$INTERVALS <- as.factor(ll[match(ss$DURMETH, names(ll))])
-data.frame(table(ss$INTERVALS))
+l <- data.frame(table(ss$INTERVALS))
+l$Legend <- paste0(as.character(l$Var1), " (n=", l$Freq, ")")
+
 write.csv(ss, row.names=FALSE, file="~/Downloads/removal-ms-points-for-fig-1.csv")
 }
 
