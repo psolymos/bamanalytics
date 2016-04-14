@@ -154,7 +154,7 @@ fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
         ## number of observations
         #res$n <- n
     } else {
-        res <- list(Y=Y, D=D, n=n)
+        res <- list(Y=Y, D=D, n=n, pkey=rownames(X))
     }
     res
 }
@@ -315,7 +315,7 @@ fitDisFun <- function(spp, fit=TRUE) {
         ## number of observations
         #res$n <- n
     } else {
-        res <- list(Y=Y, D=D, n=n)
+        res <- list(Y=Y, D=D, n=n, pkey=rownames(X))
     }
     res
 }
@@ -352,6 +352,7 @@ save(resDis, resDisData,
 
 
 ### Putting things together
+## need to load/recreate pkDis!
 
 ROOT <- "c:/bam/May2015"
 
@@ -362,6 +363,8 @@ n.min <- 50#75
 type <- "rem"
 load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
 load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2016.Rdata"))
+e <- new.env()
+load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"), envir=e)
 
 ## 0/1 table for successful model fit
 edr_mod <- t(sapply(resDis, function(z)
@@ -378,7 +381,7 @@ sra_models[rownames(sra_mod),] <- sra_mod
 ## data deficient cases: dropped factor levels
 ## need to check length of NAMES and length of COEF --> correct factor level
 ## designation is possible, if != bump up AIC/BIC
-for (spp in tmp) {
+for (spp in rownames(sra_mod)) {
     for (mid in colnames(sra_models)) {
         if (!inherits(resDur[[spp]][[mid]], "try-error")) {
             if (type == "rem")
@@ -396,7 +399,12 @@ for (spp in tmp) {
             #attributes(resDur[[spp]][[mid]]) <- NULL
             #class(resDur[[spp]][[mid]]) <- "try-error"
         }
+    flush.console()
     }
+}
+for (spp in rownames(edr_mod)) {
+    ## data for checking detections in classes
+    Dat <- pkDis[resDisData[[spp]]$pkey,c("LCC2","LCC4")]
     for (mid in colnames(edr_models)) {
         if (!inherits(resDis[[spp]][[mid]], "try-error")) {
             lcf <- length(resDis[[spp]][[mid]]$coefficients)
@@ -405,17 +413,40 @@ for (spp in tmp) {
                 cat("EDR conflict for", spp, "model", mid,
                 "( len.coef =", lcf, ", len.name =", lnm, ")\n")
                 edr_models[spp,mid] <- 0
+            } else {
+                if (mid %in% c("2", "4") && min(table(Dat$LCC2)) < 5) {
+                    cat("EDR LCC2 min issue for", spp, "model", mid, "\n")
+                    edr_models[spp,mid] <- 0
+                }
+                if (mid %in% c("3", "5") && min(table(Dat$LCC4)) < 5) {
+                    cat("EDR LCC4 min issue for", spp, "model", mid, "\n")
+                    edr_models[spp,mid] <- 0
+                }
+                if (mid %in% c("1", "4", "5") && 
+                    resDis[[spp]][[mid]]$coefficients["log.tau_TREE"] > 0) {
+                    cat("EDR TREE > 0 issue for", spp, "model", mid, "\n")
+                    edr_models[spp,mid] <- 0
+                }
             }
         } else {
             resDis[[spp]][[mid]] <- structure("Error", class = "try-error")
             attributes(resDis[[spp]][[mid]]) <- NULL
             class(resDis[[spp]][[mid]]) <- "try-error"
         }
+    flush.console()
     }
 }
 ## no constant model means exclude that species
 edr_models[edr_models[,1]==0,] <- 0L
 sra_models[sra_models[,1]==0,] <- 0L
+
+phi0 <- sapply(resDur, function(z) exp(z[["0"]]$coef))
+names(phi0) <- names(resDur)
+sra_models[names(phi0)[phi0 < 0.01],] <- 0L
+
+sum(edr_models)
+sum(sra_models)
+
 colSums(edr_models)
 colSums(sra_models)
 
@@ -461,8 +492,6 @@ edr_estimates <- resDis[spp]
 sra_estimates <- resDur[spp]
 
 ## species table
-e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"), envir=e)
 tax <- e$TAX
 tax <- tax[!duplicated(tax$Species_ID),]
 rownames(tax) <- tax$Species_ID
@@ -510,19 +539,6 @@ for (i in spp) {
     edr_aic[i,] <- -2*edr_loglik[i,] + 2*edr_df
     edr_aicc[i,] <- edr_aic[i,] + (2*edr_df*(edr_df+1)) / (edr_n[i]-edr_df-1)
     edr_bic[i,] <- -2*edr_loglik[i,] + log(edr_n[i])*edr_df
-}
-
-## constrain TREE (-) estimates
-for (i in spp) {
-    ## TREE
-    if (edr_models[i, "1"] == 1) {
-        if (edr_estimates[[i]][["1"]]$coef[2] > 0) {
-#            edr_aic[i, "1"] <- Inf
-#            edr_aicc[i, "1"] <- Inf
-#            edr_bic[i, "1"] <- Inf
-            cat(i, "tree", round(edr_estimates[[i]][["1"]]$coef[2], 4), "\n")
-        }
-    }
 }
 
 ## model ranking
@@ -674,8 +690,8 @@ for (spp in SPP) {
 cat(spp, "\n");flush.console()
 
 ## model weights
-wp <- selectmodelBAMspecies(spp)$sra$weights
-wq <- selectmodelBAMspecies(spp)$edr$weights
+wp <- selectmodelBAMspecies(spp)$sra$wBIC
+wq <- selectmodelBAMspecies(spp)$edr$wBIC
 names(wp) <- rownames(selectmodelBAMspecies(spp)$sra)
 names(wq) <- rownames(selectmodelBAMspecies(spp)$edr)
 nsra <- selectmodelBAMspecies(spp)$sra$nobs[1]
@@ -696,7 +712,7 @@ nedr <- selectmodelBAMspecies(spp)$edr$nobs[1]
 #           pi2=edr_fun(r, exp(ltaupi0[2])))
 
 ## covariate effects
-mi <- bestmodelBAMspecies(spp)
+mi <- bestmodelBAMspecies(spp, type="BIC")
 cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
 vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
 
