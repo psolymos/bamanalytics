@@ -758,7 +758,7 @@ hist(datbse$cor)
 
 library(MASS)
 
-pf <- function(var, mod, n=10^4) {
+pf <- function(var, mod, n=10^4, std=FALSE, resol=0.1) {
     if (mod == "0")
         sppPred <- sppPred0
     if (mod == "b")
@@ -770,8 +770,13 @@ pf <- function(var, mod, n=10^4) {
     ix <- rep(var, ncol(sppPred))
     iy <- as.numeric(sppPred)
     is <- sample.int(length(ix), n)
-    kde2d(ix[is], iy[is], n=30)
+    d <- kde2d(ix[is], iy[is], n=c(round(1/resol), 50))
+    if (std)
+        d$z <- d$z / rowSums(d$z)
+    d
 }
+
+
 
 iii <- rep(TRUE, nrow(pkDur))
 iii[pkDur$TSSR < quantile(pkDur$TSSR, 0.025)] <- FALSE
@@ -788,8 +793,11 @@ TT <- 3
 #MigW <- TRUE
 
 allOUT <- list()
+RESOL <- 0.05
 
 for (TT in c(3,10)) {
+#STD <- TRUE
+for (STD in c(TRUE, FALSE)) {
 #for (MigW in c(TRUE, FALSE)) {
 #cat(paste0("t", TT, "_", ifelse(MigW, "Res", "Mig")), "\n");flush.console()
 
@@ -837,16 +845,17 @@ sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop
 }
 sppPredb <- sppPredb[,colSums(is.na(sppPredb))==0]
 
-
-b0 <- pf(WHAT, "0", n=5*10^4)
-bb <- pf(WHAT, "b", n=5*10^4)
+b0 <- pf(WHAT, "0", n=5*10^4, std=STD, resol=RESOL)
+bb <- pf(WHAT, "b", n=5*10^4, std=STD, resol=RESOL)
 
 OUT[[WHAT]] <- list("0"=b0, "b"=bb)
 }
 
-allOUT[[paste0("t", TT, "_", ifelse(MigW, "Res", "Mig"))]] <- OUT
+#allOUT[[paste0("t", TT, "_", ifelse(MigW, "Res", "Mig"))]] <- OUT
+allOUT[[paste0("t", TT, "_std", STD)]] <- OUT
 }
-#}
+}
+allOUT <- allOUT[c("t3_stdFALSE","t10_stdFALSE","t3_stdTRUE","t10_stdTRUE")]
 
 plf <- function(b, ...) {
     image(b, col=col, ...)
@@ -857,9 +866,9 @@ plf <- function(b, ...) {
 col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
 nl <- 5
 
-OUT <- allOUT[[1]]
-
-png(file.path(ROOT2, "tabfig", "FigX_responses.png"), height=800, width=1600, res=150)
+for (i in 1:4) {
+OUT <- allOUT[[i]]
+png(file.path(ROOT2, "tabfig", paste0("FigX_responses_", names(allOUT)[i], ".png")), height=800, width=1600, res=150)
 #par(las=1, mar=c(5, 6, 4, 2) + 0.1)
 op <- par(mfrow=c(2,3), las=1)
 plf(OUT[["TSSR"]][["0"]], ylab="P(3 min) 0", xlab="Time since sunrise (h)")
@@ -870,6 +879,7 @@ plf(OUT[["JDAY"]][["b"]], ylab="P(3 min) b", xlab="Julian day")
 plf(OUT[["TSLS"]][["b"]], ylab="P(3 min) b", xlab="Days since spring")
 par(op)
 dev.off()
+}
 
 plf2 <- function(b1, b2, levels=0.1, ...) {
 #    contour(b1, levels=levels, lty=1, ...)
