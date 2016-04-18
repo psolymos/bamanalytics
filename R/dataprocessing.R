@@ -27,6 +27,7 @@ source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Define MS Access database connection
 con <- odbcConnectAccess2007(file.path(ROOT, "BAM_BayneAccess_BAMBBScore.accdb"))
+con2 <- odbcConnectAccess2007(file.path(ROOT2, "BBS_V4draft_2016_aprilForErin.accdb"))
 
 #### Species lookup table
 
@@ -57,6 +58,8 @@ SS03 <- sqlFetch(con, "dbo_BAMBBS_LANDCOVER_PTS")
 SS03 <- nonDuplicated(SS03, SS, TRUE)
 SS03 <- SS03[rownames(SS01),]
 
+## comment out all LCC05 and EOSD
+if (FALSE) {
 ## Reclass LCC05
 ltlcc <- read.csv("~/repos/bamanalytics/lookup/lcc05.csv")
 SS03$LCC05_PT[SS03$LCC05_PT < 1 | SS03$LCC05_PT > 39] <- NA
@@ -75,6 +78,7 @@ SS03$HAB_EOSD1 <- lteosd$Reclass_label1[match(SS03$EOSD_PT, lteosd$Value)]
 SS03$HAB_EOSD2 <- lteosd$Reclass_label2[match(SS03$EOSD_PT, lteosd$Value)]
 SS03$HAB_EOSD1 <- relevel(SS03$HAB_EOSD1, "ConifDense")
 SS03$HAB_EOSD2 <- relevel(SS03$HAB_EOSD2, "Conif")
+}
 
 ## Reclass NALCMS
 ltnalc <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv")
@@ -87,6 +91,8 @@ SS03$HAB_NALC1 <- as.factor(SS03$HAB_NALC1)
 SS03$HAB_NALC1 <- relevel(SS03$HAB_NALC1, "ConifDense")
 SS03$HAB_NALC2 <- relevel(SS03$HAB_NALC2, "Conif")
 
+## NALC is used for QPADv3
+if (FALSE) {
 ## LCC for offsets
 SS03$LCC_OFF1 <- as.factor(ltlcc$qpad_num[match(SS03$LCC05_PT, ltlcc$lcc05v1_2)])
 SS03$LCC_OFF2 <- factor(5, 1:5)
@@ -97,13 +103,17 @@ SS03$LCC_OFF2[SS03$HAB_NALC1 %in% c("DecidDense")] <- "2"
 SS03$LCC_OFF2[SS03$HAB_NALC1 %in% c("ConifDense","MixedDense")] <- "1"
 SS03$LCC_combo <- SS03$LCC_OFF1
 SS03$LCC_combo[is.na(SS03$LCC_OFF1)] <- SS03$LCC_OFF2[is.na(SS03$LCC_OFF1)]
+}
 
+## 4x4 stuff is not done
+if (FALSE) {
 ## Grid ID 4x4 km
 SS_grid <- read.csv(file.path(ROOT, "BAMBBS_Gridcode.csv"))
 rownames(SS_grid) <- SS_grid$SS
 compare.sets(rownames(SS01), rownames(SS_grid))
 SS_grid <- SS_grid[rownames(SS01),"gridcode",drop=FALSE]
 levels(SS_grid$gridcode) <- gsub(",", "", levels(SS_grid$gridcode))
+}
 
 ## Road: dist to, class, #lanes, surface
 SS_road <- sqlFetch(con, "dbo_BAMBBS_2015_NearDistanceRoadJoin1000M")
@@ -144,12 +154,15 @@ SS_clim <- SS_clim[,!grepl("NALCMS05_", colnames(SS_clim))]
 colnames(tmp) <- gsub("NALCMS05_", "", colnames(tmp))
 Col <- as.character(ltnalc$Label)[match(colnames(tmp), as.character(ltnalc$Value))]
 Col[is.na(Col)] <- "Water"
-SS_NALC4x4 <- data.frame(groupSums(tmp, 2, Col, na.rm=TRUE))
-colnames(SS_NALC4x4) <- paste0("GRID4_NALC_", colnames(SS_NALC4x4))
+## 4x4 stuff is not done
+#SS_NALC4x4 <- data.frame(groupSums(tmp, 2, Col, na.rm=TRUE))
+#colnames(SS_NALC4x4) <- paste0("GRID4_NALC_", colnames(SS_NALC4x4))
 SS_clim$NALCMS05 <- NULL
 SS_clim$PCODE <- NULL
 SS_clim$SS <- NULL
 
+## 4x4 stuff is not done
+if (FALSE) {
 ## LCC05 4x4 level
 SS_LCC4x4 <- sqlFetch(con, "dbo_BBSBAM_V4_LCC05CND_4X4SUMM")
 SS_LCC4x4 <- nonDuplicated(SS_LCC4x4, SS, TRUE)
@@ -189,6 +202,7 @@ Col[is.na(Col)] <- "BARREN"
 SS_EOSD4x4 <- data.frame(groupSums(SS_EOSD4x4, 2, Col, na.rm=TRUE))
 SS_EOSD4x4[is.na(SS03$HAB_EOSD2),] <- NA
 colnames(SS_EOSD4x4) <- paste0("GRID4_EOSD_", colnames(SS_EOSD4x4))
+}
 
 ## HEIGHT (Simard)
 SS_height <- sqlFetch(con, "dbo_Height")
@@ -197,12 +211,14 @@ compare.sets(rownames(SS01), rownames(SS_height))
 SS_height <- SS_height[rownames(SS01),]
 SS_height <- SS_height[,"HEIGHTSIMARD",drop=FALSE]
 
+if (FALSE) {
 ## Nature Serve range: 3 spp (Can clipped range used 0/1)
 SS_nserv <- sqlFetch(con, "dbo_BBSBAM_SARSPPLOCATIONSRange")
 SS_nserv <- nonDuplicated(SS_nserv, SS, TRUE)
 compare.sets(rownames(SS01), rownames(SS_nserv))
 SS_nserv <- SS_nserv[rownames(SS01),]
 SS_nserv <- SS_nserv[,c("CAWAINOUT","OSFLINOUT","CONIINOUT")]
+}
 
 ## GFW yearly loss intersections and 1st year of loss
 #SS_gfw <- sqlFetch(con, "dbo_BAMBBS_GFWLossYear")
@@ -249,20 +265,19 @@ SS <- data.frame(
     TREE3=SS02$TREE3,
     SPRNG=SS_sprng$SPRNG,
     #LCC05_PT=SS03$LCC05_PT, # -- FOR NICOLE
-    SS03[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", "HAB_EOSD2", 
-        "HAB_NALC2", "HAB_NALC1", "LCC_combo")],
-    SS_grid,
-    SS_nserv,
+    SS03[,c("HAB_NALC2", "HAB_NALC1")],
+    #SS_grid,
+    #SS_nserv,
     SS_road, 
     SS_terr, 
     SS_fire, 
     SS_clim, 
     SS_pash, 
     SS_gfw, 
-    SS_height,
-    SS_NALC4x4, 
-    SS_LCC4x4, 
-    SS_EOSD4x4)
+    SS_height)
+    #SS_NALC4x4, 
+    #SS_LCC4x4, 
+    #SS_EOSD4x4)
 
 #### Project summary table
 
@@ -282,7 +297,9 @@ PCODE$Maxdur <- pmin(PCODE$MaxDuration, 10)
 ## Pull in point count tables
 pkbam <- sqlFetch(con, "dbo_National_PKEY_V4_2015")
 pkbam$SSMA_TimeStamp <- NULL
-pkbbs <- sqlFetch(con, "dbo_PKEY_BBS_V3_2015")
+#pkbbs <- sqlFetch(con, "dbo_PKEY_BBS_V3_2015")
+pkbbs <- sqlFetch(con2, "PKEY_BBS_V4_2016")
+
 ## What columns to retain
 PKCOLS <- c("PKEY","SS","PCODE","METHOD","SITE","STN","ROUND",
     "YEAR","MONTH","DAY","HOUR","MIN","PART","MAXDUR","MAXDIS")
@@ -305,6 +322,10 @@ pkbbs$MAXDIS <- Inf
 pkbbs$PART <- 2L
 pkbbs$METHOD <- as.factor("BBS:9999")
 pkbbs$SITE <- as.factor(pkbbs$SITE)
+pkbbs$YEAR <- pkbbs$YYYY
+pkbbs$MONTH <- pkbbs$MM
+pkbbs$DAY <- pkbbs$DD
+pkbbs$HOUR <- pkbbs$HR
 pkbbs <- pkbbs[,PKCOLS]
 
 PKEY <- rbind(pkbam, pkbbs)
@@ -329,7 +350,7 @@ PKEY$ROAD[PKEY$PCODE %in% treat.as.bbs] <- 1L
 #### Offset specific variables
 
 ## Date/time components
-PKEY$MIN[is.na(PKEY$MIN)] <- 0 # min is not that critical is not
+PKEY$MIN[is.na(PKEY$MIN)] <- 0 # min that critical, is not -- said Yoda
 MM <- ifelse(PKEY$MONTH < 10, paste0("0", PKEY$MONTH), as.character(PKEY$MONTH))
 HH <- ifelse(PKEY$HOUR < 10, paste0("0", PKEY$HOUR), as.character(PKEY$HOUR))
 mm <- ifelse(PKEY$MIN < 10, paste0("0", PKEY$MIN), as.character(PKEY$MIN))
@@ -383,20 +404,23 @@ DURMET <- sqlFetch(con, "dbo_DD_duration_codes_methodology")
 ## Trailing whitespace removed from factor levels
 levels(DISMET$DISTANCECODE) <- gsub(" *$", "", levels(DISMET$DISTANCECODE))
 levels(DURMET$DURATIONCODE) <- gsub(" *$", "", levels(DURMET$DURATIONCODE))
-#### Point count tables
 
+#### Point count tables
 pcbam <- sqlFetch(con, "dbo_National_PtCount_V4_2015")
 pcbam$SSMA_TimeStamp <- NULL
-pcbbs <- sqlFetch(con, "dbo_PointCount_BBS_V3_2015")
+
+pcbbs <- sqlFetch(con2, "POINTCOUNT_BBS_V4_2016")
 colnames(pcbbs) <- toupper(colnames(pcbbs))
 colnames(pcbbs)[colnames(pcbbs) == "SPECIES_ID"] <- "SPECIES"
 colnames(pcbbs)[colnames(pcbbs) == "PERIOD"] <- "DURATION"
 pcbbs$PCODE <- "BBS"
+
 ## Columns to keep
 pccols <- c("PCODE","SS","PKEY","DURATION","DISTANCE",
     "SPECIES","ABUND","BEH")
-## Close the database connection
+## Close the database connections
 close(con)
+close(con2)
 
 ## Duration and distance intervals (locally tweaked)
 DURINT <- read.csv("~/repos/bamanalytics/lookup/durint.csv")
