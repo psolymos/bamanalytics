@@ -533,84 +533,75 @@ load_BAM_QPAD(3)
 getBAMversion()
 sppp <- getBAMspecieslist()
 
-offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
-    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","HAB_NALC1","HAB_NALC2", "TSLS")])
+offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","JULIAN")],
+    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","HAB_NALC1","HAB_NALC2", "SPRNG")])
 offdat$srise <- PKEY$srise + PKEY$MDT_offset
+offdat$DSLS <- (offdat$JULIAN - offdat$SPRNG) / 365
 summary(offdat)
-#summary(offdat[PKEY$PCODE=="QCATLAS",]) -- problem solved: QCAtlas vs QCATLAS
 
-#load_BAM_QPAD(version=1)
-#BAMspp <- getBAMspecieslist()
-#load("~/Dropbox/abmi/intactness/dataproc/BAMCOEFS25.Rdata")
+offdat$JDAY2 <- offdat$JDAY^2
+offdat$TSSR2 <- offdat$TSSR^2
+offdat$DSLS2 <- offdat$DSLS^2
+offdat$LCC4 <- as.character(offdat$HAB_NALC2)
+offdat$LCC4[offdat$LCC4 %in% c("Decid", "Mixed")] <- "DecidMixed"
+offdat$LCC4[offdat$LCC4 %in% c("Agr","Barren","Devel","Grass", "Shrub")] <- "Open"
+offdat$LCC4 <- factor(offdat$LCC4,
+        c("DecidMixed", "Conif", "Open", "Wet"))
+offdat$LCC2 <- as.character(offdat$LCC4)
+offdat$LCC2[offdat$LCC2 %in% c("DecidMixed", "Conif")] <- "Forest"
+offdat$LCC2[offdat$LCC2 %in% c("Open", "Wet")] <- "OpenWet"
+offdat$LCC2 <- factor(offdat$LCC2, c("Forest", "OpenWet"))
+table(offdat$LCC4, offdat$LCC2)
+offdat$MAXDIS <- offdat$MAXDIS / 100
+
+offdat$OKp <- rowSums(is.na(offdat[,c("TSSR","JDAY","DSLS")])) == 0
+offdat$OKq <- rowSums(is.na(offdat[,c("TREE","LCC4")])) == 0
+Xp <- model.matrix(~TSSR+TSSR2+JDAY+JDAY2+DSLS+DSLS2, offdat[offdat$OKp,])
+Xq <- model.matrix(~LCC2+LCC4+TREE, offdat[offdat$OKq,])
 
 OFF <- matrix(NA, nrow(offdat), length(sppp))
 rownames(OFF) <- offdat$PKEY
 colnames(OFF) <- sppp
 
-for (i in sppp) {
-    cat(i, date(), "\n");flush.console()
-    tmp <- try(offset_fun(j=1, i, offdat))
-    if (!inherits(tmp, "try-error"))
-        OFF[,i] <- tmp
+#spp <- "OVEN"
+for (spp in sppp) {
+cat(spp, "\n");flush.console()
+p <- rep(NA, nrow(offdat))
+A <- q <- p
+
+## constant for NA cases
+cf0 <- exp(unlist(coefBAMspecies(spp, 0, 0)))
+p[!offdat$OKp] <- sra_fun(offdat$MAXDUR[!offdat$OKp], cf0[1])
+unlim <- ifelse(offdat$MAXDIS[!offdat$OKq] == Inf, TRUE, FALSE)
+A[!offdat$OKq] <- ifelse(unlim, pi * cf0[2]^2, pi * offdat$MAXDIS[!offdat$OKq]^2)
+q[!offdat$OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[!offdat$OKq], cf0[2]))
+
+## best model
+mi <- bestmodelBAMspecies(spp, type="BIC")
+cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
+#vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
+
+phi1 <- exp(drop(Xp[,names(cfi$sra),drop=FALSE] %*% cfi$sra))
+tau1 <- exp(drop(Xq[,names(cfi$edr),drop=FALSE] %*% cfi$edr))
+
+p[offdat$OKp] <- sra_fun(offdat$MAXDUR[offdat$OKp], phi1)
+unlim <- ifelse(offdat$MAXDIS[offdat$OKq] == Inf, TRUE, FALSE)
+A[offdat$OKq] <- ifelse(unlim, pi * tau1, pi * offdat$MAXDIS[offdat$OKq]^2)
+q[offdat$OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[offdat$OKq], tau1))
+
+OFF[,spp] <- log(p) + log(A) + log(q)
+
 }
-## 99-100 percentile can be crazy high (~10^5), thus reset
-for (i in sppp) {
-    q <- quantile(OFF[,i], 0.99, na.rm=TRUE)
-    OFF[!is.na(OFF[,i]) & OFF[,i] > q, i] <- q
-}
-colSums(is.na(OFF))/nrow(OFF)
-apply(exp(OFF), 2, range, na.rm=TRUE)
 
+apply(OFF, 2, range)
 
-save(OFF, file=file.path(ROOT, "out",
-    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".Rdata")))
+SPP <- sppp
+save(OFF, SPP, 
+    file=file.path(ROOT, "out", "offsets-v3_2016-04-18.Rdata"))
+offdat <- offdat[,c("PKEY","TSSR","JDAY","DSLS","TREE","LCC4","MAXDUR","MAXDIS")]
+save(offdat,
+    file=file.path(ROOT, "out", "offsets-v3data_2016-04-18.Rdata"))
 
-} # END offset calculations
-
-if (FALSE) { # BEGIN offset calculations !!! OLD VERSION ------------------- !!!!!!!!!!!!!!
-
-load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
-
-offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS")],
-    SS[match(PKEY$SS, rownames(SS)),c("LCC_combo","TREE")])
-offdat$srise <- PKEY$srise + PKEY$MDT_offset
-summary(offdat)
-#summary(offdat[PKEY$PCODE=="QCATLAS",]) -- problem solved: QCAtlas vs QCATLAS
-
-load_BAM_QPAD(version=1)
-BAMspp <- getBAMspecieslist()
-load("~/Dropbox/abmi/intactness/dataproc/BAMCOEFS25.Rdata")
-
-(sppp <- union(BAMspp, BAMCOEFS25$spp))
-
-OFF <- matrix(NA, nrow(offdat), length(sppp))
-rownames(OFF) <- offdat$PKEY
-colnames(OFF) <- sppp
-for (i in sppp) {
-    cat(i, date(), "\n");flush.console()
-    tmp <- try(offset_fun(j=1, i, offdat))
-    if (!inherits(tmp, "try-error"))
-        OFF[,i] <- tmp
-}
-## 99-100 percentile can be crazy high (~10^5), thus reset
-for (i in sppp) {
-    q <- quantile(OFF[,i], 0.99, na.rm=TRUE)
-    OFF[!is.na(OFF[,i]) & OFF[,i] > q, i] <- q
-}
-colSums(is.na(OFF))/nrow(OFF)
-apply(exp(OFF), 2, range, na.rm=TRUE)
-
-
-save(OFF, file=file.path(ROOT, "out",
-    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".Rdata")))
-write.csv(OFF, file=file.path(ROOT, "out",
-    paste0("offsets_allspp_BAMBBS_", Sys.Date(), ".csv")))
-save(offdat, file=file.path(ROOT, "out",
-    paste0("offset_covariates_", Sys.Date(), ".Rdata")))
-write.csv(offdat, row.names=FALSE, file=file.path(ROOT, "out",
-    paste0("offset_covariates_", Sys.Date(), ".csv")))
-
-} # END offset calculations
 
 
 ######## These are the transformations #################
