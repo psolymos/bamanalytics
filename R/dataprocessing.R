@@ -1,7 +1,7 @@
 ##---
 ##title: "Data processing for nationam BAM analyses"
 ##author: "Peter Solymos"
-##date: "May 7, 2015"
+##date: "Apr 18, 2016"
 ##output: 
 ##  pdf_document: 
 ##    toc: true
@@ -12,13 +12,13 @@
 
 ## Define root folder where data are stored
 ROOT <- "c:/bam/May2015"
+ROOT2 <- "e:/peter/bam/Apr2016"
 
 ## Load required packages
 library(mefa4)
 library(RODBC)
 library(maptools)
-library(pbapply)
-library(detect)
+library(QPAD)
 
 ## Load functions kept in separate file
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
