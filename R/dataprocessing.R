@@ -110,7 +110,7 @@ if (FALSE) {
 ## Grid ID 4x4 km
 SS_grid <- read.csv(file.path(ROOT, "BAMBBS_Gridcode.csv"))
 rownames(SS_grid) <- SS_grid$SS
-compare.sets(rownames(SS01), rownames(SS_grid))
+compare_sets(rownames(SS01), rownames(SS_grid))
 SS_grid <- SS_grid[rownames(SS01),"gridcode",drop=FALSE]
 levels(SS_grid$gridcode) <- gsub(",", "", levels(SS_grid$gridcode))
 }
@@ -118,7 +118,7 @@ levels(SS_grid$gridcode) <- gsub(",", "", levels(SS_grid$gridcode))
 ## Road: dist to, class, #lanes, surface
 SS_road <- sqlFetch(con, "dbo_BAMBBS_2015_NearDistanceRoadJoin1000M")
 rownames(SS_road) <- SS_road$SS
-compare.sets(rownames(SS01), rownames(SS_road))
+compare_sets(rownames(SS01), rownames(SS_road))
 SS_road <- SS_road[rownames(SS01),]
 SS_road$d2road <- SS_road[["Distance to Road"]]
 table(SS_road$ROADCLASS, SS_road$d2road > 0, useNA="a")
@@ -131,7 +131,7 @@ SS_road <- SS_road[,c("d2road","ROADCLASS","NBRLANES","PAVSTATUS")]
 ## Fire: year, size
 SS_fire <- sqlFetch(con, "dbo_BBSBAM_2015_FIRE")
 rownames(SS_fire) <- SS_fire$SS
-compare.sets(rownames(SS01), rownames(SS_fire))
+compare_sets(rownames(SS01), rownames(SS_fire))
 SS_fire <- SS_fire[rownames(SS01),]
 SS_fire <- SS_fire[,c("Year","SIZE_HA")]
 colnames(SS_fire) <- c("YearFire","FIRE_HA")
@@ -139,7 +139,7 @@ colnames(SS_fire) <- c("YearFire","FIRE_HA")
 ## Terrain: slope, twi, elev
 SS_terr <- sqlFetch(con, "dbo_BBSBAM_2015_TERRAIN90")
 rownames(SS_terr) <- SS_terr$SS
-compare.sets(rownames(SS01), rownames(SS_terr))
+compare_sets(rownames(SS01), rownames(SS_terr))
 SS_terr <- SS_terr[rownames(SS01),]
 t(table(is.na(SS_terr$cti90), SS01$PCODE)) # mostly affects BBS in some states
 SS_terr <- SS_terr[,c("slp90","cti90","elv90")]
@@ -147,7 +147,7 @@ SS_terr <- SS_terr[,c("slp90","cti90","elv90")]
 ## Climate variables from DS and NALCMS 4x4 level
 SS_clim <- sqlFetch(con, "dbo_BBSBAM_2015__CLIMLU")
 rownames(SS_clim) <- SS_clim$SS
-compare.sets(rownames(SS01), rownames(SS_clim))
+compare_sets(rownames(SS01), rownames(SS_clim))
 SS_clim <- SS_clim[rownames(SS01),]
 tmp <- as.matrix(SS_clim[,grepl("NALCMS05_", colnames(SS_clim))])
 SS_clim <- SS_clim[,!grepl("NALCMS05_", colnames(SS_clim))]
@@ -167,7 +167,7 @@ if (FALSE) {
 SS_LCC4x4 <- sqlFetch(con, "dbo_BBSBAM_V4_LCC05CND_4X4SUMM")
 SS_LCC4x4 <- nonDuplicated(SS_LCC4x4, SS, TRUE)
 #rownames(SS_LCC4x4) <- SS_LCC4x4$SS
-compare.sets(rownames(SS01), rownames(SS_LCC4x4))
+compare_sets(rownames(SS01), rownames(SS_LCC4x4))
 SS_LCC4x4 <- SS_LCC4x4[rownames(SS01),]
 SS_LCC4x4$SS <- NULL
 SS_LCC4x4$gridcode <- NULL
@@ -187,7 +187,7 @@ colnames(SS_LCC4x4) <- paste0("GRID4_LCC_", colnames(SS_LCC4x4))
 SS_EOSD4x4 <- sqlFetch(con, "dbo_BBSBAM_V4_EOSD_4X4SUMM")
 SS_EOSD4x4$upsize_ts <- NULL
 rownames(SS_EOSD4x4) <- SS_EOSD4x4$SS
-compare.sets(rownames(SS01), rownames(SS_EOSD4x4))
+compare_sets(rownames(SS01), rownames(SS_EOSD4x4))
 SS_EOSD4x4 <- SS_EOSD4x4[match(rownames(SS01), rownames(SS_EOSD4x4)),]
 rownames(SS_EOSD4x4) <- SS01$SS
 
@@ -207,7 +207,7 @@ colnames(SS_EOSD4x4) <- paste0("GRID4_EOSD_", colnames(SS_EOSD4x4))
 ## HEIGHT (Simard)
 SS_height <- sqlFetch(con, "dbo_Height")
 SS_height <- nonDuplicated(SS_height, SS, TRUE)
-compare.sets(rownames(SS01), rownames(SS_height))
+compare_sets(rownames(SS01), rownames(SS_height))
 SS_height <- SS_height[rownames(SS01),]
 SS_height <- SS_height[,"HEIGHTSIMARD",drop=FALSE]
 
@@ -215,7 +215,7 @@ if (FALSE) {
 ## Nature Serve range: 3 spp (Can clipped range used 0/1)
 SS_nserv <- sqlFetch(con, "dbo_BBSBAM_SARSPPLOCATIONSRange")
 SS_nserv <- nonDuplicated(SS_nserv, SS, TRUE)
-compare.sets(rownames(SS01), rownames(SS_nserv))
+compare_sets(rownames(SS01), rownames(SS_nserv))
 SS_nserv <- SS_nserv[rownames(SS01),]
 SS_nserv <- SS_nserv[,c("CAWAINOUT","OSFLINOUT","CONIINOUT")]
 }
@@ -224,7 +224,7 @@ SS_nserv <- SS_nserv[,c("CAWAINOUT","OSFLINOUT","CONIINOUT")]
 #SS_gfw <- sqlFetch(con, "dbo_BAMBBS_GFWLossYear")
 SS_gfw <- read.csv(file.path(ROOT, "GFWLossYear.csv"))
 SS_gfw <- nonDuplicated(SS_gfw, SS, TRUE)
-compare.sets(rownames(SS01), rownames(SS_gfw))
+compare_sets(rownames(SS01), rownames(SS_gfw))
 levels(SS_gfw$YearLoss) <- gsub(",", "", levels(SS_gfw$YearLoss))
 SS_gfw$YearLoss <- as.integer(as.character(SS_gfw$YearLoss))
 SS_gfw <- SS_gfw[rownames(SS01),]
@@ -233,7 +233,7 @@ SS_gfw <- SS_gfw[,"YearLoss",drop=FALSE]
 ## Pasher disturbance
 SS_pash <- read.csv(file.path(ROOT, "bambbs2015beadandpasher.csv"))
 SS_pash <- nonDuplicated(SS_pash, SS, TRUE)
-compare.sets(rownames(SS01), rownames(SS_pash))
+compare_sets(rownames(SS01), rownames(SS_pash))
 SS_pash <- SS_pash[rownames(SS01),]
 SS_pash <- SS_pash[,c("BEADTotalL","BEADtotPol")]
 
@@ -336,7 +336,7 @@ PKEY <- rbind(pkbam, pkbbs)
 ## so that duration and distance method can be carried forward to 
 ## point count table
 levels(PCODE$Method)[levels(PCODE$Method) == "QCAtlas:118"] <- "QCATLAS:118"
-compare.sets(PCODE$Method, PKEY$METHOD)
+compare_sets(PCODE$Method, PKEY$METHOD)
 setdiff(PKEY$METHOD, PCODE$Method)
 setdiff(PCODE$Method, PKEY$METHOD)
 PKEY$DURMETH <- PCODE$DURMETH[match(PKEY$METHOD, PCODE$Method)]
@@ -459,27 +459,12 @@ PCTBL <- droplevels(PCTBL[keeppkey,])
 ## 11=no birds observed at station - added 2011
 ## 6=seen and heard
 ## Excluding non-aerial detections
+table(PCTBL$BEH, PCTBL$PCODE=="BBS")
 keep <- rep(TRUE, nrow(PCTBL))
 keep[!(PCTBL$BEH %in% c("1","6","11"))] <- FALSE
 ## this is fake, but there is no other option until a fix
-keep[is.na(PCTBL$BEH)] <- TRUE # dont know what this is
+#keep[is.na(PCTBL$BEH)] <- TRUE # dont know what this in -- FIXED in BBS_V4
 
-if (FALSE) {
-PCTBLx <- PCTBL
-PCTBL$YEAR <- PKEY$YEAR[match(PCTBL$PKEY, PKEY$PKEY)]
-PCTBL$JURS <- SS$JURS[match(PCTBL$SS, SS$SS)]
-PCTBL <- PCTBL[PCTBL$JURS=="AB" & PCTBL$PCODE=="BBS",]
-table(PCTBL$YEAR, PCTBL$BEH, useNA="a")
-PCTBL$YEAR <- PKEY$YEAR[match(PCTBL$PKEY, PKEY$PKEY)]
-PCTBL$JURS <- SS$JURS[match(PCTBL$SS, SS$SS)]
-with(PCTBL, aggregate(ABUND, list(Yr=YEAR), sum))
-}
-
-## check species with high visual detection rates
-if (FALSE) {
-    xtx <- Xtab(ABUND ~ SPECIES + BEH, PCTBL)
-    save(BEH, xtx, file=file.path(ROOT, "out", "spp-beh.Rdata"))
-}
 ## Excluding >10 min intervals
 ## 10=10-20
 ## 3=before or after
@@ -497,26 +482,23 @@ PCTBL <- PCTBL[keep,]
 
 PCTBL$SPECIES <- droplevels(PCTBL$SPECIES)
 levels(PCTBL$SPECIES) <- toupper(levels(PCTBL$SPECIES))
-compare.sets(PCTBL$SPECIES, TAX$Species_ID)
+compare_sets(PCTBL$SPECIES, TAX$Species_ID)
 setdiff(PCTBL$SPECIES, TAX$Species_ID)
 levels(TAX$Species_ID)[levels(TAX$Species_ID) == "YWAR"] <- "YEWA"
-
 levels(TAX$Species_ID)[levels(TAX$Species_ID) == "SCJU"] <- "DEJU" # change SCJU to DEJU
 levels(TAX$Species_ID)[levels(TAX$Species_ID) == "MYWA"] <- "YRWA" # change MYWA to YRWA
 levels(TAX$Species_ID)[levels(TAX$Species_ID) == "COSN"] <- "WISN" # change COSN to WISN
 
-
-sp <- levels(PCTBL$SPECIES)
-spp.to.exclude <- rep(FALSE, length(sp))
-spp.to.exclude[sp %in% setdiff(PCTBL$SPECIES, TAX$Species_ID)] <- TRUE
-spp.to.exclude[sp == "NONE"] <- TRUE
-spp.to.exclude[sp == "RESQ"] <- TRUE
-spp.to.exclude[sp == "DUCK"] <- TRUE
-spp.to.exclude[nchar(sp) > 4] <- TRUE
-spp.to.exclude[substr(sp, 1, 2) == "UN"] <- TRUE
-levels(PCTBL$SPECIES)[spp.to.exclude] <- "NONE"
-compare.sets(PCTBL$SPECIES, TAX$Species_ID)
+levels(PCTBL$SPECIES)[levels(PCTBL$SPECIES) == "YWAR"] <- "YEWA"
+levels(PCTBL$SPECIES)[levels(PCTBL$SPECIES) == "SCJU"] <- "DEJU" # change SCJU to DEJU
+levels(PCTBL$SPECIES)[levels(PCTBL$SPECIES) == "MYWA"] <- "YRWA" # change MYWA to YRWA
+levels(PCTBL$SPECIES)[levels(PCTBL$SPECIES) == "COSN"] <- "WISN" # change COSN to WISN
+PCTBL$SPECIES <- droplevels(PCTBL$SPECIES)
 setdiff(PCTBL$SPECIES, TAX$Species_ID)
+
+sspp <- read.csv("~/repos/bamanalytics/lookup/singing-species.csv")
+levels(PCTBL$SPECIES)[!(levels(PCTBL$SPECIES) %in% sspp$Species_ID[sspp$Singing_birds])] <- "NONE"
+
 ## Excluding columns
 PCTBL$DURATION <- NULL
 PCTBL$DISTANCE <- NULL
@@ -524,9 +506,24 @@ PCTBL$BEH <- NULL
 PCTBL$dur <- droplevels(PCTBL$dur)
 PCTBL$dis <- droplevels(PCTBL$dis)
 
-compare.sets(SS$SS, PKEY$SS)
-compare.sets(SS$SS, PCTBL$SS)
-compare.sets(PKEY$PKEY, PCTBL$PKEY)
+compare_sets(SS$SS, PKEY$SS)
+compare_sets(SS$SS, PCTBL$SS)
+compare_sets(PKEY$PKEY, PCTBL$PKEY)
+
+save(SS, PKEY, PCTBL, TAX,
+    file=file.path(ROOT2, "out",
+    paste0("data_package_", Sys.Date(), ".Rdata")))
+
+
+
+
+
+
+
+
+
+
+## --- old stuff below here
 
 ### ABMI data processing
 
@@ -643,8 +640,8 @@ points(x$JDAY*365, x$HOUR, col=CL, pch=19)
 
 PCTBL_abmi <- pcabmi
 levels(PCTBL_abmi$COMMON_NAME)[levels(PCTBL_abmi$COMMON_NAME) == "Black and White Warbler"] <- "Black-and-white Warbler"
-compare.sets(TAX$English_Name, PCTBL_abmi$COMMON_NAME)
-compare.sets(TAX$Scientific_Name, PCTBL_abmi$SCIENTIFIC_NAME)
+compare_sets(TAX$English_Name, PCTBL_abmi$COMMON_NAME)
+compare_sets(TAX$Scientific_Name, PCTBL_abmi$SCIENTIFIC_NAME)
 setdiff(PCTBL_abmi$COMMON_NAME, TAX$English_Name)
 setdiff(PCTBL_abmi$SCIENTIFIC_NAME, TAX$Scientific_Name)
 
@@ -739,8 +736,8 @@ dat2$TSLS <- (dat2$JULIAN - dat2$SPRNG) / 365
 ## besides `dat` we also need specific aoutput from `PCTBL`
 ## and also the methodology x interval lookup
 
-compare.sets(DISMET$DISTANCECODE, PKEY$DISMETH)
-compare.sets(DURMET$DURATIONCODE, PKEY$DURMETH)
+compare_sets(DISMET$DISTANCECODE, PKEY$DISMETH)
+compare_sets(DURMET$DURATIONCODE, PKEY$DURMETH)
 
 ## getting problematic ones to TF
 if (FALSE) {
