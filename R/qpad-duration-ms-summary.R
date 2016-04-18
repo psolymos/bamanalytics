@@ -770,7 +770,7 @@ pf <- function(var, mod, n=10^4, std=FALSE, resol=0.1) {
     ix <- rep(var, ncol(sppPred))
     iy <- as.numeric(sppPred)
     is <- sample.int(length(ix), n)
-    d <- kde2d(ix[is], iy[is], n=c(round(1/resol), 50))
+    d <- kde2d(ix[is], iy[is], n=c(50, round(1/resol)))
     if (std)
         d$z <- d$z / rowSums(d$z)
     d
@@ -857,29 +857,37 @@ allOUT[[paste0("t", TT, "_std", STD)]] <- OUT
 }
 allOUT <- allOUT[c("t3_stdFALSE","t10_stdFALSE","t3_stdTRUE","t10_stdTRUE")]
 
-plf <- function(b, ...) {
+quant_fun  <- function(z) {
+    c(Peak=z$x[which.max(rowSums(z$z))],
+        quantile(sample(z$x, 10^4, replace=TRUE, prob=rowSums(z$z)), 
+            c(0.05, 0.25, 0.5, 0.75, 0.95)))
+}
+plf <- function(b, b2, ...) {
     image(b, col=col, ...)
     contour(b, add=TRUE, nlevels=nl)
     box()
+    #v <- quant_fun(b2)
+    #abline(v=v["Peak"], lty=1)
+    #abline(v=v[c("5%", "95%")], lty=2)
 }
 
 col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
 nl <- 5
 
-for (i in 1:4) {
-OUT <- allOUT[[i]]
-png(file.path(ROOT2, "tabfig", paste0("FigX_responses_", names(allOUT)[i], ".png")), height=800, width=1600, res=150)
+OUT <- allOUT[["t3_stdTRUE"]]
+OUT2 <- allOUT[["t3_stdFALSE"]]
+png(file.path(ROOT2, "tabfig", paste0("FigX_responses_3std.png")), height=1000, width=1600, res=150)
 #par(las=1, mar=c(5, 6, 4, 2) + 0.1)
 op <- par(mfrow=c(2,3), las=1)
-plf(OUT[["TSSR"]][["0"]], ylab="P(3 min) 0", xlab="Time since sunrise (h)")
-plf(OUT[["JDAY"]][["0"]], ylab="P(3 min) 0", xlab="Julian day")
-plf(OUT[["TSLS"]][["0"]], ylab="P(3 min) 0", xlab="Days since spring")
-plf(OUT[["TSSR"]][["b"]], ylab="P(3 min) b ", xlab="Time since sunrise (h)")
-plf(OUT[["JDAY"]][["b"]], ylab="P(3 min) b", xlab="Julian day")
-plf(OUT[["TSLS"]][["b"]], ylab="P(3 min) b", xlab="Days since spring")
+plf(OUT[["TSSR"]][["0"]], OUT2[["TSSR"]][["0"]], , ylab="P(3 min) 0", xlab="Time since sunrise (h)")
+plf(OUT[["JDAY"]][["0"]], OUT2[["JDAY"]][["0"]], ylab="P(3 min) 0", xlab="Julian day")
+plf(OUT[["TSLS"]][["0"]], OUT2[["TSLS"]][["0"]], ylab="P(3 min) 0", xlab="Days since spring")
+plf(OUT[["TSSR"]][["b"]], OUT2[["TSSR"]][["b"]], ylab="P(3 min) b ", xlab="Time since sunrise (h)")
+plf(OUT[["JDAY"]][["b"]], OUT2[["JDAY"]][["b"]], ylab="P(3 min) b", xlab="Julian day")
+plf(OUT[["TSLS"]][["b"]], OUT2[["TSLS"]][["b"]], ylab="P(3 min) b", xlab="Days since spring")
 par(op)
 dev.off()
-}
+
 
 plf2 <- function(b1, b2, levels=0.1, ...) {
 #    contour(b1, levels=levels, lty=1, ...)
@@ -906,6 +914,17 @@ plf2(allOUT[[1]][["TSLS"]][["b"]], allOUT[[2]][["TSLS"]][["b"]], levels=0.02,
     ylab="Probability (Mb)", xlab="Days since spring")
 par(op)
 dev.off()
+
+z <- allOUT[["t3_stdFALSE"]][["JDAY"]][["0"]]
+plot(z$x, rowSums(z$z), type="l")
+## approximate quantiles
+quant_fun(allOUT[["t3_stdFALSE"]][["TSSR"]][["0"]])
+quant_fun(allOUT[["t3_stdFALSE"]][["TSSR"]][["b"]])
+quant_fun(allOUT[["t3_stdFALSE"]][["JDAY"]][["0"]])
+quant_fun(allOUT[["t3_stdFALSE"]][["JDAY"]][["b"]])
+quant_fun(allOUT[["t3_stdFALSE"]][["TSLS"]][["0"]])
+quant_fun(allOUT[["t3_stdFALSE"]][["TSLS"]][["b"]])
+
 
 ## compare PIF time adjustment
 
