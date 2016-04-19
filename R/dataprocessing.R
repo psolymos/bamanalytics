@@ -599,11 +599,17 @@ unlim <- ifelse(offdat$MAXDIS[OKq] == Inf, TRUE, FALSE)
 A[OKq] <- ifelse(unlim, pi * tau1, pi * offdat$MAXDIS[OKq]^2)
 q[OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[OKq], tau1))
 
+ii <- which(p == 0)
+p[ii] <- sra_fun(offdat$MAXDUR[ii], cf0[1])
+
 OFF[,spp] <- log(p) + log(A) + log(q)
 
 }
 
 (Ra <- apply(OFF, 2, range))
+summary(t(Ra))
+which(!is.finite(Ra[1,])) # BARS GCSP
+which(!is.finite(Ra[2,]))
 
 SPP <- sppp
 save(OFF, SPP, 
