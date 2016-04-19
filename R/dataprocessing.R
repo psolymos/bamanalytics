@@ -105,15 +105,12 @@ SS03$LCC_combo <- SS03$LCC_OFF1
 SS03$LCC_combo[is.na(SS03$LCC_OFF1)] <- SS03$LCC_OFF2[is.na(SS03$LCC_OFF1)]
 }
 
-## 4x4 stuff is not done
-if (FALSE) {
 ## Grid ID 4x4 km
 SS_grid <- read.csv(file.path(ROOT, "BAMBBS_Gridcode.csv"))
 rownames(SS_grid) <- SS_grid$SS
 compare_sets(rownames(SS01), rownames(SS_grid))
 SS_grid <- SS_grid[rownames(SS01),"gridcode",drop=FALSE]
 levels(SS_grid$gridcode) <- gsub(",", "", levels(SS_grid$gridcode))
-}
 
 ## Road: dist to, class, #lanes, surface
 SS_road <- sqlFetch(con, "dbo_BAMBBS_2015_NearDistanceRoadJoin1000M")
@@ -266,7 +263,7 @@ SS <- data.frame(
     SPRNG=SS_sprng$SPRNG,
     #LCC05_PT=SS03$LCC05_PT, # -- FOR NICOLE
     SS03[,c("HAB_NALC2", "HAB_NALC1")],
-    #SS_grid,
+    SS_grid,
     #SS_nserv,
     SS_road, 
     SS_terr, 
@@ -512,7 +509,7 @@ compare_sets(PKEY$PKEY, PCTBL$PKEY)
 
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT2, "out",
-    paste0("data_package_", Sys.Date(), ".Rdata")))
+    paste0("data_package_2016-04-18.Rdata")))
 
 
 
@@ -618,26 +615,22 @@ offdat <- offdat[,c("PKEY","TSSR","JDAY","DSLS","TREE","LCC4","MAXDUR","MAXDIS")
 save(offdat,
     file=file.path(ROOT, "out", "offsets-v3data_2016-04-18.Rdata"))
 
-
-
 ######## These are the transformations #################
 
+
+## Define root folder where data are stored
+ROOT <- "e:/peter/bam/Apr2016"
+## Load required packages
 library(mefa4)
-ROOT <- "c:/bam/May2015"
-#load(file.path(ROOT, "out", "data_package_2015-07-24.Rdata"))
-load(file.path(ROOT, "out", "data_package_2015-08-14.Rdata"))
-load(file.path(ROOT, "out", "offsets_allspp_BAMBBS_2015-07-24.Rdata"))
+## Load functions kept in separate file
+source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
-colnames(OFF)[colnames(OFF) == "YWAR"] <- "YEWA"
+load(file.path(ROOT, "out", paste0("data_package_2016-04-18.Rdata")))
+load(file.path(ROOT, "out", "offsets-v3_2016-04-18.Rdata"))
 
-rownames(TAX) <- TAX$Species_ID
-TAX <- droplevels(TAX[colnames(OFF),])
-#TAX$keep <- TRUE
-#TAX$keep[TAX$Order %in% c("Gaviiformes","Pelecaniformes","Podicipediformes",
-#"Gruiformes","Galliformes","Anseriformes","Charadriiformes")] <- FALSE
-#TAX <- TAX[TAX$keep,]
-
-SPP <- colnames(OFF)
+TAX <- nonDuplicated(TAX, Species_ID, TRUE)
+TAX <- droplevels(TAX[SPP,])
+OFF <- OFF[,SPP]
 
 YY <- Xtab(ABUND ~ PKEY + SPECIES, PCTBL)
 YY <- YY[,SPP]
@@ -649,13 +642,13 @@ rm(PCTBL)
 PKEY <- PKEY[,c("PKEY", "SS", "PCODE", "METHOD", "SITE", "ROUND", "YEAR",
     "ROAD")]
 
-SS$ALL_HAB_OK <- ifelse(rowSums(is.na(SS[,c("HAB_LCC1", "HAB_LCC2", "HAB_EOSD1", 
-    "HAB_EOSD2", "HAB_NALC2", "HAB_NALC1")])) == 0, 0L, 1L)
-
 with(SS, table(ROADCLASS, PAVSTATUS))
 with(SS, table(NBRLANES, PAVSTATUS))
 with(SS, table(ROADCLASS, NBRLANES))
-SS$ROAD_OK <- ifelse(SS$NBRLANES > 2, 0L, 1L)
+
+SS$ROAD_OK <- SS$NBRLANES <= 2
+SS$HAB_OK <- !is.na(SS$HAB_NALC2)
+
 SS$d2road <- NULL
 SS$ROADCLASS <- NULL
 SS$NBRLANES <- NULL
@@ -682,7 +675,7 @@ SS$cti90 <- NULL
 SS$elv90 <- NULL
 
 ## height
-SS$HGT <- SS$HEIGHTSIMARD / 50
+SS$HGT <- SS$HEIGHTSIMARD / 25
 SS$HGT2 <- SS$HGT^2
 SS$HEIGHTSIMARD <- NULL
 
@@ -724,8 +717,8 @@ SS$PPT_wt <- NULL
 SS$FIRE_HA <- NULL
 SS$YearLoss[SS$YearLoss == 0] <- NA
 
-SS$YearFire[is.na(SS$YearFire)] <- 2015 - 200
-SS$YearLoss[is.na(SS$YearLoss)] <- 2015 - 200
+SS$YearFire[is.na(SS$YearFire)] <- 2016 - 200
+SS$YearLoss[is.na(SS$YearLoss)] <- 2016 - 200
 
 XYSS <- as.matrix(SS[,c("X","Y","Xcl","Ycl")])
 rownames(XYSS) <- SS$SS
@@ -755,114 +748,85 @@ DAT$DTB[DAT$YEAR < 2000] <- NA
 
 
 ## decid + mixed
-DAT$isDM_LCC <- ifelse(DAT$HAB_LCC2 %in% c("Decid", "Mixed"), 1L, 0L)
-DAT$isDM_EOSD <- ifelse(DAT$HAB_EOSD2 %in% c("Decid", "Mixed"), 1L, 0L)
-DAT$isDM_NALC <- ifelse(DAT$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
+DAT$isDM <- ifelse(DAT$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
 ## non-forest (wet etc)
-DAT$isNF_LCC <- ifelse(DAT$HAB_LCC2 %in% 
-    c("Agr", "Barren", "Burn", "Devel", "Grass", "Wet"), 1L, 0L)
-DAT$isNF_EOSD <- ifelse(DAT$HAB_EOSD2 %in% 
+DAT$isNF <- ifelse(DAT$HAB_NALC2 %in% 
     c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
-DAT$isNF_NALC <- ifelse(DAT$HAB_NALC2 %in% 
-    c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
-
-DAT$HSH <- 0 # placeholder
-DAT$HSH2 <- 0
-DAT$HAB <- 0
-DAT$isDM <- 0
-DAT$isNF <- 0
+DAT$isDev <- ifelse(DAT$HAB_NALC2 %in% c("Agr", "Devel"), 1L, 0L)
+DAT$isOpn <- ifelse(DAT$HAB_NALC2 %in% 
+    c("Barren", "Grass", "Shrub"), 1L, 0L)
+DAT$isWet <- ifelse(DAT$HAB_NALC2 %in% c("Wet"), 1L, 0L)
+DAT$isDec <- ifelse(DAT$HAB_NALC2 %in% c("Decid"), 1L, 0L)
+DAT$isMix <- ifelse(DAT$HAB_NALC2 %in% c("Mixed"), 1L, 0L)
 
 ## see above for filtering
 DAT <- DAT[DAT$YEAR >= 1997,]
 
 ## year effect
 #plot(table(DAT$YEAR))
-DAT$YR5 <- 0
-DAT$YR5[DAT$YEAR > 2000] <- 1
-DAT$YR5[DAT$YEAR > 2004] <- 2
-DAT$YR5[DAT$YEAR > 2009] <- 3
-table(DAT$YEAR,DAT$YR5)
-table(DAT$YR5)
-
-DAT$YR5 <- as.factor(DAT$YR5)
 DAT$YR <- DAT$YEAR - 1997
 
-DAT$BCR[DAT$BCR == "0"] <- NA
-DAT <- droplevels(DAT[!is.na(DAT$BCR),])
-table(DAT$JURS, DAT$BCR)
+#keep <- rep(TRUE, nrow(DAT))
+#keep[DAT$BCR %in% c(1,5,11,17,22,24,26,28,29,30)] <- FALSE
+#keep[DAT$BCR %in% c(9, 10)] <- FALSE
+#keep[DAT$BCR %in% c(9, 10) & DAT$JURS %in% c("AB","BC")] <- TRUE
+#keep[DAT$BOREALLOC != "OUT"] <- TRUE
+#keep[is.na(DAT$BCR) | DAT$BCR == "0"] <- FALSE
 
-DAT$BCR_JURS <- interaction(DAT$BCR, DAT$JURS, drop=TRUE, sep="_")
+keep <- !is.na(DAT$BOREALLOC) & DAT$BOREALLOC != "OUT"
 
-levels(DAT$BCR_JURS)[grepl("_AK", levels(DAT$BCR_JURS))] <- "AK"
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("9_BC","9_ID","9_WA",
-    "5_BC","5_WA","10_AB","10_BC","10_ID","10_MT","10_WA")] <- "Mtn"
-#levels(DAT$BCR_JURS)[grepl("11_", levels(DAT$BCR_JURS))] <- "Pra" # Prairies
-#levels(DAT$BCR_JURS)[grepl("17_", levels(DAT$BCR_JURS))] <- "Pra"
-#levels(DAT$BCR_JURS)[grepl("22_", levels(DAT$BCR_JURS))] <- "Pra"
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("11_AB", "11_MB", "11_MT", "11_SK",
-    "17_MT", "17_ND", "17_SD", "11_ND", "11_SD")] <- "Pra_west" # Prairies
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("11_MN", 
-    "22_IL", "22_IN", "22_MI", "22_MN", "22_OH", "22_WI")] <- "Pra_east"
+table(DAT$BCR,keep)
+
+DAT <- droplevels(DAT[keep,])
+
+## fill-in BCR based on closes known value
+ssDAT <- nonDuplicated(DAT, SS)
+ssDAT$xBCR <- ssDAT$BCR
+ii <- which(ssDAT$BCR == "0" | is.na(ssDAT$BCR))
+for (i in ii) {
+    d <- sqrt((ssDAT$X - ssDAT$X[i])^2 + (ssDAT$Y - ssDAT$Y[i])^2)
+    d[ii] <- Inf
+    ssDAT$xBCR[i] <- ssDAT$BCR[which.min(d)]
+}
+DAT$xBCR <- ssDAT$xBCR[match(DAT$SS, ssDAT$SS)]
+length(which(DAT$BCR == "0" | is.na(DAT$BCR)))
+length(which(DAT$xBCR == "0" | is.na(DAT$xBCR)))
+
+table(DAT$JURS, DAT$xBCR)
+DAT$Units <- factor(NA, c("AK","N","W","8E","Mt","HW", "At"))
+DAT$Units[DAT$xBCR %in% c("2","4")] <- "AK"
+DAT$Units[DAT$xBCR %in% c("3","7")] <- "N" # Arctic/Shield
+DAT$Units[DAT$xBCR %in% c("5","9","10")] <- "Mt" # Rockies
+
+DAT$Units[DAT$xBCR %in% c("6","11")] <- "W" # West
+DAT$Units[DAT$xBCR %in% c("8") & DAT$JURS %in% c("MB","SK")] <- "W"
+
+DAT$Units[DAT$xBCR %in% c("8") & !(DAT$JURS %in% c("MB","SK"))] <- "8E" # BCR8 east
+
+DAT$Units[DAT$xBCR %in% c("12","13","23")] <- "HW" # Hardwood
+DAT$Units[DAT$xBCR %in% c("14")] <- "At" # Atlantic
+
+table(DAT$xBCR, DAT$Units, useNA="a")
+table(DAT$Units, useNA="a")
+
+ssDAT <- nonDuplicated(DAT, SS)
+table(ssDAT$Units, useNA="a")
 
 
-#levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("4_BC",
-#    "4_NT","4_YK","6_YK","6_NT")] <- "4+6_YK+NT"
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("4_BC","4_NT","4_YK")] <- "4_all"
-
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB",
-    "6_YK","6_NT")] <- "6_all"
-
-## keep northern points in
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("3_NT","7_MB","7_NT","3_NU","7_NU")] <- "3+7_west"
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("7_ON","7_QC","7_NL")] <- "3+7_east"
-
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_MB","8_SK")] <- "8_west"
-levels(DAT$BCR_JURS)[levels(DAT$BCR_JURS) %in% c("8_NL","8_ON","8_QC")] <- "8_east"
-
-levels(DAT$BCR_JURS)[grepl("12_", levels(DAT$BCR_JURS))] <- "Grl" # Great Lakes
-levels(DAT$BCR_JURS)[grepl("13_", levels(DAT$BCR_JURS))] <- "Grl"
-levels(DAT$BCR_JURS)[grepl("23_", levels(DAT$BCR_JURS))] <- "Grl"
-
-levels(DAT$BCR_JURS)[grepl("14_", levels(DAT$BCR_JURS))] <- "Mar" # Maritimes
-levels(DAT$BCR_JURS)[grepl("30_", levels(DAT$BCR_JURS))] <- "Mar"
-
-levels(DAT$BCR_JURS)[grepl("24_", levels(DAT$BCR_JURS))] <- "SEus" # SE US
-levels(DAT$BCR_JURS)[grepl("26_", levels(DAT$BCR_JURS))] <- "SEus"
-levels(DAT$BCR_JURS)[grepl("28_", levels(DAT$BCR_JURS))] <- "SEus"
-levels(DAT$BCR_JURS)[grepl("29_", levels(DAT$BCR_JURS))] <- "SEus"
-
-sort(levels(DAT$BCR_JURS))
-table(DAT$BCR_JURS)
-table(DAT$BCR_JURS, DAT$YR5)
-
-## regions for trend
-DAT$REG <- DAT$BCR_JURS
-levels(DAT$REG)[levels(DAT$REG) %in% c("Mtn", "AK")] <- "Coast"
-levels(DAT$REG)[levels(DAT$REG) %in% c("4_all", "3+7_west", "3+7_east")] <- "North"
-levels(DAT$REG)[levels(DAT$REG) %in% c("Pra_west", "Pra_east")] <- "South"
-levels(DAT$REG)[levels(DAT$REG) %in% c("8_west","6_all")] <- "West"
-levels(DAT$REG)[levels(DAT$REG) %in% c("Mar","SEus","8_east","Grl")] <- "East"
-table(DAT$BCR_JURS, DAT$REG)
-table(DAT$REG)
-DAT$REG <- relevel(DAT$REG, "West")
-
-DAT$EW <- DAT$BCR_JURS
-levels(DAT$EW)[levels(DAT$EW) %in% c("Mtn", "AK", "4_all", "3+7_west", 
-    "Pra_west", "8_west","6_all")] <- "W"
-levels(DAT$EW)[levels(DAT$EW) %in% c("3+7_east", "Pra_east",
-    "Mar","SEus","8_east","Grl")] <- "E"
-table(DAT$BCR_JURS, DAT$EW)
-table(DAT$EW)
-DAT$EW <- relevel(DAT$EW, "W")
-
-library(RColorBrewer)
+#library(RColorBrewer)
 #plot(DAT[,c("Xcl","Ycl")], col=DAT$REG, pch=19, cex=0.2)
 #plot(DAT[,c("Xcl","Ycl")], col=brewer.pal(12, "Set3")[DAT$BCR_JURS], pch=19, cex=0.2)
 #plot(DAT[,c("Xcl","Ycl")], col=ifelse(as.integer(DAT$BCR_JURS)==8,2,1), pch=19, cex=0.2)
 #plot(DAT[,c("Xcl","Ycl")], col=DAT$EW, pch=19, cex=0.2)
 
 ## resampling blocks
-DAT$bootg <- interaction(DAT$BCR_JURS, DAT$YR5, drop=TRUE)
+DAT$YR5 <- 0
+DAT$YR5[DAT$YEAR > 2000] <- 1
+DAT$YR5[DAT$YEAR > 2004] <- 2
+DAT$YR5[DAT$YEAR > 2009] <- 3
+table(DAT$YEAR,DAT$YR5)
+table(DAT$YR5)
+DAT$bootg <- interaction(DAT$Units, DAT$YR5, drop=TRUE)
 
 ## exclude same year revisits
 #DAT$ROUND[is.na(DAT$ROUND)] <- 1
@@ -907,25 +871,85 @@ AGEMAX <- 50
 DAT$YSD <- pmax(0, 1 - (DAT$YSD / AGEMAX))
 DAT$YSF <- pmax(0, 1 - (DAT$YSF / AGEMAX))
 DAT$YSL <- pmax(0, 1 - (DAT$YSL / AGEMAX))
-plot(DAT$YSD ~ DAT0$YSD)
 
-if (FALSE) {
-YS <- 0:100
-YSD <- pmax(0, 1 - (YS / 50))
-plot(YS, YSD, xlab="Years since disturbance", ylab="YSD covariate", type="l",
-col=4, lwd=2)
+DAT$HAB <- DAT$HAB_NALC2
+DAT$HABTR <- DAT$HAB_NALC1
+DAT$HGTorig <- DAT$HGT
+DAT$HGT[DAT$HAB %in% c("Agr","Barren","Devel","Grass", "Shrub")] <- 0
+DAT$HGT2 <- DAT$HGT^2
+DAT$HGT05 <- sqrt(DAT$HGT)
 
-}
+DAT <- DAT[DAT$ARU == 0,]
 
+data.frame(n=colSums(is.na(DAT)))
+
+
+keep <- rep(TRUE, nrow(DAT))
+keep[DAT$ROAD_OK < 1] <- FALSE
+keep[is.na(DAT$HABTR)] <- FALSE
+keep[is.na(DAT$CMI)] <- FALSE
+keep[is.na(DAT$HGT)] <- FALSE
+keep[is.na(DAT$SLP)] <- FALSE
+keep[DAT$YEAR < 2001] <- FALSE # GFW years
+keep[DAT$YEAR > 2013] <- FALSE # GFW years
+
+data.frame(n=colSums(is.na(DAT[keep,])))
+
+DAT <- droplevels(DAT[keep,])
+
+## check NAs, exclude ARU
+
+library(detect)
 source("~/repos/bamanalytics/R/analysis_mods.R")
-source("~/repos/detect/R/hbootindex.R")
-hbootindex2 <- hbootindex
+source("~/repos/bragging/R/glm_skeleton.R")
 
 nmin <- 25
 B <- 239
+Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
+Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB")
+Date <- "2016-04-18"
 
 ## check max counts
 apply(as.matrix(YY), 2, max)
+
+pk <- intersect(rownames(DAT), rownames(YY))
+DAT <- DAT[pk,]
+
+set.seed(1234)
+## make sure that time intervals are considered as blocks
+## keep out 10% of the data for validation
+id2 <- list()
+for (l in levels(DAT$bootg)) {
+    sset <- which(DAT$bootg == l)
+    id2[[l]] <- sample(sset, floor(length(sset) * 0.9), FALSE)
+}
+KEEP_ID <- unname(unlist(id2))
+HOLDOUT_ID <- setdiff(seq_len(nrow(DAT)), KEEP_ID)
+
+DATk <- DAT[KEEP_ID,]
+DAT <- DAT[c(KEEP_ID, HOLDOUT_ID),]
+DATk$SITE <- droplevels(DATk$SITE)
+BB <- hbootindex(DATk$SITE, DATk$bootg, B=B)
+
+rownames(DAT) <- DAT$PKEY
+pk <- intersect(rownames(DAT), rownames(YY))
+DAT <- DAT[pk,]
+YY <- YY[pk,]
+YY <- YY[,colSums(YY) >= nmin]
+apply(as.matrix(YY), 2, max)
+#apply(as.matrix(YY), 2, table)
+
+OFF <- OFF[pk,colnames(YY)]
+TAX <- TAX[colnames(YY),]
+
+DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
+
+cat("\n---\t", TEXT, "can", "lcc", nrow(DAT), "\n")
+save(list = Save,
+    file=file.path(ROOT, "out", paste0("pack_", Date, ".Rdata")))
+
+
+
 
 ## ---------------------------------- data packages below -----------
 ## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
@@ -942,86 +966,6 @@ Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
 Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
 Date <- "2015-09-02"
 
-if (FALSE) { # FIRE STUFF FOR NICOLE BEGIN
-
-    Save <- c("DAT", "YY", "OFF", "TAX", "BB")
-    Date <- "2016-01-14"
-
-    rm(DAT, TAX, YY, OFF)
-    gc()
-
-    keep <- rep(TRUE, nrow(DAT0))
-    keep[DAT0$ROAD_OK < 1] <- FALSE
-    keep[is.na(DAT0$HAB_LCC2)] <- FALSE
-    keep[DAT0$COUNTRY != "CAN"] <- FALSE
-
-    DAT1 <- droplevels(DAT0[keep,])
-    rownames(DAT1) <- DAT1$PKEY
-    DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY0)),])
-    dim(DAT1)
-    data.frame(n=colSums(is.na(DAT1)))
-    
-    DAT1 <- DAT1[,c("SS","PKEY","PCODE","METHOD","SITE","ROUND","YEAR","ROAD",
-        "X","Y","JURS","BCR", "bootg")]
-    ## need original SS here to be used
-    DAT1$LCC05 <- SS$LCC05_PT[match(DAT1$SS, SS$SS)]
-    DAT1$YearFire <- SS$YearFire[match(DAT1$SS, SS$SS)]
-    DAT1$FIRE_HA <- SS$FIRE_HA[match(DAT1$SS, SS$SS)]
-
-    set.seed(1234)
-    ## make sure that time intervals are considered as blocks
-    ## keep out 10% of the data for validation
-    id2 <- list()
-    for (l in levels(DAT1$bootg)) {
-        sset <- which(DAT1$bootg == l)
-        id2[[l]] <- sample(sset, floor(length(sset) * 0.9), FALSE)
-    }
-    KEEP_ID <- unname(unlist(id2))
-    HOLDOUT_ID <- setdiff(seq_len(nrow(DAT1)), KEEP_ID)
-
-    DAT1k <- DAT1[KEEP_ID,]
-    DAT1 <- DAT1[c(KEEP_ID, HOLDOUT_ID),]
-    DAT1k$SITE <- droplevels(DAT1k$SITE)
-    BB1 <- hbootindex2(DAT1k$SITE, DAT1k$bootg, B=B)
-
-    DAT <- DAT1
-    pk <- rownames(DAT)
-    YY <- YY0[pk,]
-    YY <- YY[,colSums(YY) >= nmin]
-    OFF <- OFF0[pk,colnames(YY)]
-    TAX <- TAX0[colnames(YY),]
-    BB <- BB1
-
-dim(DAT)
-dim(YY)
-dim(OFF)
-dim(TAX)
-dim(BB)
-
-    save(list = Save,
-        file=file.path(ROOT, "out", "data", 
-        paste0("pack_LCC05-fire-Canada_toNicole_", Date, ".Rdata")))
-
-} # FIRE STUFF FOR NICOLE END
-
-if (FALSE) { # ALL DATA FOR DIANA BEGIN
-    DAT <- DAT0
-    rownames(DAT) <- DAT$PKEY
-    pk <- intersect(rownames(DAT), rownames(YY0))
-    DAT <- DAT[pk,]
-    YY <- YY0[pk,]
-    YY <- YY[,colSums(YY) >= 0]
-    OFF <- OFF0[pk,colnames(YY)]
-    TAX <- TAX0[colnames(YY),]
-    dim(DAT)
-    dim(YY)
-    dim(TAX)
-    
-    save(DAT, YY, TAX, OFF,
-        file=file.path(ROOT, "out", "data", 
-        paste0("pack_BAMBBS_toDiana_2016feb.Rdata")))
-
-} # ALL DATA FOR DIANA END
 
 for (TEXT in c("gfw", "fre")) {
 

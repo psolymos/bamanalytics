@@ -1,27 +1,35 @@
-#habitat
-#HAB = habitat without open/sparse/dense modifier
 mod_Hab <- list(
     . ~ . + HAB,
+    . ~ . + HABTR)
+mod_Hgt <- list(
     . ~ . + HGT,
     . ~ . + HGT + HGT2,
-    . ~ . + TR3,
-    . ~ . + HGT + TR3,
-    . ~ . + HGT + HGT2 + TR3,
-    . ~ . + HAB + HGT,
-    . ~ . + HAB + HGT + HGT2,
-    . ~ . + HAB + HGT + HGT:isDM + HGT:isNF,
-    . ~ . + HAB + HGT + HGT2 + HGT:isDM + HGT:isNF + HGT2:isDM + HGT2:isNF,
-    . ~ . + HAB + TR3,
-    . ~ . + HAB + HGT + TR3,
-    . ~ . + HAB + HGT + HGT2 + TR3,
-    . ~ . + HAB + HGT + TR3 + HGT:isDM + HGT:isNF,
-    . ~ . + HAB + HGT + HGT2 + TR3 + HGT:isDM + HGT:isNF + HGT2:isDM + HGT2:isNF)
+    . ~ . + HGT + HGT:isDM + HGT:isWet,
+    . ~ . + HGT + HGT:isDec + HGT:isMix + HGT:isWet,
+    . ~ . + HGT + HGT2 + HGT:isDM + HGT:isWet + HGT2:isDM + HGT2:isWet,
+    . ~ . + HGT + HGT2 + HGT:isDec + HGT:isMix + HGT:isWet + HGT2:isDec + HGT2:isMix + HGT2:isWet,
+    . ~ . + HGT05,
+    . ~ . + HGT05 + HGT,
+    . ~ . + HGT05 + HGT05:isDM + HGT05:isWet,
+    . ~ . + HGT05 + HGT05:isDec + HGT05:isMix + HGT05:isWet,
+    . ~ . + HGT05 + HGT + HGT05:isDM + HGT05:isWet + HGT:isDM + HGT:isWet,
+    . ~ . + HGT05 + HGT + HGT05:isDec + HGT05:isMix + HGT05:isWet + 
+            HGT:isDec + HGT:isMix + HGT:isWet)
+## 2001-2013
+mod_GFWFire <- list(
+    . ~ . + DTB,
+    . ~ . + YSD,
+    . ~ . + BRN + LSS,
+    . ~ . + YSF + YSL,
+    . ~ . + LIN + POL,
+    . ~ . + LIN + POL + DTB,
+    . ~ . + LIN + POL + LSS + BRN,
+    . ~ . + LIN + POL + YSD,
+    . ~ . + LIN + POL + YSL + YSF)
 mod_Road <- list(
     . ~ . + ROAD,
-    . ~ . + ROAD + ROAD:HAB,
-    . ~ . + ROAD + ROAD:TR3)
-mod_ARU <- list(
-    . ~ . + ARU)
+    . ~ . + ROAD + ROAD:isNF,
+    . ~ . + ROAD + ROAD:isDev + ROAD:isWet + ROAD:isOpn)
 mod_Wet <- list(
     . ~ . + CTI,
     . ~ . + CTI + CTI2,
@@ -36,46 +44,14 @@ mod_Climate <- list(
     . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
     . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
     . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52)
-## all years
-mod_DisturbFire <- list(
-    . ~ . + BRN,
-    . ~ . + YSF,
-    . ~ . + LIN + POL,
-    . ~ . + LIN + POL + BRN,
-    . ~ . + LIN + POL + YSF)
-## 2001-2013
-mod_DisturbGFWFire <- list(
-    . ~ . + DTB,
-    . ~ . + YSD,
-    . ~ . + BRN + LSS,
-    . ~ . + YSF + YSL,
-    . ~ . + LIN + POL,
-    . ~ . + LIN + POL + DTB,
-    . ~ . + LIN + POL + LSS + BRN,
-    . ~ . + LIN + POL + YSD,
-    . ~ . + LIN + POL + YSL + YSF)
-mod_HS <- list(
-    . ~ . + HSH,
-    . ~ . + HSH + HSH2)
-mod_ND <- list(
-    . ~ . + ND2)
 mod_Year <- list(
-    . ~ . + YR,
-    . ~ . + YR + YR:EW)
+    . ~ . + YR)
 
-mods_fire <- list(
+mods <- list(
     Hab=mod_Hab, 
+    Hgt=mod_Hgt, 
+    Dist=mod_GFWFire,
     Road=mod_Road, 
-    ARU=mod_ARU, 
     Wet=mod_Wet, 
-    Dist=mod_DisturbFire,
-    Clim=mod_Climate,
-    Year=mod_Year)
-mods_gfw <- list(
-    Hab=mod_Hab, 
-    Road=mod_Road, 
-    ARU=mod_ARU, 
-    Wet=mod_Wet, 
-    Dist=mod_DisturbGFWFire,
     Clim=mod_Climate,
     Year=mod_Year)
