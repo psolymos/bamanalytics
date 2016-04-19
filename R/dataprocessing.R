@@ -554,10 +554,16 @@ offdat$LCC2 <- factor(offdat$LCC2, c("Forest", "OpenWet"))
 table(offdat$LCC4, offdat$LCC2)
 offdat$MAXDIS <- offdat$MAXDIS / 100
 
-offdat$OKp <- rowSums(is.na(offdat[,c("TSSR","JDAY","DSLS")])) == 0
-offdat$OKq <- rowSums(is.na(offdat[,c("TREE","LCC4")])) == 0
-Xp <- model.matrix(~TSSR+TSSR2+JDAY+JDAY2+DSLS+DSLS2, offdat[offdat$OKp,])
-Xq <- model.matrix(~LCC2+LCC4+TREE, offdat[offdat$OKq,])
+Xp <- cbind("(Intercept)"=1, as.matrix(offdat[,c("TSSR","JDAY","DSLS","TSSR2","JDAY2","DSLS2")]))
+Xq <- cbind("(Intercept)"=1, TREE=offdat$TREE,
+    LCC2OpenWet=ifelse(offdat$LCC2=="OpenWet", 1, 0),
+    LCC4Conif=ifelse(offdat$LCC4=="Conif", 1, 0),
+    LCC4Open=ifelse(offdat$LCC4=="Open", 1, 0),
+    LCC4Wet=ifelse(offdat$LCC4=="Wet", 1, 0))
+#offdat$OKp <- rowSums(is.na(offdat[,c("TSSR","JDAY","DSLS")])) == 0
+#offdat$OKq <- rowSums(is.na(offdat[,c("TREE","LCC4")])) == 0
+#Xp <- model.matrix(~TSSR+TSSR2+JDAY+JDAY2+DSLS+DSLS2, offdat[offdat$OKp,])
+#Xq <- model.matrix(~LCC2+LCC4+TREE, offdat[offdat$OKq,])
 
 OFF <- matrix(NA, nrow(offdat), length(sppp))
 rownames(OFF) <- offdat$PKEY
@@ -571,29 +577,33 @@ A <- q <- p
 
 ## constant for NA cases
 cf0 <- exp(unlist(coefBAMspecies(spp, 0, 0)))
-p[!offdat$OKp] <- sra_fun(offdat$MAXDUR[!offdat$OKp], cf0[1])
-unlim <- ifelse(offdat$MAXDIS[!offdat$OKq] == Inf, TRUE, FALSE)
-A[!offdat$OKq] <- ifelse(unlim, pi * cf0[2]^2, pi * offdat$MAXDIS[!offdat$OKq]^2)
-q[!offdat$OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[!offdat$OKq], cf0[2]))
-
 ## best model
 mi <- bestmodelBAMspecies(spp, type="BIC")
 cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
 #vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
 
-phi1 <- exp(drop(Xp[,names(cfi$sra),drop=FALSE] %*% cfi$sra))
-tau1 <- exp(drop(Xq[,names(cfi$edr),drop=FALSE] %*% cfi$edr))
+Xp2 <- Xp[,names(cfi$sra),drop=FALSE]
+OKp <- rowSums(is.na(Xp2)) == 0
+Xq2 <- Xq[,names(cfi$edr),drop=FALSE]
+OKq <- rowSums(is.na(Xq2)) == 0
 
-p[offdat$OKp] <- sra_fun(offdat$MAXDUR[offdat$OKp], phi1)
-unlim <- ifelse(offdat$MAXDIS[offdat$OKq] == Inf, TRUE, FALSE)
-A[offdat$OKq] <- ifelse(unlim, pi * tau1, pi * offdat$MAXDIS[offdat$OKq]^2)
-q[offdat$OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[offdat$OKq], tau1))
+p[!OKp] <- sra_fun(offdat$MAXDUR[!OKp], cf0[1])
+unlim <- ifelse(offdat$MAXDIS[!OKq] == Inf, TRUE, FALSE)
+A[!OKq] <- ifelse(unlim, pi * cf0[2]^2, pi * offdat$MAXDIS[!OKq]^2)
+q[!OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[!OKq], cf0[2]))
+
+phi1 <- exp(drop(Xp2[OKp,,drop=FALSE] %*% cfi$sra))
+tau1 <- exp(drop(Xq2[OKq,,drop=FALSE] %*% cfi$edr))
+p[OKp] <- sra_fun(offdat$MAXDUR[OKp], phi1)
+unlim <- ifelse(offdat$MAXDIS[OKq] == Inf, TRUE, FALSE)
+A[OKq] <- ifelse(unlim, pi * tau1, pi * offdat$MAXDIS[OKq]^2)
+q[OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[OKq], tau1))
 
 OFF[,spp] <- log(p) + log(A) + log(q)
 
 }
 
-apply(OFF, 2, range)
+(Ra <- apply(OFF, 2, range))
 
 SPP <- sppp
 save(OFF, SPP, 
