@@ -950,6 +950,5 @@ library(rworldmap)
 X0 <- nonDuplicated(DAT, SS)
 plot(getMap(resolution = "low"),
     xlim = c(-193, -48), ylim = c(38, 72), asp = 1)
-points(X0[, c("X","Y")], pch=".",
-    col=X0$Units)
+points(X0[, c("X","Y")], pch=19, cex=0.25, col=as.integer(X0$Units)+1)
 
