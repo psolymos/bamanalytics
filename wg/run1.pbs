@@ -5,7 +5,7 @@
 #PBS -e run1.err
 #PBS -M solymos@ualberta.ca
 #PBS -m bea
-#PBS -l walltime=10:00:00
+#PBS -l walltime=5:00:00
 #PBS -l nodes=5:ppn=12
 #PBS -l pmem=2000mb
 
@@ -22,14 +22,9 @@ export OMPI_MCA_mpi_paffinity_alone=0
 
 echo "Starting run at: `date`"
 
-## arg1: nodes, arg2: species, arg3: text, arg4: sext, arg5: lctu
+## arg1: nodes, arg2: species
 mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can nlc
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can lcc
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw can eos
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can nlc
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can lcc
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre can eos
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA gfw nam nlc
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA fre nam nlc
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 OVEN gfw can nlc
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 OSFL gfw can nlc
 
 echo "Program finished with exit code $? at: `date`"

@@ -37,17 +37,10 @@ ncl <- if (TEST) 2 else nodes*12
 #### load all object on the master ####
 
 if (interactive())
-    setwd("c:/bam/May2015/out")
+    setwd("e:/peter/bam/Apr2016/out")
 
-Date <- "2015-09-02"
-TEXT <- if (interactive())
-    "gfw" else as.character(args[3])
-SEXT <- if (interactive())
-     "can" else as.character(args[4])
-LCTU <- if (interactive())
-    "nlc" else as.character(args[5])
-
-fn <- paste0("pack_", TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata")
+Date <- "2016-04-18"
+fn <- paste0("pack_", Date, ".Rdata")
 load(file.path("data", fn))
 if (TEST)
     mods <- mods[1:3]
@@ -75,25 +68,20 @@ if (interactive())
     tmpcl <- clusterEvalQ(cl, setwd("c:/bam/May2015/out"))
 tmpcl <- clusterEvalQ(cl, load(file.path("data", fn)))
 
-#tmpcl <- clusterEvalQ(cl, load(file.path("data", "analysis_package_distances.Rdata")))
-
 #### project identifier ####
 
 PROJECT <- if (TEST)
     "bam-test" else "bam"
 
-hsh_name <- NA # no landscape level effects
-CAICalpha <- 1
 spp <- if (interactive()) # CAWA OSFL RUBL WEWP
     "CAWA" else as.character(args[2])
 
-#system.time(aaa <- do_1spec1run_noW(1, i=spp, mods=mods, hsh_name=hsh_name, CAICalpha=CAICalpha))
+#system.time(aaa <- do_1spec1run_noW(1, i=spp, mods=mods, hsh_name=NA, CAICalpha=1))
 
 res <- parLapply(cl, 1:BBB, do_1spec1run_noW, i=spp, mods=mods, 
-    hsh_name=hsh_name, CAICalpha=CAICalpha)
+    hsh_name=NA, CAICalpha=1)
 
-fout <- paste0(PROJECT, "_", spp, "_", 
-    TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata")
+fout <- paste0(PROJECT, "_", spp, "_", Date, ".Rdata")
 save(res, file=file.path("results", fout))
 
 
