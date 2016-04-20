@@ -949,6 +949,99 @@ write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "tabfig", "spptab.csv"))
 boxplot(sptab[,c("tadj","Inv_p30","Inv_p3b")])
 
 
+## response curves
+
+nnn <- 200
+TT <- 3
+spt <- .BAMCOEFSrem$spp_table[SPPfull,]
+
+
+vsr <- seq(-0.2, 0.5, len=nnn)
+vjd <- seq(0.35, 0.5, len=nnn)
+vls <- seq(0, 0.3, len=nnn)
+mjd <- 0.45
+msr <- 0.13
+mls <- 0.12
+dsr <- data.frame(TSSR=vsr, JDAY=mjd, TSLS=mls)
+djd <- data.frame(TSSR=msr, JDAY=vjd, TSLS=mls)
+dls <- data.frame(TSSR=msr, JDAY=mjd, TSLS=vls)
+Xsr <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), dsr)
+Xjd <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), djd)
+Xls <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), dls)
+
+OKsr <- names(ff)[sapply(NAMES, function(z) any(grepl("TSSR", z)))]
+OKjd <- names(ff)[sapply(NAMES, function(z) any(grepl("JDAY", z)))]
+OKls <- names(ff)[sapply(NAMES, function(z) any(grepl("TSLS", z)))]
+
+r0sr <- matrix(NA, nnn, length(SPPfull))
+colnames(r0sr) <- SPPfull
+rbjd <- rbls <- rbsr <- r0jd <- r0ls <- r0sr
+
+for (spp in SPPfull) {
+cat(spp, "\n");flush.console()
+
+best0 <- as.character((0:14)[which.max(waic0[spp,])])
+cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
+
+if (best0 %in% OKsr)
+r0sr[,spp] <- 1-exp(-TT*exp(drop(Xsr[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+if (best0 %in% OKjd)
+r0jd[,spp] <- 1-exp(-TT*exp(drop(Xjd[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+if (best0 %in% OKls)
+r0ls[,spp] <- 1-exp(-TT*exp(drop(Xls[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+
+if (spp %in% SPP) {
+bestb <- as.character((0:14)[which.max(waicb[spp,])])
+cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
+
+if (bestb %in% OKsr)
+rbsr[,spp] <- 1-plogis(drop(Xsr[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
+    cfb2[-1])) * exp(-TT*exp(cfb2[1]))
+if (bestb %in% OKjd)
+rbjd[,spp] <- 1-plogis(drop(Xjd[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
+    cfb2[-1])) * exp(-TT*exp(cfb2[1]))
+if (bestb %in% OKls)
+rbls[,spp] <- 1-plogis(drop(Xls[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
+    cfb2[-1])) * exp(-TT*exp(cfb2[1]))
+}
+}
+
+## restrict to observed values???
+col <- "grey"
+pdf(file.path(ROOT2, "tabfig", "responses.pdf"), width=7, height=5, onefile=TRUE)
+for (spp in SPPfull) {
+op <- par(mfrow=c(2,3))
+matplot(vsr*24, r0sr, type=if (all(is.na(r0sr[,spp]))) "n" else "l", 
+    lty=1, col=col, ylim=c(0,1),
+    ylab="Probability (M0)", xlab="Time since sunrise (h)", main=spt[spp,"common_name"])
+lines(vsr*24, r0sr[,spp])
+matplot(vjd*365, r0jd, type=if (all(is.na(r0jd[,spp]))) "n" else "l", 
+    lty=1, col=col, ylim=c(0,1),
+    ylab="Probability (M0)", xlab="Julian day")
+lines(vjd*365, r0jd[,spp])
+matplot(vls*365, r0ls, type=if (all(is.na(r0ls[,spp]))) "n" else "l", 
+    lty=1, col=col, ylim=c(0,1),
+    ylab="Probability (M0)", xlab="Days since spring")
+lines(vls*365, r0ls[,spp])
+matplot(vsr*24, rbsr, type=if (all(is.na(rbsr[,spp]))) "n" else "l", 
+    lty=1, col=col, ylim=c(0,1),
+    ylab="Probability (Mb)", xlab="Time since sunrise (h)")
+lines(vsr*24, rbsr[,spp])
+matplot(vjd*365, rbjd, type=if (all(is.na(rbjd[,spp]))) "n" else "l", 
+    lty=1, col=col, ylim=c(0,1),
+    ylab="Probability (Mb)", xlab="Julian day")
+lines(vjd*365, rbjd[,spp])
+matplot(vls*365, rbls, type=if (all(is.na(rbls[,spp]))) "n" else "l", 
+    lty=1, col=col, ylim=c(0,1),
+    ylab="Probability (Mb)", xlab="Days since spring")
+lines(vls*365, rbls[,spp])
+par(op)
+}
+dev.off()
+
+
+
+
 ## m0t mbt prediction
 
 vjd <- seq(0.38, 0.52, len=200)
