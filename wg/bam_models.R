@@ -37,7 +37,8 @@ ncl <- if (TEST) 2 else nodes*12
 #### load all object on the master ####
 
 if (interactive())
-    setwd("e:/peter/bam/Apr2016/out")
+    #setwd("e:/peter/bam/Apr2016/out")
+    setwd(ROOT)
 
 Date <- "2016-04-18"
 fn <- paste0("pack_", Date, ".Rdata")
@@ -65,7 +66,7 @@ tmpcl <- clusterEvalQ(cl, source("~/repos/bragging/R/glm_skeleton.R"))
 
 tmpcl <- clusterExport(cl, "fn")
 if (interactive())
-    tmpcl <- clusterEvalQ(cl, setwd("c:/bam/May2015/out"))
+    tmpcl <- clusterEvalQ(cl, setwd("e:/peter/bam/Apr2016/out"))
 tmpcl <- clusterEvalQ(cl, load(file.path("data", fn)))
 
 #### project identifier ####
