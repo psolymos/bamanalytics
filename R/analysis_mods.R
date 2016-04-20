@@ -16,16 +16,16 @@ mod_Hgt <- list(
     . ~ . + HGT05 + HGT + HGT05:isDec + HGT05:isMix + HGT05:isWet + 
             HGT:isDec + HGT:isMix + HGT:isWet)
 ## 2001-2013
-mod_GFWFire <- list(
+mod_Dist <- list(
     . ~ . + DTB,
-    . ~ . + YSD,
     . ~ . + BRN + LSS,
+    . ~ . + YSD,
     . ~ . + YSF + YSL,
     . ~ . + LIN + POL,
     . ~ . + LIN + POL + DTB,
-    . ~ . + LIN + POL + LSS + BRN,
+    . ~ . + LIN + POL + BRN + LSS,
     . ~ . + LIN + POL + YSD,
-    . ~ . + LIN + POL + YSL + YSF)
+    . ~ . + LIN + POL + YSF + YSL)
 mod_Road <- list(
     . ~ . + ROAD,
     . ~ . + ROAD + ROAD:isNF,
@@ -50,7 +50,7 @@ mod_Year <- list(
 mods <- list(
     Hab=mod_Hab, 
     Hgt=mod_Hgt, 
-    Dist=mod_GFWFire,
+    Dist=mod_Dist,
     Road=mod_Road, 
     Wet=mod_Wet, 
     Clim=mod_Climate,

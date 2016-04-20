@@ -675,8 +675,7 @@ SS$cti90 <- NULL
 SS$elv90 <- NULL
 
 ## height
-SS$HGT <- SS$HEIGHTSIMARD / 25
-SS$HGT2 <- SS$HGT^2
+SS$HGTorig <- SS$HEIGHTSIMARD / 25
 SS$HEIGHTSIMARD <- NULL
 
 SS$TR3 <- SS$TREE3
@@ -730,6 +729,7 @@ rm(ii)
 DAT <- data.frame(PKEY, SS[match(PKEY$SS, SS$SS),])
 DAT$SS.1 <- NULL
 DAT$PCODE.1 <- NULL
+rownames(DAT) <- DAT$PKEY
 
 ## years since fire
 DAT$YSF <- DAT$YEAR - DAT$YearFire
@@ -874,7 +874,7 @@ DAT$YSL <- pmax(0, 1 - (DAT$YSL / AGEMAX))
 
 DAT$HAB <- DAT$HAB_NALC2
 DAT$HABTR <- DAT$HAB_NALC1
-DAT$HGTorig <- DAT$HGT
+DAT$HGT <- DAT$HGTorig
 DAT$HGT[DAT$HAB %in% c("Agr","Barren","Devel","Grass", "Shrub")] <- 0
 DAT$HGT2 <- DAT$HGT^2
 DAT$HGT05 <- sqrt(DAT$HGT)
@@ -905,12 +905,9 @@ source("~/repos/bragging/R/glm_skeleton.R")
 
 nmin <- 25
 B <- 239
-Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
+Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl", "Units")
 Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB")
 Date <- "2016-04-18"
-
-## check max counts
-apply(as.matrix(YY), 2, max)
 
 pk <- intersect(rownames(DAT), rownames(YY))
 DAT <- DAT[pk,]
@@ -931,9 +928,9 @@ DAT <- DAT[c(KEEP_ID, HOLDOUT_ID),]
 DATk$SITE <- droplevels(DATk$SITE)
 BB <- hbootindex(DATk$SITE, DATk$bootg, B=B)
 
-rownames(DAT) <- DAT$PKEY
-pk <- intersect(rownames(DAT), rownames(YY))
-DAT <- DAT[pk,]
+#pk <- intersect(rownames(DAT), rownames(YY))
+pk <- rownames(DAT)
+#DAT <- DAT[pk,]
 YY <- YY[pk,]
 YY <- YY[,colSums(YY) >= nmin]
 apply(as.matrix(YY), 2, max)
@@ -944,208 +941,15 @@ TAX <- TAX[colnames(YY),]
 
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 
-cat("\n---\t", TEXT, "can", "lcc", nrow(DAT), "\n")
 save(list = Save,
     file=file.path(ROOT, "out", paste0("pack_", Date, ".Rdata")))
 
 
 
+library(rworldmap)
+X0 <- nonDuplicated(DAT, SS)
+plot(getMap(resolution = "low"),
+    xlim = c(-193, -48), ylim = c(38, 72), asp = 1)
+points(X0[, c("X","Y")], pch=".",
+    col=X0$Units)
 
-## ---------------------------------- data packages below -----------
-## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
-## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
-## LCTU: "nlc", "lcc", "eos" # land cover to use
-
-source("~/repos/bragging/R/glm_skeleton.R")
-DAT0 <- DAT
-TAX0 <- TAX
-YY0 <- YY
-OFF0 <- OFF
-#Extra <- c("gridcode", "SS", "SITE_YR", "bootg", "X", "Y", "Xcl", "Ycl")
-Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl")
-Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB") #, "HSH")
-Date <- "2015-09-02"
-
-
-for (TEXT in c("gfw", "fre")) {
-
-rm(DAT, TAX, YY, OFF)
-gc()
-modsx <- if (TEXT == "gfw")
-    mods_gfw else mods_fire
-
-keep <- rep(TRUE, nrow(DAT0))
-keep[DAT0$ROAD_OK < 1] <- FALSE
-keep[is.na(DAT0$TREE)] <- FALSE
-keep[is.na(DAT0$CMI)] <- FALSE
-keep[is.na(DAT0$HGT)] <- FALSE
-keep[is.na(DAT0$SLP)] <- FALSE
-keep[is.na(DAT0$HAB_NALC2)] <- FALSE
-keep2 <- keep
-keep[is.na(DAT0$HAB_LCC2)] <- FALSE
-keep[is.na(DAT0$HAB_EOSD2)] <- FALSE
-keep[DAT0$COUNTRY != "CAN"] <- FALSE
-keep[DAT0$REG == "South"] <- FALSE
-#keep2[DAT0$YEAR < 1997] <- FALSE
-if (TEXT == "gfw") {
-    keep[DAT0$YEAR < 2001] <- FALSE # GFW years
-    keep[DAT0$YEAR > 2013] <- FALSE # GFW years
-    keep2[DAT0$YEAR < 2001] <- FALSE # GFW years
-    keep2[DAT0$YEAR > 2013] <- FALSE # GFW years
-}
-
-#save(YYSS, XYSS,
-#    file=file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
-
-DAT1 <- droplevels(DAT0[keep,])
-rownames(DAT1) <- DAT1$PKEY
-DAT1 <- droplevels(DAT1[intersect(rownames(DAT1), rownames(YY0)),])
-dim(DAT1)
-data.frame(n=colSums(is.na(DAT1)))
-## data specific 0 year and decadal change
-DAT1$YR <- (DAT1$YR - min(DAT1$YR)) / 10
-table(DAT1$YR)
-
-set.seed(1234)
-## make sure that time intervals are considered as blocks
-## keep out 10% of the data for validation
-id2 <- list()
-for (l in levels(DAT1$bootg)) {
-    sset <- which(DAT1$bootg == l)
-    id2[[l]] <- sample(sset, floor(length(sset) * 0.9), FALSE)
-}
-KEEP_ID <- unname(unlist(id2))
-HOLDOUT_ID <- setdiff(seq_len(nrow(DAT1)), KEEP_ID)
-
-DAT1k <- DAT1[KEEP_ID,]
-DAT1 <- DAT1[c(KEEP_ID, HOLDOUT_ID),]
-DAT1k$SITE <- droplevels(DAT1k$SITE)
-BB1 <- hbootindex2(DAT1k$SITE, DAT1k$bootg, B=B)
-
-DAT1_LCC <- DAT1
-DAT1_LCC$HAB <- DAT1$HAB_LCC2
-DAT1_LCC$isDM <- DAT1_LCC$isDM_LCC
-DAT1_LCC$isNF <- DAT1_LCC$isNF_LCC
-DAT1_LCC <- DAT1_LCC[,!grepl("_NALC", colnames(DAT1_LCC))]
-DAT1_LCC <- DAT1_LCC[,!grepl("_EOSD", colnames(DAT1_LCC))]
-colnames(DAT1_LCC) <- gsub("_LCC_", "_", colnames(DAT1_LCC))
-DAT1_LCC <- DAT1_LCC[,!grepl("_LCC", colnames(DAT1_LCC))]
-
-DAT1_EOSD <- DAT1
-DAT1_EOSD$HAB <- DAT1$HAB_EOSD2
-DAT1_EOSD$isDM <- DAT1_EOSD$isDM_EOSD
-DAT1_EOSD$isNF <- DAT1_EOSD$isNF_EOSD
-DAT1_EOSD <- DAT1_EOSD[,!grepl("_NALC", colnames(DAT1_EOSD))]
-DAT1_EOSD <- DAT1_EOSD[,!grepl("_LCC", colnames(DAT1_EOSD))]
-colnames(DAT1_EOSD) <- gsub("_EOSD_", "_", colnames(DAT1_EOSD))
-DAT1_EOSD <- DAT1_EOSD[,!grepl("_EOSD", colnames(DAT1_EOSD))]
-
-DAT1_NALC <- DAT1
-DAT1_NALC$HAB <- DAT1$HAB_NALC2
-DAT1_NALC$isDM <- DAT1_NALC$isDM_NALC
-DAT1_NALC$isNF <- DAT1_NALC$isNF_NALC
-DAT1_NALC <- DAT1_NALC[,!grepl("_LCC", colnames(DAT1_NALC))]
-DAT1_NALC <- DAT1_NALC[,!grepl("_EOSD", colnames(DAT1_NALC))]
-colnames(DAT1_NALC) <- gsub("_NALC_", "_", colnames(DAT1_NALC))
-DAT1_NALC <- DAT1_NALC[,!grepl("_NALC", colnames(DAT1_NALC))]
-
-DAT2 <- droplevels(DAT0[keep2,])
-DAT2$HAB <- DAT2$HAB_NALC2
-DAT2$isDM <- DAT2$isDM_NALC
-DAT2$isNF <- DAT2$isNF_NALC
-DAT2 <- DAT2[,!grepl("_LCC", colnames(DAT2))]
-DAT2 <- DAT2[,!grepl("_EOSD", colnames(DAT2))]
-colnames(DAT2) <- gsub("_NALC_", "_", colnames(DAT2))
-DAT2 <- DAT2[,!grepl("_NALC", colnames(DAT2))]
-data.frame(n=colSums(is.na(DAT2)))
-rownames(DAT2) <- DAT2$PKEY
-DAT2 <- droplevels(DAT2[intersect(rownames(DAT2), rownames(YY0)),])
-dim(DAT2)
-## data specific 0 year and decadal change
-DAT2$YR <- (DAT2$YR - min(DAT2$YR)) / 10
-table(DAT2$YR)
-
-set.seed(1234)
-## make sure that time intervals are considered as blocks
-## keep out 10% of the data for validation
-id2 <- list()
-for (l in levels(DAT2$bootg)) {
-    sset <- which(DAT2$bootg == l)
-    id2[[l]] <- sample(sset, floor(length(sset) * 0.9), FALSE)
-}
-KEEP_ID <- unname(unlist(id2))
-HOLDOUT_ID <- setdiff(seq_len(nrow(DAT2)), KEEP_ID)
-
-DAT2k <- DAT2[KEEP_ID,]
-DAT2 <- DAT2[c(KEEP_ID, HOLDOUT_ID),]
-DAT2k$SITE <- droplevels(DAT2k$SITE)
-BB2 <- hbootindex2(DAT2k$SITE, DAT2k$bootg, B=B)
-
-## ---------------- save output -----------------------------------------
-
-DAT <- DAT1_LCC
-pk <- rownames(DAT)
-YY <- YY0[pk,]
-YY <- YY[,colSums(YY) >= nmin]
-OFF <- OFF0[pk,colnames(YY)]
-TAX <- TAX0[colnames(YY),]
-mods <- modsx
-HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
-BB <- BB1
-DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-cat("\n---\t", TEXT, "can", "lcc", nrow(DAT), "\n")
-save(list = Save,
-    file=file.path(ROOT, "out", "data", 
-    paste0("pack_", TEXT, "_can_lcc_", Date, ".Rdata")))
-
-DAT <- DAT1_EOSD
-pk <- rownames(DAT)
-YY <- YY0[pk,]
-YY <- YY[,colSums(YY) >= nmin]
-OFF <- OFF0[pk,colnames(YY)]
-TAX <- TAX0[colnames(YY),]
-mods <- modsx
-HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
-BB <- BB1
-DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-cat("\n---\t", TEXT, "can", "eos", nrow(DAT), "\n")
-save(list = Save,
-    file=file.path(ROOT, "out", "data", 
-    paste0("pack_", TEXT, "_can_eos_", Date, ".Rdata")))
-
-DAT <- DAT1_NALC
-pk <- rownames(DAT)
-YY <- YY0[pk,]
-YY <- YY[,colSums(YY) >= nmin]
-OFF <- OFF0[pk,colnames(YY)]
-TAX <- TAX0[colnames(YY),]
-mods <- modsx
-HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
-BB <- BB1
-DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-cat("\n---\t", TEXT, "can", "nlc", nrow(DAT), "\n")
-save(list = Save,
-    file=file.path(ROOT, "out", "data", 
-    paste0("pack_", TEXT, "_can_nlc_", Date, ".Rdata")))
-
-DAT <- DAT2
-pk <- rownames(DAT)
-YY <- YY0[pk,]
-YY <- YY[,colSums(YY) >= nmin]
-OFF <- OFF0[pk,colnames(YY)]
-TAX <- TAX0[colnames(YY),]
-mods <- modsx
-HSH <- as.matrix(DAT[,grep("GRID4_", colnames(DAT))])
-colnames(HSH) <- gsub("GRID4_", "", colnames(HSH))
-BB <- BB2
-DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
-cat("\n---\t", TEXT, "nam", "nlc", nrow(DAT), "\n")
-save(list = Save,
-    file=file.path(ROOT, "out", "data", 
-    paste0("pack_", TEXT, "_nam_nlc_", Date, ".Rdata")))
-#plot(DAT[,c("X","Y")], col=DAT$REG, pch=19, cex=0.2)
-
-}
