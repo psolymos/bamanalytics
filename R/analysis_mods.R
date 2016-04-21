@@ -1,6 +1,10 @@
 mod_Hab <- list(
     . ~ . + HAB,
     . ~ . + HABTR)
+mod_Road <- list(
+    . ~ . + ROAD,
+    . ~ . + ROAD + ROAD:isNF,
+    . ~ . + ROAD + ROAD:isDev + ROAD:isWet + ROAD:isOpn)
 mod_Hgt <- list(
     . ~ . + HGT,
     . ~ . + HGT + HGT2,
@@ -26,10 +30,6 @@ mod_Dist <- list(
     . ~ . + LIN + POL + BRN + LSS,
     . ~ . + LIN + POL + YSD,
     . ~ . + LIN + POL + YSF + YSL)
-mod_Road <- list(
-    . ~ . + ROAD,
-    . ~ . + ROAD + ROAD:isNF,
-    . ~ . + ROAD + ROAD:isDev + ROAD:isWet + ROAD:isOpn)
 mod_Wet <- list(
     . ~ . + CTI,
     . ~ . + CTI + CTI2,
@@ -49,9 +49,9 @@ mod_Year <- list(
 
 mods <- list(
     Hab=mod_Hab, 
+    Road=mod_Road, 
     Hgt=mod_Hgt, 
     Dist=mod_Dist,
-    Road=mod_Road, 
     Wet=mod_Wet, 
     Clim=mod_Climate,
     Year=mod_Year)
