@@ -1,48 +1,19 @@
 library(mefa4)
 library(pbapply)
 ROOT <- "c:/bam/May2015"
-ROOT2 <- "e:/peter/bam/pred-2015"
+ROOT2 <- "e:/peter/bam/Apr2016/out"
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
 spp <- "CAWA"
-Date <- "2015-09-02"
-
-## SEXT: "can", "nam" # spatial extent, (canb=canadian boreal ~ eosd)
-## TEXT: "gfw", "fre" # temporal extent, gfw=2001-2013, fire=1997-2014
-## LCTU: "nlc", "lcc", "eos" # land cover to use
-ids <- expand.grid(
-    TEXT=c("gfw", "fre"),
-    SEXT=c("can", "nam"),
-    LCTU=c("nlc", "lcc", "eos"))
-ids <- ids[ids$SEXT == "can" | (ids$SEXT == "nam" & ids$LCTU == "nlc"),]
-ids <- ids[order(ids$SEXT),]
-ids$fn <- with(ids, paste0("bam_", spp, "_", 
-    TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
-ids$data <- with(ids, paste0("pack_", 
-    TEXT, "_", SEXT, "_", LCTU, "_", Date, ".Rdata"))
-ids$prefix <- with(ids, paste0( 
-    TEXT, "_", SEXT, "_", LCTU, "_", Date))
-rownames(ids) <- 1:8
-
+Date <- "2016-04-18"
 
 Stage <- 6
-fid <- 1
-
-## height histograms
-if (FALSE) {
-Height <- xn$HGT*50
-HabClass <- xn$HAB
-library(lattice)
-densityplot(~ Height | HabClass)
-
-}
-
-for (fid in 1:6) {
 
 e <- new.env()
-load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
+load(file.path(ROOT2, "data", "pack_2016-04-18.Rdata"), envir=e)
+
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
@@ -54,7 +25,7 @@ off <- e$OFF
 bb <- e$BB
 rm(e)
 
-load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
+load(file.path(ROOT2, "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
 100 * sum(getOK(res)) / length(res)
 est <- getEst(res, stage = Stage, X=Xn)
 #est_hab <- getEst(res, stage = 4, X=Xn)
@@ -73,7 +44,7 @@ pdf(file.path(ROOT, "out", "nmbca-samuel",
 plotMid(res, mods, web=TRUE)
 dev.off()
 
-}
+
 write.csv(ids, file.path(ROOT, "out", "nmbca-samuel", "model-ids.csv"))
 
 for (fid in 1:2) {
@@ -94,8 +65,6 @@ write.csv(aa, file.path(ROOT, "out", "nmbca-samuel",
     paste0("model-table-", as.character(ids$TEXT[fid]), ".csv")))
 }
 
-## habitat association graphs for report
-for (fid in 1:6) {
 
 cat(fid, "\n");flush.console()
 
@@ -114,7 +83,7 @@ rm(e)
 
 load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
 100 * sum(getOK(res)) / length(res)
-est <- getEst(res, stage = 2, X=Xn) # Hab + Road
+est <- getEst(res, stage = 4, X=Xn) # Hab + Road
 
 ## road
 xn1 <- expand.grid(HAB=levels(xn$HAB), TR3=levels(xn$TR3))
@@ -144,70 +113,86 @@ dev.off()
 
 ## habitat (HGT taken as mean)
 
-xn2 <- expand.grid(HAB=levels(xn$HAB), TR3=levels(xn$TR3))
+xn2 <- data.frame(HABTR=levels(xn$HABTR))
+xn2$HAB <- as.character(xn2$HABTR)
+xn2$HAB[grep("Conif", xn2$HAB)] <- "Conif"
+xn2$HAB[grep("Mixed", xn2$HAB)] <- "Mixed"
+xn2$HAB[grep("Decid", xn2$HAB)] <- "Decid"
+xn2$HAB <- as.factor(xn2$HAB)
+xn2$HABTR <- relevel(xn2$HABTR, "ConifDense")
+xn2$HAB <- relevel(xn2$HAB, "Conif")
 xn2$ROAD <- 0
-xn2$isNF <- ifelse(xn2$HAB %in% 
-    c("Agr", "Barren", "Burn", "Devel", "Grass", "Wet"), 1L, 0L)
+xn2$isNF <- ifelse(xn2$HAB %in% c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1, 0)
+xn2$isDev <- ifelse(xn2$HAB %in% c("Agr", "Devel"), 1, 0)
+xn2$isOpn <- ifelse(xn2$HAB %in% c("Barren", "Grass", "Shrub"), 1, 0)
 xn2$isDM <- ifelse(xn2$HAB %in% c("Decid", "Mixed"), 1, 0)
-xn2$HGT <- ifelse(xn2$isNF == 0, mean(xn$HGT[xn$isNF==0]), mean(xn$HGT[xn$isNF==1]))
+xn2$isWet <- ifelse(xn2$HAB == "Wet", 1, 0)
+xn2$isDec <- ifelse(xn2$HAB == "Decid", 1, 0)
+xn2$isMix <- ifelse(xn2$HAB == "Mixed", 1, 0)
+xn2$HGT <- ifelse(xn2$HAB %in% c("Agr","Barren","Devel","Grass", "Shrub"), 
+    0, mean(xn$HGT[!(xn$HAB %in% c("Agr","Barren","Devel","Grass", "Shrub"))]))
 xn2$HGT2 <- xn2$HGT^2
+xn2$HGT05 <- sqrt(xn2$HGT)
+rownames(xn2) <- xn2$HABTR
+
 Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
 colnames(Xn2) <- fixNames(colnames(Xn2))
 est2 <- est[,colnames(Xn2)]
 rownames(Xn2) <- paste0(xn2$TR3, ".", xn2$HAB)
 
 pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
-colnames(pr) <- rownames(Xn2)
+colnames(pr) <- rownames(xn2)
 
-#pr <- pr[,1:nlevels(xn$HAB)]
-#pr <- pr[,(nlevels(xn$HAB)+1):(2*nlevels(xn$HAB))]
-pr <- pr[,(2*nlevels(xn$HAB)+1):(3*nlevels(xn$HAB))]
-colnames(pr) <- levels(xn$HAB)
 pr <- pr[,order(colMeans(pr))]
 
-png(file.path(ROOT, "out", "nmbca-samuel", 
-    paste0("CAWAfig_Lcover_", as.character(ids$prefix[fid]), ".png")))
 op <- par(mar=c(5,8,2,2), las=1)
 boxplot(pr, horizontal=TRUE, range=0, 
     xlab="Expected density (males / ha)",
     col=rev(terrain.colors(nlevels(xn$HAB))),
-    main=as.character(ids$prefix[fid]))
+    main=spp)
 par(op)
-dev.off()
 
 
-HGT <- seq(0,0.5,by=0.01)
-xn2 <- expand.grid(HAB=factor(c("Conif", "Decid", "Mixed", "Wet"), levels(xn$HAB)), 
-    HGT=HGT)
-xn2$TR3 <- factor("Dense", levels(xn$TR3))
+HGT <- seq(0,1,by=0.01)
+xn2 <- expand.grid(HABTR=factor(c("ConifDense", "DecidDense", "MixedDense", "Wet"), 
+    levels(xn$HABTR)), HGT=HGT)
+xn2$HAB <- as.character(xn2$HAB)
+xn2$HAB[grep("Conif", xn2$HAB)] <- "Conif"
+xn2$HAB[grep("Mixed", xn2$HAB)] <- "Mixed"
+xn2$HAB[grep("Decid", xn2$HAB)] <- "Decid"
+xn2$HAB <- as.factor(xn2$HAB)
+xn2$HABTR <- relevel(xn2$HABTR, "ConifDense")
+xn2$HAB <- relevel(xn2$HAB, "Conif")
 xn2$ROAD <- 0
-xn2$isNF <- ifelse(xn2$HAB %in% 
-    c("Agr", "Barren", "Burn", "Devel", "Grass", "Wet"), 1L, 0L)
+xn2$isNF <- ifelse(xn2$HAB %in% c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1, 0)
+xn2$isDev <- ifelse(xn2$HAB %in% c("Agr", "Devel"), 1, 0)
+xn2$isOpn <- ifelse(xn2$HAB %in% c("Barren", "Grass", "Shrub"), 1, 0)
 xn2$isDM <- ifelse(xn2$HAB %in% c("Decid", "Mixed"), 1, 0)
+xn2$isWet <- ifelse(xn2$HAB == "Wet", 1, 0)
+xn2$isDec <- ifelse(xn2$HAB == "Decid", 1, 0)
+xn2$isMix <- ifelse(xn2$HAB == "Mixed", 1, 0)
 xn2$HGT2 <- xn2$HGT^2
-xn2$Height <- 50*xn2$HGT
+xn2$HGT05 <- sqrt(xn2$HGT)
+
+xn2$Height <- 25*xn2$HGT
 Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
 colnames(Xn2) <- fixNames(colnames(Xn2))
 est2 <- est[,colnames(Xn2)]
-
 
 pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
 xn2$Density <- colMeans(pr)
 xn2$lcl <- apply(pr, 2, quantile, 0.05)
 xn2$ucl <- apply(pr, 2, quantile, 0.95)
 
-png(file.path(ROOT, "out", "nmbca-samuel", 
-    paste0("CAWAfig_Height_", as.character(ids$prefix[fid]), ".png")))
 op <- par(las=1)
 lam <- t(matrix(xn2$Density, nrow=4))
-matplot(HGT*50, lam, lty=1, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
-    ylab="Density (males/ha)", xlab="Height (m)", main=as.character(ids$prefix[fid]))
+matplot(HGT*25, lam, lty=1, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
+    ylab="Density (males/ha)", xlab="Height (m)", main=spp)
 legend("topright",
     lty=1, lwd=2, bty="n", col=1:4, legend=c("Conif", "Decid", "Mixed", "Wet"))
 par(op)
-dev.off()
 
-}
+
 
 
 #mods <- if (fid == 4)
