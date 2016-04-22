@@ -955,6 +955,13 @@ nnn <- 200
 TT <- 3
 spt <- .BAMCOEFSrem$spp_table[SPPfull,]
 
+ii <- intersect(rownames(xtDur[[1]]), rownames(pkDur))
+pkd <- pkDur[ii,]
+Range <- list()
+for (spp in SPPfull) {
+    xt <- xtDur[[spp]][ii,]
+    Range[[spp]] <- apply(pkd[rowSums(xt, na.rm=TRUE) > 0,c("TSSR","JDAY","TSLS")], 2, range, na.rm=TRUE)
+}
 
 vsr <- seq(-0.2, 0.5, len=nnn)
 vjd <- seq(0.35, 0.5, len=nnn)
@@ -980,61 +987,70 @@ rbjd <- rbls <- rbsr <- r0jd <- r0ls <- r0sr
 for (spp in SPPfull) {
 cat(spp, "\n");flush.console()
 
+rr <- Range[[spp]]
+Rsr <- dsr[,"TSSR"] >= rr[1,"TSSR"] & dsr[,"TSSR"] <= rr[2,"TSSR"]
+Rjd <- djd[,"JDAY"] >= rr[1,"JDAY"] & djd[,"JDAY"] <= rr[2,"JDAY"]
+Rls <- dls[,"TSLS"] >= rr[1,"TSLS"] & dls[,"TSLS"] <= rr[2,"TSLS"]
+
 best0 <- as.character((0:14)[which.max(waic0[spp,])])
 cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
 
+#if (best0 == "0")
+#r0sr[,spp] <- 1-exp(-TT*exp(cf02))
 if (best0 %in% OKsr)
-r0sr[,spp] <- 1-exp(-TT*exp(drop(Xsr[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+r0sr[Rsr,spp] <- 1-exp(-TT*exp(drop(Xsr[Rsr,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
 if (best0 %in% OKjd)
-r0jd[,spp] <- 1-exp(-TT*exp(drop(Xjd[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+r0jd[Rjd,spp] <- 1-exp(-TT*exp(drop(Xjd[Rjd,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
 if (best0 %in% OKls)
-r0ls[,spp] <- 1-exp(-TT*exp(drop(Xls[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
+r0ls[Rls,spp] <- 1-exp(-TT*exp(drop(Xls[Rls,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
 
 if (spp %in% SPP) {
 bestb <- as.character((0:14)[which.max(waicb[spp,])])
 cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
 
+#if (bestb == "0")
+#r0sr[,spp] <- 1-plogis(cfb2[-1])*exp(-TT*exp(cfb2[1]))
 if (bestb %in% OKsr)
-rbsr[,spp] <- 1-plogis(drop(Xsr[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
+rbsr[Rsr,spp] <- 1-plogis(drop(Xsr[Rsr,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
     cfb2[-1])) * exp(-TT*exp(cfb2[1]))
 if (bestb %in% OKjd)
-rbjd[,spp] <- 1-plogis(drop(Xjd[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
+rbjd[Rjd,spp] <- 1-plogis(drop(Xjd[Rjd,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
     cfb2[-1])) * exp(-TT*exp(cfb2[1]))
 if (bestb %in% OKls)
-rbls[,spp] <- 1-plogis(drop(Xls[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
+rbls[Rls,spp] <- 1-plogis(drop(Xls[Rls,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
     cfb2[-1])) * exp(-TT*exp(cfb2[1]))
 }
 }
 
-## restrict to observed values???
-col <- "grey"
+
+col <- rgb(0.75,0.75,0.75,0.1) # "grey"
 pdf(file.path(ROOT2, "tabfig", "responses.pdf"), width=7, height=5, onefile=TRUE)
 for (spp in SPPfull) {
 op <- par(mfrow=c(2,3))
 matplot(vsr*24, r0sr, type=if (all(is.na(r0sr[,spp]))) "n" else "l", 
-    lty=1, col=col, ylim=c(0,1),
+    lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (M0)", xlab="Time since sunrise (h)", main=spt[spp,"common_name"])
-lines(vsr*24, r0sr[,spp])
+lines(vsr*24, r0sr[,spp], lwd=3, col=1)
 matplot(vjd*365, r0jd, type=if (all(is.na(r0jd[,spp]))) "n" else "l", 
-    lty=1, col=col, ylim=c(0,1),
+    lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (M0)", xlab="Julian day")
-lines(vjd*365, r0jd[,spp])
+lines(vjd*365, r0jd[,spp], lwd=3, col=1)
 matplot(vls*365, r0ls, type=if (all(is.na(r0ls[,spp]))) "n" else "l", 
-    lty=1, col=col, ylim=c(0,1),
+    lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (M0)", xlab="Days since spring")
-lines(vls*365, r0ls[,spp])
+lines(vls*365, r0ls[,spp], lwd=3, col=1)
 matplot(vsr*24, rbsr, type=if (all(is.na(rbsr[,spp]))) "n" else "l", 
-    lty=1, col=col, ylim=c(0,1),
+    lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (Mb)", xlab="Time since sunrise (h)")
-lines(vsr*24, rbsr[,spp])
+lines(vsr*24, rbsr[,spp], lwd=3, col=1)
 matplot(vjd*365, rbjd, type=if (all(is.na(rbjd[,spp]))) "n" else "l", 
-    lty=1, col=col, ylim=c(0,1),
+    lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (Mb)", xlab="Julian day")
-lines(vjd*365, rbjd[,spp])
+lines(vjd*365, rbjd[,spp], lwd=3, col=1)
 matplot(vls*365, rbls, type=if (all(is.na(rbls[,spp]))) "n" else "l", 
-    lty=1, col=col, ylim=c(0,1),
+    lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (Mb)", xlab="Days since spring")
-lines(vls*365, rbls[,spp])
+lines(vls*365, rbls[,spp], lwd=3, col=1)
 par(op)
 }
 dev.off()
