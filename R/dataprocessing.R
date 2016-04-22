@@ -85,7 +85,7 @@ ltnalc <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv")
 SS03$HAB_NALC2 <- ltnalc$Label[match(SS03$NALCMS_PT, ltnalc$Value)]
 tmp <- as.character(interaction(SS03$HAB_NALC2, SS02$TREE3, sep="", drop=TRUE))
 SS03$HAB_NALC1 <- as.character(SS03$HAB_NALC2)
-ii <- SS03$HAB_NALC1 %in% c("Conif", "Decid", "Mixed")
+ii <- SS03$HAB_NALC1 %in% c("Conif", "Decid", "Mixed", "Wet")
 SS03$HAB_NALC1[ii] <- tmp[ii]
 SS03$HAB_NALC1 <- as.factor(SS03$HAB_NALC1)
 SS03$HAB_NALC1 <- relevel(SS03$HAB_NALC1, "ConifDense")
@@ -750,11 +750,12 @@ DAT$DTB[DAT$YEAR < 2000] <- NA
 ## decid + mixed
 DAT$isDM <- ifelse(DAT$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
 ## non-forest (wet etc)
-DAT$isNF <- ifelse(DAT$HAB_NALC2 %in% 
-    c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
+DAT$isNF <- ifelse(DAT$HAB_NALC1 %in% 
+    c("Agr", "Barren", "Devel", "Grass", "Shrub", 
+    "WetOpen", "DecidOpen", "ConifOpen", "MixedOpen"), 1L, 0L)
 DAT$isDev <- ifelse(DAT$HAB_NALC2 %in% c("Agr", "Devel"), 1L, 0L)
-DAT$isOpn <- ifelse(DAT$HAB_NALC2 %in% 
-    c("Barren", "Grass", "Shrub"), 1L, 0L)
+DAT$isOpn <- DAT$isNF
+DAT$isOpn[DAT$isDev == 1] <- 0
 DAT$isWet <- ifelse(DAT$HAB_NALC2 %in% c("Wet"), 1L, 0L)
 DAT$isDec <- ifelse(DAT$HAB_NALC2 %in% c("Decid"), 1L, 0L)
 DAT$isMix <- ifelse(DAT$HAB_NALC2 %in% c("Mixed"), 1L, 0L)
@@ -764,7 +765,7 @@ DAT <- DAT[DAT$YEAR >= 1997,]
 
 ## year effect
 #plot(table(DAT$YEAR))
-DAT$YR <- DAT$YEAR - 1997
+#DAT$YR <- DAT$YEAR - 1997
 
 #keep <- rep(TRUE, nrow(DAT))
 #keep[DAT$BCR %in% c(1,5,11,17,22,24,26,28,29,30)] <- FALSE
@@ -774,12 +775,14 @@ DAT$YR <- DAT$YEAR - 1997
 #keep[is.na(DAT$BCR) | DAT$BCR == "0"] <- FALSE
 
 keep <- !is.na(DAT$BOREALLOC) & DAT$BOREALLOC != "OUT"
+keep[!is.null(DAT$BCR) & DAT$BCR %in% c("12", "13","14")] <- TRUE
 
 table(DAT$BCR,keep)
 
 DAT <- droplevels(DAT[keep,])
 
 ## fill-in BCR based on closes known value
+length(which(DAT$BCR == "0" | is.na(DAT$BCR)))
 ssDAT <- nonDuplicated(DAT, SS)
 ssDAT$xBCR <- ssDAT$BCR
 ii <- which(ssDAT$BCR == "0" | is.na(ssDAT$BCR))
@@ -896,6 +899,7 @@ keep[DAT$YEAR > 2013] <- FALSE # GFW years
 data.frame(n=colSums(is.na(DAT[keep,])))
 
 DAT <- droplevels(DAT[keep,])
+DAT$YR <- DAT$YEAR - min(DAT$YEAR)
 
 ## check NAs, exclude ARU
 
@@ -942,13 +946,19 @@ TAX <- TAX[colnames(YY),]
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 
 save(list = Save,
-    file=file.path(ROOT, "out", paste0("pack_", Date, ".Rdata")))
+    file=file.path(ROOT, "out", "data", paste0("pack_", Date, ".Rdata")))
 
 
+
+ROOT <- "e:/peter/bam/Apr2016"
+load(file=file.path(ROOT, "out", "data", paste0("pack_2016-04-18.Rdata")))
 
 library(rworldmap)
 X0 <- nonDuplicated(DAT, SS)
 plot(getMap(resolution = "low"),
     xlim = c(-193, -48), ylim = c(38, 72), asp = 1)
 points(X0[, c("X","Y")], pch=19, cex=0.25, col=as.integer(X0$Units)+1)
+
+library(lattice)
+densityplot(~ I(HGT*25) | HABTR, DAT)
 

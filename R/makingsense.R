@@ -24,121 +24,58 @@ colnames(Xn) <- fixNames(colnames(Xn))
 off <- e$OFF
 bb <- e$BB
 rm(e)
+modTab <- getFancyModsTab(mods)
+xnh <- nonDuplicated(xn, HABTR, TRUE)[,c("HAB","HABTR","isNF","isDev",
+    "isWet","isOpn","isDM","isDec","isMix")]
+xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen", 
+    "DecidDense", "DecidSparse", "DecidOpen", 
+    "MixedDense", "MixedSparse", "MixedOpen", 
+    "WetDense", "WetSparse", "WetOpen", 
+    "Shrub", "Grass", "Barren", "Agr", "Devel"),]
 
 load(file.path(ROOT2, "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
 100 * sum(getOK(res)) / length(res)
-est <- getEst(res, stage = Stage, X=Xn)
-#est_hab <- getEst(res, stage = 4, X=Xn)
+est <- getEst(res, stage = length(mods)-1, X=Xn)
+est_hab <- getEst(res, stage = 2, X=Xn)
+est_habhgt <- getEst(res, stage = 3, X=Xn)
+est_dtb <- getEst(res, stage = 4, X=Xn)
+est_wet <- getEst(res, stage = 5, X=Xn)
+est_yr <- getEst(res, stage = length(mods), X=Xn)
 
 ## output for Sam
 
 su <- getSummary(res)
-write.csv(su, file.path(ROOT, "out", "nmbca-samuel", 
-    paste0("CoefSE_", as.character(ids$prefix[fid]), ".csv")))
 mt <- getFancyMidTab(res, mods)
-write.csv(mt, file.path(ROOT, "out", "nmbca-samuel", 
-    paste0("MIDtab_", as.character(ids$prefix[fid]), ".csv")))
-
-pdf(file.path(ROOT, "out", "nmbca-samuel", 
-    paste0("MIDplot_", as.character(ids$prefix[fid]), ".pdf")))
 plotMid(res, mods, web=TRUE)
-dev.off()
 
-
-write.csv(ids, file.path(ROOT, "out", "nmbca-samuel", "model-ids.csv"))
-
-for (fid in 1:2) {
-e <- new.env()
-load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
-mods <- e$mods
-Terms <- getTerms(e$mods, "list")
-setdiff(Terms, colnames(e$DAT))
-yy <- e$YY
-xn <- e$DAT[,Terms]
-Xn <- model.matrix(getTerms(mods, "formula"), xn)
-colnames(Xn) <- fixNames(colnames(Xn))
-off <- e$OFF
-bb <- e$BB
-rm(e)
-aa <- getFancyModsTab(mods)
-write.csv(aa, file.path(ROOT, "out", "nmbca-samuel", 
-    paste0("model-table-", as.character(ids$TEXT[fid]), ".csv")))
-}
-
-
-cat(fid, "\n");flush.console()
-
-e <- new.env()
-load(file.path(ROOT, "out", "data", as.character(ids$data[fid])), envir=e)
-mods <- e$mods
-Terms <- getTerms(e$mods, "list")
-setdiff(Terms, colnames(e$DAT))
-yy <- e$YY
-xn <- e$DAT[,Terms]
-Xn <- model.matrix(getTerms(mods, "formula"), xn)
-colnames(Xn) <- fixNames(colnames(Xn))
-off <- e$OFF
-bb <- e$BB
-rm(e)
-
-load(file.path(ROOT, "out", "results", as.character(ids$fn[fid])))
-100 * sum(getOK(res)) / length(res)
-est <- getEst(res, stage = 4, X=Xn) # Hab + Road
 
 ## road
-xn1 <- expand.grid(HAB=levels(xn$HAB), TR3=levels(xn$TR3))
+xn1 <- xnh
 xn1$ROAD <- 1
-Xn1 <- model.matrix(getTerms(mods[2], "formula"), xn1)
+Xn1 <- model.matrix(getTerms(mods[2], "formula", intercept=FALSE), xn1)
 colnames(Xn1) <- fixNames(colnames(Xn1))
 est1 <- est[,colnames(Xn1)]
-Xn1 <- rbind(0, Xn1)
-Xn1[1,1] <- 1
-rownames(Xn1) <- c("Reference", paste0(xn1$TR3, ".", xn1$HAB))
 
 pr <- t(apply(est1, 1, function(z) Xn1 %*% z))
 colnames(pr) <- rownames(Xn1)
-pr <- exp(pr - pr[,1])
+pr <- exp(pr)
 pr[pr>2] <- 2
 
-png(file.path(ROOT, "out", "nmbca-samuel", 
-    paste0("CAWAfig_Road_", as.character(ids$prefix[fid]), ".png")))
 op <- par(mar=c(5,8,2,2), las=1)
-boxplot(pr[,-1], horizontal=TRUE, range=0, 
+boxplot(pr[,rev(colnames(pr))], horizontal=TRUE, range=0, 
     xlab="Expected abundance: On-road / Off-road",
-    col=rep(terrain.colors(3), each=nlevels(xn$HAB)),
-    main=as.character(ids$prefix[fid]))
+    col=terrain.colors(nlevels(xn$HABTR)),
+    main=spp)
 abline(v=1, col=2)
 par(op)
-dev.off()
 
 ## habitat (HGT taken as mean)
 
-xn2 <- data.frame(HABTR=levels(xn$HABTR))
-xn2$HAB <- as.character(xn2$HABTR)
-xn2$HAB[grep("Conif", xn2$HAB)] <- "Conif"
-xn2$HAB[grep("Mixed", xn2$HAB)] <- "Mixed"
-xn2$HAB[grep("Decid", xn2$HAB)] <- "Decid"
-xn2$HAB <- as.factor(xn2$HAB)
-xn2$HABTR <- relevel(xn2$HABTR, "ConifDense")
-xn2$HAB <- relevel(xn2$HAB, "Conif")
+xn2 <- xnh
 xn2$ROAD <- 0
-xn2$isNF <- ifelse(xn2$HAB %in% c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1, 0)
-xn2$isDev <- ifelse(xn2$HAB %in% c("Agr", "Devel"), 1, 0)
-xn2$isOpn <- ifelse(xn2$HAB %in% c("Barren", "Grass", "Shrub"), 1, 0)
-xn2$isDM <- ifelse(xn2$HAB %in% c("Decid", "Mixed"), 1, 0)
-xn2$isWet <- ifelse(xn2$HAB == "Wet", 1, 0)
-xn2$isDec <- ifelse(xn2$HAB == "Decid", 1, 0)
-xn2$isMix <- ifelse(xn2$HAB == "Mixed", 1, 0)
-xn2$HGT <- ifelse(xn2$HAB %in% c("Agr","Barren","Devel","Grass", "Shrub"), 
-    0, mean(xn$HGT[!(xn$HAB %in% c("Agr","Barren","Devel","Grass", "Shrub"))]))
-xn2$HGT2 <- xn2$HGT^2
-xn2$HGT05 <- sqrt(xn2$HGT)
-rownames(xn2) <- xn2$HABTR
-
 Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
 colnames(Xn2) <- fixNames(colnames(Xn2))
-est2 <- est[,colnames(Xn2)]
-rownames(Xn2) <- paste0(xn2$TR3, ".", xn2$HAB)
+est2 <- est_hab[,colnames(Xn2)]
 
 pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
 colnames(pr) <- rownames(xn2)
@@ -154,44 +91,34 @@ par(op)
 
 
 HGT <- seq(0,1,by=0.01)
-xn2 <- expand.grid(HABTR=factor(c("ConifDense", "DecidDense", "MixedDense", "Wet"), 
+xn2 <- expand.grid(HABTR=factor(c("ConifDense", #"ConifSparse","ConifOpen", 
+    "DecidDense", #"DecidSparse", "DecidOpen", 
+    "MixedDense", #"MixedSparse", "MixedOpen", 
+    "WetDense"), #"WetSparse", "WetOpen"), 
     levels(xn$HABTR)), HGT=HGT)
-xn2$HAB <- as.character(xn2$HAB)
-xn2$HAB[grep("Conif", xn2$HAB)] <- "Conif"
-xn2$HAB[grep("Mixed", xn2$HAB)] <- "Mixed"
-xn2$HAB[grep("Decid", xn2$HAB)] <- "Decid"
-xn2$HAB <- as.factor(xn2$HAB)
-xn2$HABTR <- relevel(xn2$HABTR, "ConifDense")
-xn2$HAB <- relevel(xn2$HAB, "Conif")
-xn2$ROAD <- 0
-xn2$isNF <- ifelse(xn2$HAB %in% c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1, 0)
-xn2$isDev <- ifelse(xn2$HAB %in% c("Agr", "Devel"), 1, 0)
-xn2$isOpn <- ifelse(xn2$HAB %in% c("Barren", "Grass", "Shrub"), 1, 0)
-xn2$isDM <- ifelse(xn2$HAB %in% c("Decid", "Mixed"), 1, 0)
-xn2$isWet <- ifelse(xn2$HAB == "Wet", 1, 0)
-xn2$isDec <- ifelse(xn2$HAB == "Decid", 1, 0)
-xn2$isMix <- ifelse(xn2$HAB == "Mixed", 1, 0)
-xn2$HGT2 <- xn2$HGT^2
-xn2$HGT05 <- sqrt(xn2$HGT)
-
-xn2$Height <- 25*xn2$HGT
-Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
+xn2 <- data.frame(xnh[match(xn2$HABTR, rownames(xnh)),], 
+    ROAD=0, HGT=xn2$HGT, HGT2=xn2$HGT^2, HGT05=sqrt(xn2$HGT))
+Xn2 <- model.matrix(getTerms(mods[1:3], "formula"), xn2)
 colnames(Xn2) <- fixNames(colnames(Xn2))
-est2 <- est[,colnames(Xn2)]
+est2 <- est_habhgt[,colnames(Xn2)]
 
 pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
 xn2$Density <- colMeans(pr)
 xn2$lcl <- apply(pr, 2, quantile, 0.05)
 xn2$ucl <- apply(pr, 2, quantile, 0.95)
 
-op <- par(las=1)
 lam <- t(matrix(xn2$Density, nrow=4))
-matplot(HGT*25, lam, lty=1, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
-    ylab="Density (males/ha)", xlab="Height (m)", main=spp)
+op <- par(las=1)
+matplot(HGT*25, lam, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
+    ylab="Density (males/ha)", xlab="Height (m)", main=spp,
+    col=1:4, lty=1)
 legend("topright",
     lty=1, lwd=2, bty="n", col=1:4, legend=c("Conif", "Decid", "Mixed", "Wet"))
 par(op)
 
+
+printCoefmat(getSummary(res)[c("SLP","SLP2","YSF","YSL","LIN","POL","YR"),])
+summary(100 * (exp(est_yr[,"YR"]) - 1))
 
 
 
