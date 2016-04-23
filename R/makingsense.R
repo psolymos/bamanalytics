@@ -6,7 +6,7 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
-spp <- "CAWA"
+spp <- "OVEN"
 Date <- "2016-04-18"
 
 Stage <- 6
@@ -44,8 +44,8 @@ est_yr <- getEst(res, stage = length(mods), X=Xn)
 
 ## output for Sam
 
-su <- getSummary(res)
-mt <- getFancyMidTab(res, mods)
+printCoefmat(su <- getSummary(res))
+(mt <- getFancyMidTab(res, mods))
 plotMid(res, mods, web=TRUE)
 
 

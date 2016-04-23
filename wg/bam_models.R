@@ -25,6 +25,7 @@ if (!interactive())
 TEST <- interactive()
 
 ROOT <- "~/bam"
+CA <- 0 # 1=AIC, 0=BIC
 
 #### setup ####
 
@@ -77,10 +78,10 @@ PROJECT <- if (TEST)
 spp <- if (interactive()) # CAWA OSFL RUBL WEWP
     "CAWA" else as.character(args[2])
 
-#system.time(aaa <- do_1spec1run_noW(1, i=spp, mods=mods, hsh_name=NA, CAICalpha=1))
+#system.time(aaa <- do_1spec1run_noW(1, i=spp, mods=mods, hsh_name=NA, CAICalpha=CA))
 
 res <- parLapply(cl, 1:BBB, do_1spec1run_noW, i=spp, mods=mods, 
-    hsh_name=NA, CAICalpha=1)
+    hsh_name=NA, CAICalpha=CA)
 
 fout <- paste0(PROJECT, "_", spp, "_", Date, ".Rdata")
 save(res, file=file.path("results", fout))
