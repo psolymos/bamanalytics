@@ -6,10 +6,7 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
-spp <- "OVEN"
 Date <- "2016-04-18"
-
-Stage <- 6
 
 e <- new.env()
 load(file.path(ROOT2, "data", "pack_2016-04-18.Rdata"), envir=e)
@@ -33,6 +30,9 @@ xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen",
     "WetDense", "WetSparse", "WetOpen", 
     "Shrub", "Grass", "Barren", "Agr", "Devel"),]
 
+
+spp <- "CAWA"
+
 load(file.path(ROOT2, "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
 100 * sum(getOK(res)) / length(res)
 est <- getEst(res, stage = length(mods)-1, X=Xn)
@@ -42,11 +42,11 @@ est_dtb <- getEst(res, stage = 4, X=Xn)
 est_wet <- getEst(res, stage = 5, X=Xn)
 est_yr <- getEst(res, stage = length(mods), X=Xn)
 
-## output for Sam
 
 printCoefmat(su <- getSummary(res))
 (mt <- getFancyMidTab(res, mods))
 plotMid(res, mods, web=TRUE)
+
 
 
 ## road
