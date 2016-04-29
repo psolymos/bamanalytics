@@ -758,7 +758,7 @@ hist(datbse$cor)
 
 library(MASS)
 
-pf <- function(var, mod, n=10^4, std=FALSE, resol=0.1) {
+pf <- function(var, mod, n=10^4, resol=0.1) {
     if (mod == "0")
         sppPred <- sppPred0
     if (mod == "b")
@@ -769,14 +769,16 @@ pf <- function(var, mod, n=10^4, std=FALSE, resol=0.1) {
         "TSLS"=pkDur$TSLS[iii]*365)
     ix <- rep(var, ncol(sppPred))
     iy <- as.numeric(sppPred)
+    if (is.null(n))
+        n <- length(ix)
     is <- sample.int(length(ix), n)
     d <- kde2d(ix[is], iy[is], n=c(50, round(1/resol)))
-    if (std)
-        d$z <- d$z / rowSums(d$z)
-    d
+    d1 <- d2 <- d
+    d1$z <- d$z / rowSums(d$z)
+    for (i in 1:nrow(d$z))
+        d2$z[i,] <- cumsum(d1$z[i,])
+    list(kde=d, std=d1, cumul=d2)
 }
-
-
 
 iii <- rep(TRUE, nrow(pkDur))
 iii[pkDur$TSSR < quantile(pkDur$TSSR, 0.025)] <- FALSE
@@ -786,131 +788,80 @@ iii[pkDur$JDAY > quantile(pkDur$JDAY, 0.975)] <- FALSE
 iii[pkDur$TSLS < quantile(pkDur$TSLS, 0.025)] <- FALSE
 iii[pkDur$TSLS > quantile(pkDur$TSLS, 0.975)] <- FALSE
 
-MigtRes <- rownames(lht)[lht$DATABASE_MIG_TYPE=="W"]
-#MigtMig <- rownames(lht)[lht$DATABASE_MIG_TYPE!="W"]
-
 TT <- 3
-#MigW <- TRUE
-
-allOUT <- list()
 RESOL <- 0.05
-
-for (TT in c(3,10)) {
-#STD <- TRUE
-for (STD in c(TRUE, FALSE)) {
-#for (MigW in c(TRUE, FALSE)) {
-#cat(paste0("t", TT, "_", ifelse(MigW, "Res", "Mig")), "\n");flush.console()
-
 mSPPfull <- SPPfull
 mSPP <- SPP
-#if (MigW) {
-#    mSPPfull <- SPPfull[(SPPfull %in% MigtRes)]
-#    mSPP <- SPP[(SPP %in% MigtRes)]
-#} else {
-#    mSPPfull <- SPPfull[!(SPPfull %in% MigtRes)]
-#    mSPP <- SPP[!(SPP %in% MigtRes)]
-#}
 OUT <- list()
 
 for (WHAT in c("TSSR","JDAY","TSLS")) {
 
-Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur[iii,])
-sppPred0 <- matrix(NA, nrow(Xpk2), length(SPPfull))
-colnames(sppPred0) <- SPPfull
-sppPredb <- matrix(NA, nrow(Xpk2), length(SPP))
-colnames(sppPredb) <- SPP
-
+    Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur[iii,])
+    sppPred0 <- matrix(NA, nrow(Xpk2), length(SPPfull))
+    colnames(sppPred0) <- SPPfull
+    sppPredb <- matrix(NA, nrow(Xpk2), length(SPP))
+    colnames(sppPredb) <- SPP
 
     mc <- which(!grepl(WHAT, colnames(Xpk2)))[-1]
     for (cc in mc)
         Xpk2[,cc] <- mean(Xpk2[,cc])
     COOL <- names(ff)[sapply(NAMES, function(z) any(grepl(WHAT, z)))]
 
-for (spp in mSPPfull) {
-best0 <- as.character((0:14)[which.max(waic0[spp,])])
-if (best0 %in% COOL) {
-cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
-sppPred0[,spp] <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "", names(cf02)),drop=FALSE] %*% cf02)))
-}
-}
-sppPred0 <- sppPred0[,colSums(is.na(sppPred0))==0]
+    for (spp in mSPPfull) {
+        best0 <- as.character((0:14)[which.max(waic0[spp,])])
+        if (best0 %in% COOL) {
+            cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
+            sppPred0[,spp] <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "", 
+                names(cf02)),drop=FALSE] %*% cf02)))
+        }
+    }
+    sppPred0 <- sppPred0[,colSums(is.na(sppPred0))==0]
 
-for (spp in mSPP) {
-bestb <- as.character((0:14)[which.max(waicb[spp,])])
-if (bestb %in% COOL) {
-cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
-sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", names(cfb2)[-1]),drop=FALSE] %*%
-    cfb2[-1])) * exp(-TT*exp(cfb2[1]))
-}
-}
-sppPredb <- sppPredb[,colSums(is.na(sppPredb))==0]
+    for (spp in mSPP) {
+        bestb <- as.character((0:14)[which.max(waicb[spp,])])
+        if (bestb %in% COOL) {
+            cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
+            sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", 
+                names(cfb2)[-1]),drop=FALSE] %*%
+                cfb2[-1])) * exp(-TT*exp(cfb2[1]))
+        }
+    }
+    sppPredb <- sppPredb[,colSums(is.na(sppPredb))==0]
 
-b0 <- pf(WHAT, "0", n=5*10^4, std=STD, resol=RESOL)
-bb <- pf(WHAT, "b", n=5*10^4, std=STD, resol=RESOL)
+    gc()
+    b0 <- pf(WHAT, "0", n=100000, resol=RESOL)
+    gc()
+    bb <- pf(WHAT, "b", n=100000, resol=RESOL)
 
 OUT[[WHAT]] <- list("0"=b0, "b"=bb)
-}
-
-#allOUT[[paste0("t", TT, "_", ifelse(MigW, "Res", "Mig"))]] <- OUT
-allOUT[[paste0("t", TT, "_std", STD)]] <- OUT
-}
-}
-allOUT <- allOUT[c("t3_stdFALSE","t10_stdFALSE","t3_stdTRUE","t10_stdTRUE")]
-
-quant_fun  <- function(z) {
-    c(Peak=z$x[which.max(rowSums(z$z))],
-        quantile(sample(z$x, 10^4, replace=TRUE, prob=rowSums(z$z)), 
-            c(0.05, 0.25, 0.5, 0.75, 0.95)))
-}
-plf <- function(b, b2, ...) {
-    image(b, col=col, ...)
-    contour(b, add=TRUE, nlevels=nl)
-    box()
-    #v <- quant_fun(b2)
-    #abline(v=v["Peak"], lty=1)
-    #abline(v=v[c("5%", "95%")], lty=2)
 }
 
 col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
 nl <- 5
 
-OUT <- allOUT[["t3_stdTRUE"]]
-OUT2 <- allOUT[["t3_stdFALSE"]]
-png(file.path(ROOT2, "tabfig", paste0("FigX_responses_3std.png")), height=1000, width=1600, res=150)
-#par(las=1, mar=c(5, 6, 4, 2) + 0.1)
-op <- par(mfrow=c(2,3), las=1)
-plf(OUT[["TSSR"]][["0"]], OUT2[["TSSR"]][["0"]], , ylab="P(3 min) 0", xlab="Time since sunrise (h)")
-plf(OUT[["JDAY"]][["0"]], OUT2[["JDAY"]][["0"]], ylab="P(3 min) 0", xlab="Julian day")
-plf(OUT[["TSLS"]][["0"]], OUT2[["TSLS"]][["0"]], ylab="P(3 min) 0", xlab="Days since spring")
-plf(OUT[["TSSR"]][["b"]], OUT2[["TSSR"]][["b"]], ylab="P(3 min) b ", xlab="Time since sunrise (h)")
-plf(OUT[["JDAY"]][["b"]], OUT2[["JDAY"]][["b"]], ylab="P(3 min) b", xlab="Julian day")
-plf(OUT[["TSLS"]][["b"]], OUT2[["TSLS"]][["b"]], ylab="P(3 min) b", xlab="Days since spring")
-par(op)
-dev.off()
-
-
-plf2 <- function(b1, b2, levels=0.1, ...) {
+plf2 <- function(b, ...) {
 #    contour(b1, levels=levels, lty=1, ...)
 #    contour(b2, add=TRUE, levels=levels, lty=2)
+    b1 <- b$std
+    b2 <- b$cumul
     image(b1, col=col, ...)
-    contour(b1, add=TRUE, levels=levels, lty=2, labels="")
-    contour(b2, add=TRUE, levels=levels, lty=1, labels="")
+    contour(b2, add=TRUE, levels=seq(0.1, 0.9, by=0.1))
     box()
 }
-#LEVEL <- 0.05
-png(file.path(ROOT2, "tabfig", "FigX_responses.png"), height=1200, width=1600, res=150)
+
+png(file.path(ROOT2, "tabfig", "Fig4_responses.png"), height=1200, width=1600, res=150)
 op <- par(mfrow=c(2,3), las=1)
-plf2(allOUT[[1]][["TSSR"]][["0"]], allOUT[[2]][["TSSR"]][["0"]], levels=0.1,
+plf2(OUT[["TSSR"]][["0"]], 
     ylab="Probability (M0)", xlab="Time since sunrise (h)")
-plf2(allOUT[[1]][["JDAY"]][["0"]], allOUT[[2]][["JDAY"]][["0"]], levels=0.02,
+plf2(OUT[["JDAY"]][["0"]], 
     ylab="Probability (M0)", xlab="Julian day")
-plf2(allOUT[[1]][["TSLS"]][["0"]], allOUT[[2]][["TSLS"]][["0"]], levels=0.02,
+plf2(OUT[["TSLS"]][["0"]], 
     ylab="Probability (M0)", xlab="Days since spring")
-plf2(allOUT[[1]][["TSSR"]][["b"]], allOUT[[2]][["TSSR"]][["b"]], levels=0.1,
+plf2(OUT[["TSSR"]][["b"]], 
     ylab="Probability (Mb)", xlab="Time since sunrise (h)")
-plf2(allOUT[[1]][["JDAY"]][["b"]], allOUT[[2]][["JDAY"]][["b"]], levels=0.02,
+plf2(OUT[["JDAY"]][["b"]], 
     ylab="Probability (Mb)", xlab="Julian day")
-plf2(allOUT[[1]][["TSLS"]][["b"]], allOUT[[2]][["TSLS"]][["b"]], levels=0.02,
+plf2(OUT[["TSLS"]][["b"]], 
     ylab="Probability (Mb)", xlab="Days since spring")
 par(op)
 dev.off()
