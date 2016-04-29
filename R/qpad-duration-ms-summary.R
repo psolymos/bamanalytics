@@ -849,7 +849,8 @@ plf2 <- function(b, ...) {
     box()
 }
 
-png(file.path(ROOT2, "tabfig", "Fig4_responses.png"), height=1200, width=1600, res=150)
+png(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.png")), 
+    height=1200, width=1600, res=150)
 op <- par(mfrow=c(2,3), las=1)
 plf2(OUT[["TSSR"]][["0"]], 
     ylab="Probability (M0)", xlab="Time since sunrise (h)")
@@ -866,15 +867,6 @@ plf2(OUT[["TSLS"]][["b"]],
 par(op)
 dev.off()
 
-z <- allOUT[["t3_stdFALSE"]][["JDAY"]][["0"]]
-plot(z$x, rowSums(z$z), type="l")
-## approximate quantiles
-quant_fun(allOUT[["t3_stdFALSE"]][["TSSR"]][["0"]])
-quant_fun(allOUT[["t3_stdFALSE"]][["TSSR"]][["b"]])
-quant_fun(allOUT[["t3_stdFALSE"]][["JDAY"]][["0"]])
-quant_fun(allOUT[["t3_stdFALSE"]][["JDAY"]][["b"]])
-quant_fun(allOUT[["t3_stdFALSE"]][["TSLS"]][["0"]])
-quant_fun(allOUT[["t3_stdFALSE"]][["TSLS"]][["b"]])
 
 
 ## compare PIF time adjustment
