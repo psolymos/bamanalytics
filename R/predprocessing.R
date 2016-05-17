@@ -18,6 +18,7 @@ cn1 <- c("pointid", "POINT_X", "POINT_Y",
     "NORM_6190_EMT", "NORM_6190_TD", "NORM_6190_CMIpm", "NORM_6190_MSP")
 write.csv(z[,cn1], file=file.path(ROOT, "cti", "clim-only.csv"))
 ## NALC 4x4
+if (FALSE) { # no surrounding stuff
 cn2 <- c("pointid", "POINT_X", "POINT_Y",
     "lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17", 
     "lc18", "lc19", "lc2", "lc5", "lc6", "lc8")
@@ -33,6 +34,7 @@ m <- as.matrix(z[,c("lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16
 m <- groupSums(m, 2, ltnalc$Label)
 rownames(m) <- z$pointid
 write.csv(m, file=file.path(ROOT, "cti", "nalc4x4-processed.csv"))
+}
 
 ## climate, cti, slope
 clim <- fread(file.path(ROOT, "cti", "clim-only.csv"))
@@ -127,7 +129,40 @@ levels(x$JURS) <- c("", "AK", "AB", "BC", "CA",
     "SK", "SD", "UT", "VT", "VA", 
     "WA", "WV", "WI", "WY", "YK")
 
+## fill in unknown BCRs with closest
+if (FALSE) {
+x$BCR[x$BCR == 100] <- 0
+x$BCR[is.na(x$BCR)] <- 0
+x$BCRo <- x$BCR
+table(x$BCR==0, x$JURS=="")
+
+ii <- which(x$BCR == 0)
+Prc <- 0
+for (j in 1:length(ii)) {
+    i <- ii[j]
+    d <- sqrt((x$POINT_X - x$POINT_X[i])^2 + (x$POINT_Y - x$POINT_Y[i])^2)
+    d[ii] <- Inf # keep ALL unknowns out of possible options
+    x$BCR[i] <- x$BCR[which.min(d)]
+    x$JURS[i] <- x$JURS[which.min(d)]
+    Prc2 <- round(100*j/length(ii), 1)
+    if (Prc2 > Prc) {
+        Prc <- Prc2
+        cat(Prc, "%\n")
+        flush.console()
+    }
+}
+
+## subset to include study region only
+# c(2:14, 23)
+save(x, file=file.path(ROOT, "pg-main-raw-NALConly.Rdata"))
+}
+
+x <- droplevels(x[x$BCR %in% c(2:14, 23),])
+
 x$BCR_JURS <- interaction(x$BCR, x$JURS, drop=TRUE, sep="_")
+levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("0_",   "100_"  )] <- "UNKNOWN"
+
+if (FALSE) { # regions are not totally relevant (no interactions)
 x$BCR_JURS0 <- x$BCR_JURS
 
 levels(x$BCR_JURS)[grepl("_AK", levels(x$BCR_JURS))] <- "AK"
@@ -224,22 +259,27 @@ table(x$BCR_JURS, x$EW)
 table(x$EW)
 x$EW <- relevel(x$EW, "W")
 #plot(x[,2:3],pch=".",col=x$EW)
+}
 
 ## EOSC/LCC/NALC skeleton: gridcode and eosd extent definition !!!
 
+x$LCCV1_3Can <- NULL
+x$eosdbam <- NULL
+
 #xx <- x[sample.int(nrow(tmp), 10000),c("POINT_X","POINT_Y","eosdbam")]
 #plot(xx[,1:2], col=ifelse(x[,3]==0, 1, 2), pch=".")
-x$EOSD_COVER <- ifelse(x$eosdbam > 0 & x$COUNTRY == "CANADA" & x$REG != "South", 1L, 0L)
+#x$EOSD_COVER <- ifelse(x$eosdbam > 0 & x$COUNTRY == "CANADA" & x$REG != "South", 1L, 0L)
 #x <- x[x$eosdbam > 0 & x$COUNTRY == "CANADA" & x$REG != "South",]
-x$BCR <- NULL
+#x$BCR <- NULL
 x$PROVINCE_S <- NULL
 x$COUNTRY <- NULL
-x$JURS <- NULL
-x$BCR_JURS <- NULL
+#x$JURS <- NULL
+#x$BCR_JURS <- NULL
 #x$BCR_JURS0 <- NULL
-x$BCR <- NULL
+#x$BCR <- NULL
 gc()
 
+if (FALSE) { # no EOSD used
 ## HAB: EOSD
 lteosd <- read.csv("~/repos/bamanalytics/lookup/eosd.csv")
 x$eosdbam[x$eosdbam < 1] <- NA
@@ -250,6 +290,7 @@ x$eosdbam <- NULL
 #levels(x$HAB_EOSD2) <- c(levels(x$HAB_EOSD2), "0-density")
 #x$HAB_EOSD2[is.na(x$HAB_EOSD2)] <- "0-density"
 table(x$HAB_EOSD2)
+}
 
 ## HAB: NALC
 ltnalc <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv")
@@ -261,6 +302,7 @@ x$nalcms_05 <- NULL
 #x$HAB_NALC2[is.na(x$HAB_NALC2)] <- "0-density"
 table(x$HAB_NALC2)
 
+if (FALSE) { # no LCC used
 ## HAB: LCC
 ltlcc <- read.csv("~/repos/bamanalytics/lookup/lcc05.csv")
 x$LCCV1_3Can[x$LCCV1_3Can < 1 | x$LCCV1_3Can > 39] <- NA
@@ -272,9 +314,11 @@ x$LCCV1_3Can <- NULL
 #levels(x$HAB_LCC2) <- c(levels(x$HAB_LCC2), "0-density")
 #x$HAB_LCC2[is.na(x$HAB_LCC2)] <- "0-density"
 table(x$HAB_LCC2)
+}
 
 ## isDM, isNF
 ## decid + mixed
+if (FALSE) {
 x$isDM_LCC <- ifelse(x$HAB_LCC2 %in% c("Decid", "Mixed"), 1L, 0L)
 x$isDM_EOSD <- ifelse(x$HAB_EOSD2 %in% c("Decid", "Mixed"), 1L, 0L)
 x$isDM_NALC <- ifelse(x$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
@@ -285,9 +329,10 @@ x$isNF_EOSD <- ifelse(x$HAB_EOSD2 %in%
     c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
 x$isNF_NALC <- ifelse(x$HAB_NALC2 %in% 
     c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
+}
 
 ## HGT, HGT2
-x$HGT <- x$SimardG / 50
+x$HGT <- x$SimardG / 25
 x$HGT2 <- x$HGT^2
 x$SimardG <- NULL
 
@@ -301,6 +346,28 @@ x$TR3[x$tree >= 0.60] <- "Dense"
 table(x$TR3, useNA="a")
 x$tree <- NULL
 
+## NALC-TREE combo
+x$HAB_NALC1 <- as.character(x$HAB_NALC2)
+ii <- x$HAB_NALC1 %in% c("Conif", "Decid", "Mixed", "Wet")
+tmp <- as.character(interaction(x$HAB_NALC2, x$TR3, sep="", drop=TRUE))
+x$HAB_NALC1[ii] <- tmp[ii]
+x$HAB_NALC1 <- as.factor(x$HAB_NALC1)
+x$HAB_NALC1 <- relevel(x$HAB_NALC1, "ConifDense")
+table(x$HAB_NALC2, x$HAB_NALC1)
+
+## decid + mixed
+x$isDM <- ifelse(x$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
+## non-forest (wet etc)
+x$isNF <- ifelse(x$HAB_NALC1 %in% 
+    c("Agr", "Barren", "Devel", "Grass", "Shrub", 
+    "WetOpen", "DecidOpen", "ConifOpen", "MixedOpen"), 1L, 0L)
+x$isDev <- ifelse(x$HAB_NALC2 %in% c("Agr", "Devel"), 1L, 0L)
+x$isOpn <- x$isNF
+x$isOpn[x$isDev == 1] <- 0
+x$isWet <- ifelse(x$HAB_NALC2 %in% c("Wet"), 1L, 0L)
+x$isDec <- ifelse(x$HAB_NALC2 %in% c("Decid"), 1L, 0L)
+x$isMix <- ifelse(x$HAB_NALC2 %in% c("Mixed"), 1L, 0L)
+
 ## LIN, POL
 ## linear features
 x$LIN <- log(x$BEAD_linear + 1)
@@ -309,8 +376,8 @@ x$BEAD_linear <- NULL
 x$POL <- x$BEAD_poly
 x$BEAD_poly <- NULL
 
-x <- droplevels(x[!(x$BCR_JURS0 %in% c("0_","100_")),])
-save(x, file=file.path(ROOT, "pg-main.Rdata"))
+#x <- droplevels(x[x$BCR_JURS != "UNKNOWN",])
+save(x, file=file.path(ROOT, "pg-main-NALConly.Rdata"))
 
 ## Fire, GWF
 
@@ -344,6 +411,7 @@ z$YearLoss <- zz$YearLoss[match(z$pointid, zz$pointid)]
 loss <- z
 save(loss, file=file.path(ROOT, "pg-loss.Rdata"))
 
+if (FALSE) { # no 4x4 used
 ## LCC 4x4
 
 fn <- file.path(ROOT, "PredictionIntersections", "Pred_LCC05_4x4CAN.csv")
@@ -465,16 +533,17 @@ for (i in 2:8) {
 rm(res)
 
 save(lcc4x4, eosd4x4, nalc4x4, file=file.path(ROOT, "pg-4x4.Rdata"))
+}
 
 ################# PACKAGING ###############################
 
-## use eosd coverage to save bcr/jurs0 chunks
+## save bcr/jurs chunks
 
 ROOT <- "e:/peter/bam/pred-2015"
 library(mefa4)
 
-load(file.path(ROOT, "pg-main.Rdata"))
-x <- x[x$EOSD_COVER == 1,]
+load(file.path(ROOT, "pg-main-NALConly.Rdata"))
+#x <- x[x$EOSD_COVER == 1,]
 rownames(x) <- x$pointid
 
 load(file.path(ROOT, "pg-loss.Rdata"))
@@ -490,12 +559,13 @@ clim <- clim[match(x$pointid, clim$pointid),4:14]
 x <- data.frame(x, clim)
 rm(clim)
 
-ii <- !is.na(x$CTI) & ! is.na(x$TD)
-x <- x[ii,]
+#ii <- !is.na(x$CTI) & ! is.na(x$TD)
+#x <- x[ii,]
 
 x$DD02 <- x$DD0^2
 x$DD52 <- x$DD5^2
 
+if (FALSE) {
 load(file.path(ROOT, "pg-4x4.Rdata"))
 tmp <- setdiff(rownames(x), rownames(lcc4x4))
 plot(x[,2:3],pch=".",col=ifelse(rownames(x) %in% tmp,2,1))
@@ -510,21 +580,23 @@ x$BCR_JURS0 <- droplevels(x$BCR_JURS0)
 lcc4x4 <- lcc4x4[rownames(x),]
 eosd4x4 <- eosd4x4[rownames(x),]
 nalc4x4 <- nalc4x4[rownames(x),]
+}
 
 x$TR3[is.na(x$TR3)] <- "Open" # this is global
 
-XYeosd <- as.matrix(x[,2:3])
-rownames(XYeosd) <- x[,1]
-save(XYeosd, file=file.path(ROOT, "XYeosd.Rdata"))
+#XYeosd <- as.matrix(x[,2:3])
+#rownames(XYeosd) <- x[,1]
+#save(XYeosd, file=file.path(ROOT, "XYeosd.Rdata"))
 
-reg <- levels(x$BCR_JURS0)
+reg <- levels(x$BCR_JURS)
 for (i in reg) {
     cat(i, "\n");flush.console()
-    ii <- x$BCR_JURS0 == i
+    ii <- x$BCR_JURS == i
     dat <- x[ii,]
     #pg4x4 <- list(lcc=lcc4x4[ii,], eosd=eosd4x4[ii,], nalc=nalc4x4[ii,])
     #save(dat, pg4x4, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
-    save(dat, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
+    save(dat, file=file.path(ROOT, "chunks3", paste0("pgdat-", i, ".Rdata")))
+    gc()
 }
 
 ## packaging: NALC full extent
