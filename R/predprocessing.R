@@ -588,13 +588,11 @@ x$TR3[is.na(x$TR3)] <- "Open" # this is global
 #rownames(XYeosd) <- x[,1]
 #save(XYeosd, file=file.path(ROOT, "XYeosd.Rdata"))
 
-reg <- levels(x$BCR_JURS)
+reg <- levels(droplevels(x$BCR_JURS))
 for (i in reg) {
     cat(i, "\n");flush.console()
     ii <- x$BCR_JURS == i
     dat <- x[ii,]
-    #pg4x4 <- list(lcc=lcc4x4[ii,], eosd=eosd4x4[ii,], nalc=nalc4x4[ii,])
-    #save(dat, pg4x4, file=file.path(ROOT, "chunks", paste0("pgdat-", i, ".Rdata")))
     save(dat, file=file.path(ROOT, "chunks3", paste0("pgdat-", i, ".Rdata")))
     gc()
 }
