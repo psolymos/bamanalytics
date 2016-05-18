@@ -110,6 +110,8 @@ save(clim, file=file.path(ROOT, "pg-clim.Rdata"))
 
 x <- fread(file.path(ROOT, "PredictionIntersections",
     "CovariatesPredGridOneforpeter.txt"))
+rownames(x) <- x$pointid
+
 x$BCRNAME <- NULL
 x$COUNTRY <- as.factor(x$COUNTRY)
 x$PROVINCE_S <- as.factor(x$PROVINCE_S)
@@ -375,6 +377,16 @@ x$BEAD_linear <- NULL
 ## Polygon is fine as it is (0-1)
 x$POL <- x$BEAD_poly
 x$BEAD_poly <- NULL
+
+all(rownames(x) == as.character(x$pointid))
+
+## Brandt boreal
+br <- read.csv(file.path(ROOT, "brandt", "Pred_BrandtBoreal.csv"))
+levels(br$pointid) <- gsub(",", "", levels(br$pointid))
+br <- br[!duplicated(br$pointid),]
+rownames(br) <- br$pointid
+table(br$TYPE)
+x$Brandt <- br$TYPE[match(rownames(x), br$pointid)]
 
 #x <- droplevels(x[x$BCR_JURS != "UNKNOWN",])
 save(x, file=file.path(ROOT, "pg-main-NALConly.Rdata"))

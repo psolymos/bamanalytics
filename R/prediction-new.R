@@ -115,8 +115,9 @@ library(mefa4)
 ROOT <- "e:/peter/bam/Apr2016"
 ROOT2 <- "e:/peter/bam/pred-2015"
 ROOT3 <- "e:/peter/bam/pred-2016"
-load(file.path(ROOT2, "pg-main-NALConly.Rdata"))
+load(file.path("e:/peter/bam/pred-2015", "pg-main-NALConly.Rdata"))
 XY <- as.matrix(x[,c("POINT_X","POINT_Y")])
+XYb <- as.matrix(x[!is.na(x$Brandt),c("POINT_X","POINT_Y")])
 rm(x)
 gc()
 
@@ -157,10 +158,39 @@ load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rd
 cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
 est <- getEst(res, stage = Stage, X=Xn)
 
-regs <- gsub(".Rdata", "",
-    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3"))))
+#regs <- sort(gsub(".Rdata", "",
+#    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3")))))
+regsAll <- c(
+    "2_AK", 
+    "3_AK", "3_MB", "3_NL", "3_NT", "3_NU", "3_QC", "3_YK", 
+    "4_AK", "4_BC", "4_NT", "4_YK", 
+    "5_AK", "5_BC", "5_CA", "5_OR", "5_WA", "5_YK", 
+    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK", 
+    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK", 
+    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK", 
+    "9_BC", "9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
+    "10_AB", "10_BC", "10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY", 
+    "11_AB", "11_IA", "11_MB", "11_MN", "11_MT", "11_ND", "11_NE", "11_SD", "11_SK", 
+    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI", 
+    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT", 
+    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT", 
+    "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
+regs <- c(
+    "2_AK", 
+    "4_AK", "4_BC", "4_NT", "4_YK", 
+    "5_AK", "5_BC", "5_YK", #"5_CA", "5_OR", "5_WA", 
+    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK", 
+    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK", 
+    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK", 
+    "9_BC", #"9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
+    "10_AB", "10_BC", #"10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY", 
+    "11_AB", "11_MB", "11_MN", "11_SK", # ???
+    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI", 
+    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT", 
+    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT", 
+    "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
 
-fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regs, "-", Date, ".Rdata")
+fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regsAll, "-", Date, ".Rdata")
 
 is_null <- integer(length(fl))
 names(is_null) <- fl
@@ -196,7 +226,7 @@ if (TRUE) {
 rn <- intersect(rownames(plam), rownames(XY))
 #compare_sets(rownames(plam), rownames(XY))
 XY2 <- XY[rn,]
-#x <- plam[,"Mean"]
+#x <- plam[rn,"Mean"]
 x <- plam[rn,"Median"]
 probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
@@ -207,14 +237,20 @@ if (!is.finite(br[length(br)]))
 brr[[fo]] <- br
 ttt[[fo]] <- tlam
 
+
+#e <- new.env()
+#load("e:/peter/bam/Apr2016/out/data/pack_2016-04-18.Rdata", envir=e)
+#with(e$DAT, table(JURS, xBCR))
+#with(e$DAT, plot(X, Y, pch=".", col=as.integer(JURS)))
+
 png(file.path(ROOT3, "maps", spp, paste0("x2.png")), width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-plot(XY2, col = 4, pch=".", ann=FALSE, axes=FALSE)
+plot(XY, col = "lightgrey", pch=".", ann=FALSE, axes=FALSE)
+points(XY2, col = 4, pch=".")
 par(op)
 dev.off()
 
 
-if (FALSE) {
 png(file.path(ROOT3, "maps", spp, paste0(fo, "-median.png")), 
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
@@ -257,7 +293,7 @@ write.csv(tlam, row.names=FALSE,
 plam <- data.frame(id=rownames(plam), median=plam[,"Median"], cov=CoV)
 write.csv(plam, row.names=FALSE,
     file=file.path(ROOT2, "species", "cawa-nmbca-tabs", paste0("bypoint-", fo, ".csv")))
-}
+
 
 rm(plam)
 

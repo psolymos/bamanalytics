@@ -909,7 +909,7 @@ source("~/repos/bragging/R/glm_skeleton.R")
 
 nmin <- 25
 B <- 239
-Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl", "Units")
+Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl", "Units", "xBCR", "JURS")
 Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB")
 Date <- "2016-04-18"
 
