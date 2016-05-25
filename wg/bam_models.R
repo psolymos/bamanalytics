@@ -25,7 +25,7 @@ if (!interactive())
 TEST <- interactive()
 
 ROOT <- "~/bam"
-CA <- 0 # 1=AIC, 0=BIC
+CA <- 1 # 1=AIC, 0=BIC
 
 #### setup ####
 
@@ -75,7 +75,7 @@ tmpcl <- clusterEvalQ(cl, load(file.path("data", fn)))
 PROJECT <- if (TEST)
     "bam-test" else "bam"
 
-spp <- if (interactive()) # CAWA OSFL RUBL WEWP
+spp <- if (interactive()) # CAWA OSFL RUBL WEWP OVEN MOWA
     "CAWA" else as.character(args[2])
 
 #system.time(aaa <- do_1spec1run_noW(1, i=spp, mods=mods, hsh_name=NA, CAICalpha=CA))
