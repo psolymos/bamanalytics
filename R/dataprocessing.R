@@ -493,6 +493,8 @@ levels(PCTBL$SPECIES)[levels(PCTBL$SPECIES) == "COSN"] <- "WISN" # change COSN t
 PCTBL$SPECIES <- droplevels(PCTBL$SPECIES)
 setdiff(PCTBL$SPECIES, TAX$Species_ID)
 
+
+PCTBL$SPECIES_ALL <- PCTBL$SPECIES
 sspp <- read.csv("~/repos/bamanalytics/lookup/singing-species.csv")
 levels(PCTBL$SPECIES)[!(levels(PCTBL$SPECIES) %in% sspp$Species_ID[sspp$Singing_birds])] <- "NONE"
 
