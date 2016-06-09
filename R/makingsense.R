@@ -18,8 +18,9 @@ yy <- e$YY
 xn <- e$DAT[,Terms]
 Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
-off <- e$OFF
-bb <- e$BB
+xn <- xn[rownames(Xn),]
+off <- e$OFF[rownames(xn),]
+#bb <- e$BB
 rm(e)
 modTab <- getFancyModsTab(mods)
 xnh <- nonDuplicated(xn, HABTR, TRUE)[,c("HAB","HABTR","isNF","isDev",
@@ -29,7 +30,6 @@ xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen",
     "MixedDense", "MixedSparse", "MixedOpen", 
     "WetDense", "WetSparse", "WetOpen", 
     "Shrub", "Grass", "Barren", "Agr", "Devel"),]
-
 
 spp <- "CAWA"
 
@@ -117,9 +117,46 @@ legend("topright",
 par(op)
 
 
-printCoefmat(getSummary(res)[c("SLP","SLP2","YSF","YSL","LIN","POL","YR"),])
+printCoefmat(getSummary(res)[c("SLP","SLP2"),])
+printCoefmat(getSummary(res)[c("YSF","YSL","LIN","POL","YR"),])
 summary(100 * (exp(est_yr[,"YR"]) - 1))
 
+## Marginal plots
+
+pr <- exp(apply(est, 1, function(z) Xn %*% z))
+xn$lam_hat <- rowMeans(pr)
+
+COL <- rgb(65/255, 105/255, 225/255, alpha=0.1)
+plot(lam_hat ~ SLP, xn, col=COL, pch=21)
+lines(lowess(xn$SLP, lam_hat), col=2, lwd=3)
+
+plot(lam_hat ~ CTI, xn, col=COL, pch=21)
+lines(lowess(xn$CTI, lam_hat), col=2, lwd=3)
+
+boxplot(lam_hat ~ HAB, xn)
+
+boxplot(lam_hat ~ ROAD, xn)
+
+plot(lam_hat ~ LIN, xn, col=COL, pch=21)
+lines(lowess(xn$LIN, lam_hat), col=2, lwd=3)
+
+plot(lam_hat ~ POL, xn, col=COL, pch=21)
+lines(lowess(xn$POL, lam_hat), col=2, lwd=3)
+
+plot(lam_hat ~ YSL, xn, col=COL, pch=21)
+lines(lowess(xn$YSL, lam_hat), col=2, lwd=3)
+
+plot(lam_hat ~ YSF, xn, col=COL, pch=21)
+lines(lowess(xn$YSF, lam_hat), col=2, lwd=3)
+
+plot(lam_hat ~ YSD, xn, col=COL, pch=21)
+lines(lowess(xn$YSD, lam_hat), col=2, lwd=3)
+
+par(mfrow=c(4,1))
+plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Decid",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
+plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Mixed",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
+plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Conif",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
+plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Wet",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
 
 
 #mods <- if (fid == 4)
