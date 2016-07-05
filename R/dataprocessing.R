@@ -2,8 +2,8 @@
 ##title: "Data processing for nationam BAM analyses"
 ##author: "Peter Solymos"
 ##date: "Apr 18, 2016"
-##output: 
-##  pdf_document: 
+##output:
+##  pdf_document:
 ##    toc: true
 ##    toc_depth: 2
 ##---
@@ -59,15 +59,27 @@ SS03 <- nonDuplicated(SS03, SS, TRUE)
 SS03 <- SS03[rownames(SS01),]
 
 ## comment out all LCC05 and EOSD
-if (FALSE) {
 ## Reclass LCC05
 ltlcc <- read.csv("~/repos/bamanalytics/lookup/lcc05.csv")
+SS03$LCC05 <- SS03$LCC05_PT
 SS03$LCC05_PT[SS03$LCC05_PT < 1 | SS03$LCC05_PT > 39] <- NA
 SS03$LCC05_PT[SS01$COUNTRY == "USA"] <- NA
 SS03$HAB_LCC1 <- ltlcc$BAMLCC05V2_label1[match(SS03$LCC05_PT, ltlcc$lcc05v1_2)]
 SS03$HAB_LCC2 <- ltlcc$BAMLCC05V2_label2[match(SS03$LCC05_PT, ltlcc$lcc05v1_2)]
 SS03$HAB_LCC1 <- relevel(SS03$HAB_LCC1, "ConifDense")
 SS03$HAB_LCC2 <- relevel(SS03$HAB_LCC2, "Conif")
+
+if (FALSE) {
+## for Nicole
+SS_Nicole <- data.frame(
+    PCODE=SS01$PCODE,
+    SS=SS01$SS,
+    X=SS01$X_GEONAD83,
+    Y=SS01$Y_GEONAD83,
+    JURS=SS01$JURSALPHA,
+    COUNTRY=SS01$COUNTRY,
+    BCR=as.factor(SS01$BCR),
+    SS03[,c("LCC05","HAB_LCC1","HAB_LCC2")])
 
 ## Reclass EOSD
 lteosd <- read.csv("~/repos/bamanalytics/lookup/eosd.csv")
@@ -171,9 +183,9 @@ SS_LCC4x4$gridcode <- NULL
 SS_LCC4x4$LCCVVSUM <- NULL
 SS_LCC4x4 <- as.matrix(SS_LCC4x4)
 colnames(SS_LCC4x4) <- gsub("LCCVV", "", colnames(SS_LCC4x4))
-#Col <- as.character(ltlcc$BAMLCC05V2_label1)[match(colnames(SS_LCC4x4), 
+#Col <- as.character(ltlcc$BAMLCC05V2_label1)[match(colnames(SS_LCC4x4),
 #    as.character(ltlcc$lcc05v1_2))]
-Col <- as.character(ltlcc$BAMLCC05V2_label2)[match(colnames(SS_LCC4x4), 
+Col <- as.character(ltlcc$BAMLCC05V2_label2)[match(colnames(SS_LCC4x4),
     as.character(ltlcc$lcc05v1_2))]
 Col[is.na(Col)] <- "BARREN"
 SS_LCC4x4 <- data.frame(groupSums(SS_LCC4x4, 2, Col, na.rm=TRUE))
@@ -191,9 +203,9 @@ rownames(SS_EOSD4x4) <- SS01$SS
 SS_EOSD4x4 <- as.matrix(SS_EOSD4x4[,grepl("eosdVV", colnames(SS_EOSD4x4))])
 colnames(SS_EOSD4x4) <- gsub("eosdVV", "", colnames(SS_EOSD4x4))
 
-#Col <- as.character(lteosd$Reclass_label1)[match(colnames(SS_EOSD4x4), 
+#Col <- as.character(lteosd$Reclass_label1)[match(colnames(SS_EOSD4x4),
 #    as.character(lteosd$Value))]
-Col <- as.character(lteosd$Reclass_label2)[match(colnames(SS_EOSD4x4), 
+Col <- as.character(lteosd$Reclass_label2)[match(colnames(SS_EOSD4x4),
     as.character(lteosd$Value))]
 Col[is.na(Col)] <- "BARREN"
 SS_EOSD4x4 <- data.frame(groupSums(SS_EOSD4x4, 2, Col, na.rm=TRUE))
@@ -262,18 +274,19 @@ SS <- data.frame(
     TREE3=SS02$TREE3,
     SPRNG=SS_sprng$SPRNG,
     #LCC05_PT=SS03$LCC05_PT, # -- FOR NICOLE
+    SS03[,c("LCC05","HAB_LCC1","HAB_LCC2")],
     SS03[,c("HAB_NALC2", "HAB_NALC1")],
     SS_grid,
     #SS_nserv,
-    SS_road, 
-    SS_terr, 
-    SS_fire, 
-    SS_clim, 
-    SS_pash, 
-    SS_gfw, 
+    SS_road,
+    SS_terr,
+    SS_fire,
+    SS_clim,
+    SS_pash,
+    SS_gfw,
     SS_height)
-    #SS_NALC4x4, 
-    #SS_LCC4x4, 
+    #SS_NALC4x4,
+    #SS_LCC4x4,
     #SS_EOSD4x4)
 
 #### Project summary table
@@ -330,7 +343,7 @@ PKEY <- rbind(pkbam, pkbbs)
 #gc()
 
 ## Map `METHOD` field from project summary table onto `PKEY$METHOD`
-## so that duration and distance method can be carried forward to 
+## so that duration and distance method can be carried forward to
 ## point count table
 levels(PCODE$Method)[levels(PCODE$Method) == "QCAtlas:118"] <- "QCATLAS:118"
 compare_sets(PCODE$Method, PKEY$METHOD)
@@ -428,7 +441,7 @@ rownames(DURINT) <- DURINT[,1]
 rownames(DISINT) <- DISINT[,1]
 ## Combined point count table
 PCTBL <- rbind(pcbam[,pccols], pcbbs[,pccols])
-## Mapping duration and distance intervals 
+## Mapping duration and distance intervals
 PCTBL$dur <- as.factor(DURINT$dur[match(PCTBL$DURATION, rownames(DURINT))])
 PCTBL$dis <- as.factor(DISINT$dis[match(PCTBL$DISTANCE, rownames(DISINT))])
 ## Methodology
@@ -511,7 +524,8 @@ compare_sets(PKEY$PKEY, PCTBL$PKEY)
 
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT2, "out",
-    paste0("data_package_2016-04-18.Rdata")))
+    #paste0("data_package_2016-04-18.Rdata")))
+    paste0("data_package_2016-07-05.Rdata")))
 
 
 
@@ -611,7 +625,7 @@ which(!is.finite(Ra[1,])) # BARS GCSP
 which(!is.finite(Ra[2,]))
 
 SPP <- sppp
-save(OFF, SPP, 
+save(OFF, SPP,
     file=file.path(ROOT, "out", "offsets-v3_2016-04-18.Rdata"))
 offdat <- offdat[,c("PKEY","TSSR","JDAY","DSLS","TREE","LCC4","MAXDUR","MAXDIS")]
 save(offdat,
@@ -752,8 +766,8 @@ DAT$DTB[DAT$YEAR < 2000] <- NA
 ## decid + mixed
 DAT$isDM <- ifelse(DAT$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
 ## non-forest (wet etc)
-DAT$isNF <- ifelse(DAT$HAB_NALC1 %in% 
-    c("Agr", "Barren", "Devel", "Grass", "Shrub", 
+DAT$isNF <- ifelse(DAT$HAB_NALC1 %in%
+    c("Agr", "Barren", "Devel", "Grass", "Shrub",
     "WetOpen", "DecidOpen", "ConifOpen", "MixedOpen"), 1L, 0L)
 DAT$isDev <- ifelse(DAT$HAB_NALC2 %in% c("Agr", "Devel"), 1L, 0L)
 DAT$isOpn <- DAT$isNF
