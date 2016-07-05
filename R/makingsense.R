@@ -25,21 +25,21 @@ rm(e)
 modTab <- getFancyModsTab(mods)
 xnh <- nonDuplicated(xn, HABTR, TRUE)[,c("HAB","HABTR","isNF","isDev",
     "isWet","isOpn","isDM","isDec","isMix")]
-xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen", 
-    "DecidDense", "DecidSparse", "DecidOpen", 
-    "MixedDense", "MixedSparse", "MixedOpen", 
-    "WetDense", "WetSparse", "WetOpen", 
+xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen",
+    "DecidDense", "DecidSparse", "DecidOpen",
+    "MixedDense", "MixedSparse", "MixedOpen",
+    "WetDense", "WetSparse", "WetOpen",
     "Shrub", "Grass", "Barren", "Agr", "Devel"),]
 
 spp <- "CAWA"
 
 load(file.path(ROOT2, "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
 100 * sum(getOK(res)) / length(res)
-est <- getEst(res, stage = length(mods)-1, X=Xn)
 est_hab <- getEst(res, stage = 2, X=Xn)
 est_habhgt <- getEst(res, stage = 3, X=Xn)
 est_dtb <- getEst(res, stage = 4, X=Xn)
 est_wet <- getEst(res, stage = 5, X=Xn)
+est <- getEst(res, stage = length(mods)-1, X=Xn)
 est_yr <- getEst(res, stage = length(mods), X=Xn)
 
 
@@ -62,7 +62,7 @@ pr <- exp(pr)
 pr[pr>2] <- 2
 
 op <- par(mar=c(5,8,2,2), las=1)
-boxplot(pr[,rev(colnames(pr))], horizontal=TRUE, range=0, 
+boxplot(pr[,rev(colnames(pr))], horizontal=TRUE, range=0,
     xlab="Expected abundance: On-road / Off-road",
     col=terrain.colors(nlevels(xn$HABTR)),
     main=spp)
@@ -83,7 +83,7 @@ colnames(pr) <- rownames(xn2)
 pr <- pr[,order(colMeans(pr))]
 
 op <- par(mar=c(5,8,2,2), las=1)
-boxplot(pr, horizontal=TRUE, range=0, 
+boxplot(pr, horizontal=TRUE, range=0,
     xlab="Expected density (males / ha)",
     col=rev(terrain.colors(nlevels(xn$HAB))),
     main=spp)
@@ -91,12 +91,12 @@ par(op)
 
 
 HGT <- seq(0,1,by=0.01)
-xn2 <- expand.grid(HABTR=factor(c("ConifDense", #"ConifSparse","ConifOpen", 
-    "DecidDense", #"DecidSparse", "DecidOpen", 
-    "MixedDense", #"MixedSparse", "MixedOpen", 
-    "WetDense"), #"WetSparse", "WetOpen"), 
+xn2 <- expand.grid(HABTR=factor(c("ConifDense", #"ConifSparse","ConifOpen",
+    "DecidDense", #"DecidSparse", "DecidOpen",
+    "MixedDense", #"MixedSparse", "MixedOpen",
+    "WetDense"), #"WetSparse", "WetOpen"),
     levels(xn$HABTR)), HGT=HGT)
-xn2 <- data.frame(xnh[match(xn2$HABTR, rownames(xnh)),], 
+xn2 <- data.frame(xnh[match(xn2$HABTR, rownames(xnh)),],
     ROAD=0, HGT=xn2$HGT, HGT2=xn2$HGT^2, HGT05=sqrt(xn2$HGT))
 Xn2 <- model.matrix(getTerms(mods[1:3], "formula"), xn2)
 colnames(Xn2) <- fixNames(colnames(Xn2))
@@ -123,41 +123,54 @@ summary(100 * (exp(est_yr[,"YR"]) - 1))
 
 ## Marginal plots
 
-pr <- exp(apply(est, 1, function(z) Xn %*% z))
+#pr <- exp(apply(est, 1, function(z) Xn %*% z))
+pr <- exp(apply(est_wet, 1, function(z) Xn %*% z))
 xn$lam_hat <- rowMeans(pr)
 
 COL <- rgb(65/255, 105/255, 225/255, alpha=0.1)
-plot(lam_hat ~ SLP, xn, col=COL, pch=21)
-lines(lowess(xn$SLP, lam_hat), col=2, lwd=3)
 
-plot(lam_hat ~ CTI, xn, col=COL, pch=21)
-lines(lowess(xn$CTI, lam_hat), col=2, lwd=3)
+plot(xn$SLP^2*90, xn$lam_hat, col=COL, pch=21,
+    main=spp, xlab="Slope (degrees)", ylab="Density (males/ha)")
+lines(lowess(xn$SLP^2*90, xn$lam_hat), col=2, lwd=3)
 
-boxplot(lam_hat ~ HAB, xn)
+plot(xn$CTI*4+8, xn$lam_hat, col=COL, pch=21,
+    main=spp, xlab="CTI", ylab="Density (males/ha)")
+lines(lowess(xn$CTI*4+8, xn$lam_hat), col=2, lwd=3)
 
-boxplot(lam_hat ~ ROAD, xn)
+#plot(xn$SLP^2*90, xn$CTI*4+8)
 
-plot(lam_hat ~ LIN, xn, col=COL, pch=21)
-lines(lowess(xn$LIN, lam_hat), col=2, lwd=3)
 
-plot(lam_hat ~ POL, xn, col=COL, pch=21)
-lines(lowess(xn$POL, lam_hat), col=2, lwd=3)
+boxplot(lam_hat ~ HAB, xn, range=0)
 
-plot(lam_hat ~ YSL, xn, col=COL, pch=21)
-lines(lowess(xn$YSL, lam_hat), col=2, lwd=3)
+boxplot(lam_hat ~ ROAD, xn, range=0)
 
-plot(lam_hat ~ YSF, xn, col=COL, pch=21)
-lines(lowess(xn$YSF, lam_hat), col=2, lwd=3)
+plot(exp(xn$LIN)-1, xn$lam_hat, col=COL, pch=21,
+    main=spp, xlab="BEAD total linear disturbance", ylab="Density (males/ha)")
+lines(lowess(exp(xn$LIN)-1, xn$lam_hat), col=2, lwd=3)
 
-plot(lam_hat ~ YSD, xn, col=COL, pch=21)
-lines(lowess(xn$YSD, lam_hat), col=2, lwd=3)
+plot(xn$POL, xn$lam_hat, col=COL, pch=21,
+    main=spp, xlab="BEAD total polygonal disturbance", ylab="Density (males/ha)")
+lines(lowess(xn$POL, xn$lam_hat), col=2, lwd=3)
+
+par(mfrow=c(1,3))
+plot(50*(xn$YSL), xn$lam_hat, col=COL, pch=21,
+    main=spp, xlab="Years since last disturbance: loss", ylab="Density (males/ha)")
+lines(lowess(50*(xn$YSL), xn$lam_hat), col=2, lwd=3)
+plot(50*(xn$YSF), xn$lam_hat, col=COL, pch=21,
+    main=spp, xlab="Years since last disturbance: fire", ylab="Density (males/ha)")
+lines(lowess(50*(xn$YSF), xn$lam_hat), col=2, lwd=3)
+plot(50*(xn$YSD), xn$lam_hat, col=COL, pch=21,
+    main=spp, xlab="Years since last disturbance: both", ylab="Density (males/ha)")
+lines(lowess(50*(xn$YSD), xn$lam_hat), col=2, lwd=3)
+
 
 par(mfrow=c(4,1))
-plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Decid",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
-plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Mixed",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
-plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Conif",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
-plot(lam_hat ~ I(HGT*25), xn[xn$HAB == "Wet",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Decid",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Mixed",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Conif",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Wet",], col=COL, xlim=range(xn$HGT*25), ylim=c(0,0.5))
 
+## --
 
 #mods <- if (fid == 4)
 #    mods_fire else mods_gfw
@@ -172,11 +185,11 @@ sum(getOK(res)) / length(res)
 getCaic(res)
 printCoefmat(getSummary(res))
 
-round(cbind(getSummary(res, show0=TRUE)[,c(1,3)], 
+round(cbind(getSummary(res, show0=TRUE)[,c(1,3)],
     getConfint(res, 0.9, "quantile", show0=TRUE))[c("CTI","CTI2",
     "SLP","SLP2"),], 3)
 
-round(cbind(getSummary(res, show0=TRUE)[,c(1,3)], 
+round(cbind(getSummary(res, show0=TRUE)[,c(1,3)],
     getConfint(res, 0.9, "quantile", show0=TRUE))[c("LIN","POL",
     "BRN","LSS","DTB",  "YSD","YSL","YSF"),], 3)
 
@@ -258,43 +271,43 @@ resid_yr <- function(i) {
 }
 #resid_yr(1)
 yr_res <- t(pbsapply(1:ncol(bb), resid_yr))
-fstatm <- round(cbind(West=c(Median=median(yr_res[,"mtw.YR"]), 
+fstatm <- round(cbind(West=c(Median=median(yr_res[,"mtw.YR"]),
     quantile(yr_res[,"mtw.YR"], c(0.05, 0.95))),
-    East=c(Median=median(yr_res[,"mte.YR"]), 
+    East=c(Median=median(yr_res[,"mte.YR"]),
     quantile(yr_res[,"mte.YR"], c(0.05, 0.95)))),2)
 
 pdf(file.path(ROOT2, "species", "cawa-nmbca-trend", paste0("trend-", fo, ".pdf")),
     width=7, height=10)
 op <- par(mfrow=c(4,2))
 
-plot(x ~ YR, NN[NN$EW=="W",], ylab="Annual Mean Abundance Index", xlab="Year", 
+plot(x ~ YR, NN[NN$EW=="W",], ylab="Annual Mean Abundance Index", xlab="Year",
     type="b", col=1, pch=19, main="CAWA, West", ylim=c(0, max(NN$x)))
 abline(lm(x ~ YR, NN[NN$EW=="W",]), col="red4")
-plot(x ~ YR, NN[NN$EW=="E",], ylab="Annual Mean Abundance Index", xlab="Year", 
+plot(x ~ YR, NN[NN$EW=="E",], ylab="Annual Mean Abundance Index", xlab="Year",
     type="b", col=1, pch=19, main="CAWA, East", ylim=c(0, max(NN$x)))
 abline(lm(x ~ YR, NN[NN$EW=="E",]), col="red4")
 
-plot(x ~ YR, RR[RR$EW=="W",], ylab="Std. Residuals", xlab="Year", 
+plot(x ~ YR, RR[RR$EW=="W",], ylab="Std. Residuals", xlab="Year",
     type="b", col=1, pch=19, main="", ylim=range(RR$x))
 abline(lm(x ~ YR, RR[RR$EW=="W",]), col="red4")
-plot(x ~ YR, RR[RR$EW=="E",], ylab="Std. Residuals", xlab="Year", 
+plot(x ~ YR, RR[RR$EW=="E",], ylab="Std. Residuals", xlab="Year",
     type="b", col=1, pch=19, main="", ylim=range(RR$x))
 abline(lm(x ~ YR, RR[RR$EW=="E",]), col="red4")
 
-hist(tw, col="gold", xlab="Modeled Annual Trend (%)", main="", 
+hist(tw, col="gold", xlab="Modeled Annual Trend (%)", main="",
     xlim=range(c(yr_res,tw,te)), freq=FALSE)
 abline(v=fstat[1,"West"], col="red4", lty=1, lwd=2)
 abline(v=fstat[2:3,"West"], col="red4", lty=2, lwd=1)
-hist(te, col="gold", xlab="Modeled Annual Trend (%)", main="", 
+hist(te, col="gold", xlab="Modeled Annual Trend (%)", main="",
     xlim=range(c(yr_res,tw,te)), freq=FALSE)
 abline(v=fstat[1,"East"], col="red4", lty=1, lwd=2)
 abline(v=fstat[2:3,"East"], col="red4", lty=2, lwd=1)
 
-hist(yr_res[,"mtw.YR"], col="gold", xlab="Residual Annual Trend (%)", 
+hist(yr_res[,"mtw.YR"], col="gold", xlab="Residual Annual Trend (%)",
     main="", xlim=range(c(yr_res,tw,te)), freq=FALSE)
 abline(v=fstatm[1,"West"], col="red4", lty=1, lwd=2)
 abline(v=fstatm[2:3,"West"], col="red4", lty=2, lwd=1)
-hist(yr_res[,"mte.YR"], col="gold", xlab="Residual Annual Trend (%)", 
+hist(yr_res[,"mte.YR"], col="gold", xlab="Residual Annual Trend (%)",
     main="", xlim=range(c(yr_res,tw,te)), freq=FALSE)
 abline(v=fstatm[1,"East"], col="red4", lty=1, lwd=2)
 abline(v=fstatm[2:3,"East"], col="red4", lty=2, lwd=1)
@@ -383,18 +396,18 @@ save(trend_res2, file=file.path(ROOT2, "species", "cawa-nmbca-trend", "trend2-CA
 
 level <- 0.9
 
-Tr <- rbind(t(apply(data.frame(Fid1.All=trend_res2[[1]]$all, Fid1.BBS=trend_res2[[1]]$bbs), 
+Tr <- rbind(t(apply(data.frame(Fid1.All=trend_res2[[1]]$all, Fid1.BBS=trend_res2[[1]]$bbs),
     2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))),
-    t(apply(data.frame(Fid3.All=trend_res2[[2]]$all, Fid3.BBS=trend_res2[[2]]$bbs), 
+    t(apply(data.frame(Fid3.All=trend_res2[[2]]$all, Fid3.BBS=trend_res2[[2]]$bbs),
     2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))),
-    t(apply(data.frame(Fid5.All=trend_res2[[3]]$all, Fid5.BBS=trend_res2[[3]]$bbs), 
+    t(apply(data.frame(Fid5.All=trend_res2[[3]]$all, Fid5.BBS=trend_res2[[3]]$bbs),
     2, quantile, c(0.5, (1-level)/2, 1-(1-level)/2))))
 write.csv(Tr, file=file.path(ROOT2, "species", "cawa-nmbca-trend", "trend2-CAWA.csv"))
 
 #x0 <- 1:6
 par(mfrow=c(3,1))
 x0 <- c(1,2, 5,6, 9,10)
-plot(x0, Tr[(1:6)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), 
+plot(x0, Tr[(1:6)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3),
     pch=19, ylim=range(Tr),
     axes=FALSE, ann=FALSE, cex=1.5)
 abline(h=0, col="grey")
@@ -404,11 +417,11 @@ axis(2)
 axis(1, at = c(1.5, 5.5, 9.5), labels = c("AB","ON","QC"), tick=FALSE)
 box()
 title(main="CAWA, GFW+Fire, Canada, NALCMS")
-legend("topright", pch=19, lty=1, lwd=2, col=c(2,4), 
+legend("topright", pch=19, lty=1, lwd=2, col=c(2,4),
     legend=c("All", "BBS only"), bty="n")
 
 x0 <- c(1,2, 5,6, 9,10)
-plot(x0, Tr[(7:12)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), 
+plot(x0, Tr[(7:12)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3),
     pch=19, ylim=range(Tr),
     axes=FALSE, ann=FALSE, cex=1.5)
 abline(h=0, col="grey")
@@ -418,11 +431,11 @@ axis(2)
 axis(1, at = c(1.5, 5.5, 9.5), labels = c("AB","ON","QC"), tick=FALSE)
 box()
 title(main="CAWA, GFW+Fire, Canada, LCC")
-legend("topright", pch=19, lty=1, lwd=2, col=c(2,4), 
+legend("topright", pch=19, lty=1, lwd=2, col=c(2,4),
     legend=c("All", "BBS only"), bty="n")
 
 x0 <- c(1,2, 5,6, 9,10)
-plot(x0, Tr[(13:18)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3), 
+plot(x0, Tr[(13:18)[c(1,4,2,5,3,6)],1], col=rep(c(2, 4), 3),
     pch=19, ylim=range(Tr),
     axes=FALSE, ann=FALSE, cex=1.5)
 abline(h=0, col="grey")
@@ -432,7 +445,7 @@ axis(2)
 axis(1, at = c(1.5, 5.5, 9.5), labels = c("AB","ON","QC"), tick=FALSE)
 box()
 title(main="CAWA, GFW+Fire, Canada, EOSD")
-legend("topright", pch=19, lty=1, lwd=2, col=c(2,4), 
+legend("topright", pch=19, lty=1, lwd=2, col=c(2,4),
     legend=c("All", "BBS only"), bty="n")
 
 ## legend for all/bbs

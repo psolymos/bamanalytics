@@ -1,0 +1,61 @@
+---
+title: "Preliminary BAM Boreal Model Results for Select Species"
+date: July 5, 2016
+author: Peter Solymos
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 1
+---
+
+```{r,echo=FALSE,results='hide',message=FALSE}
+library(knitr)
+library(mefa4)
+library(pbapply)
+ROOT <- "c:/bam/May2015"
+ROOT2 <- "e:/peter/bam/Apr2016/out"
+source("~/repos/bamanalytics/R/makingsense_functions.R")
+source("~/repos/bamanalytics/R/analysis_mods.R")
+
+PROJECT <- "bam"
+Date <- "2016-04-18"
+
+e <- new.env()
+load(file.path(ROOT2, "data", "pack_2016-04-18.Rdata"), envir=e)
+
+mods <- e$mods
+Terms <- getTerms(e$mods, "list")
+setdiff(Terms, colnames(e$DAT))
+yy <- e$YY
+xn <- e$DAT[,Terms]
+Xn <- model.matrix(getTerms(mods, "formula"), xn)
+colnames(Xn) <- fixNames(colnames(Xn))
+xn <- xn[rownames(Xn),]
+off <- e$OFF[rownames(xn),]
+tax <- e$TAX
+#bb <- e$BB
+rm(e)
+#modTab <- getFancyModsTab(mods)
+xnh <- nonDuplicated(xn, HABTR, TRUE)[,c("HAB","HABTR","isNF","isDev",
+    "isWet","isOpn","isDM","isDec","isMix")]
+xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen",
+    "DecidDense", "DecidSparse", "DecidOpen",
+    "MixedDense", "MixedSparse", "MixedOpen",
+    "WetDense", "WetSparse", "WetOpen",
+    "Shrub", "Grass", "Barren", "Agr", "Devel"),]
+
+COL <- rgb(65/255, 105/255, 225/255, alpha=0.1)
+COL2 <- rgb(65/255, 105/255, 225/255, alpha=0.6)
+
+xn <- xn[sample.int(nrow(xn), 5*10^4),]
+Xn <- model.matrix(getTerms(mods, "formula"), xn)
+colnames(Xn) <- fixNames(colnames(Xn))
+```
+
+```{r, include=FALSE}
+SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
+setwd("~/repos/bamanalytics/report")
+src <- lapply(SPP, function(Spp) knit_expand(file = "template.Rmd"))
+```
+
+`r knit(text = unlist(src))`

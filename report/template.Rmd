@@ -1,0 +1,194 @@
+```{r,assign-{{Spp}},echo=FALSE,results='hide',message=FALSE}
+spp <- "{{Spp}}"
+```
+
+```{r,section-{{Spp}},echo=FALSE,results='asis'}
+cat("#", as.character(tax[spp, "English_Name"]))
+```
+
+```{r,load-{{Spp}},echo=FALSE,results='hide',message=FALSE}
+load(file.path(ROOT2, "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
+est_hab <- getEst(res, stage = 2, X=Xn)
+est_habhgt <- getEst(res, stage = 3, X=Xn)
+est_dtb <- getEst(res, stage = 4, X=Xn)
+est_wet <- getEst(res, stage = 5, X=Xn)
+est <- getEst(res, stage = length(mods)-1, X=Xn)
+est_yr <- getEst(res, stage = length(mods), X=Xn)
+
+pr <- exp(apply(est_wet, 1, function(z) Xn %*% z))
+xn$lam_hat <- rowMeans(pr)
+```
+
+## Estimated coefficients
+
+Summary of bootstrap averaged coefficients and selection frequencies.
+This table is useful to have a glance of the general magnitude and direction
+of effects, which might be more difficult to judge when polynomial
+terms are considered.
+
+```{r,summ-{{Spp}},echo=FALSE,comment=NA}
+Summ <- getSummary(res)
+printCoefmat(Summ[,1:3])
+```
+
+## Variable selection
+
+```{r,mid-{{Spp}},echo=FALSE,comment=NA}
+getFancyMidTab(res, mods)
+plotMid(res, mods, web=TRUE)
+```
+
+## Land cover
+
+Coefficient based prediction represents the bootstrap variation while other
+factors are controlled for,
+marginal predictive plot represents the variation in bootstrap smoothed mean
+due to other factors not controlled for.
+
+```{r,hab-{{Spp}},echo=FALSE}
+## habitat (HGT taken as mean)
+xn2 <- xnh
+xn2$ROAD <- 0
+Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
+colnames(Xn2) <- fixNames(colnames(Xn2))
+est2 <- est_hab[,colnames(Xn2)]
+pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
+colnames(pr) <- rownames(xn2)
+pr <- pr[,order(colMeans(pr))]
+
+op <- par(mar=c(5,8,2,2), las=1)
+boxplot(pr, horizontal=TRUE, range=0,
+    xlab="Expected density (males / ha)",
+    main="Coefficient based", col=COL2)
+
+boxplot(lam_hat ~ HABTR, xn, range=0, main="Marginal",
+    xlab="Expected density (males / ha)", horizontal=TRUE, col=COL2)
+par(op)
+```
+
+## Road effect
+
+Road effect is used to control for the roadside surveys.
+
+```{r,road-{{Spp}},echo=FALSE}
+## road
+xn1 <- xnh
+xn1$ROAD <- 1
+Xn1 <- model.matrix(getTerms(mods[2], "formula", intercept=FALSE), xn1)
+colnames(Xn1) <- fixNames(colnames(Xn1))
+est1 <- est[,colnames(Xn1)]
+
+pr <- t(apply(est1, 1, function(z) Xn1 %*% z))
+colnames(pr) <- rownames(Xn1)
+pr <- exp(pr)
+pr[pr>2] <- 2
+
+op <- par(mar=c(5,8,2,2), las=1)
+boxplot(pr[,rev(colnames(pr))], horizontal=TRUE, 
+    ylim=range(c(pr, 0, 1)), range=0,
+    xlab="Expected abundance: On-road / Off-road",
+    col=COL2,
+    main="Coefficient based")
+abline(v=1, col=2)
+par(op)
+```
+
+## Forest height
+
+```{r,hgt-{{Spp}},echo=FALSE,dev='png'}
+HGT <- seq(0,1,by=0.01)
+xn2 <- expand.grid(HABTR=factor(c("ConifDense", #"ConifSparse","ConifOpen",
+    "DecidDense", #"DecidSparse", "DecidOpen",
+    "MixedDense", #"MixedSparse", "MixedOpen",
+    "WetDense"), #"WetSparse", "WetOpen"),
+    levels(xn$HABTR)), HGT=HGT)
+xn2 <- data.frame(xnh[match(xn2$HABTR, rownames(xnh)),],
+    ROAD=0, HGT=xn2$HGT, HGT2=xn2$HGT^2, HGT05=sqrt(xn2$HGT))
+Xn2 <- model.matrix(getTerms(mods[1:3], "formula"), xn2)
+colnames(Xn2) <- fixNames(colnames(Xn2))
+est2 <- est_habhgt[,colnames(Xn2)]
+
+pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
+xn2$Density <- colMeans(pr)
+xn2$lcl <- apply(pr, 2, quantile, 0.05)
+xn2$ucl <- apply(pr, 2, quantile, 0.95)
+
+lam <- t(matrix(xn2$Density, nrow=4))
+op <- par(las=1)
+matplot(HGT*25, lam, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
+    ylab="Density (males/ha)", xlab="Height (m)", main="Coefficient based",
+    col=1:4, lty=1)
+legend("topright",
+    lty=1, lwd=2, bty="n", col=1:4, legend=c("Conif", "Decid", "Mixed", "Wet"))
+
+par(mfrow=c(2,2),las=1)
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Conif" & xn$HGT >= 0,],
+     col=rgb(0, 0, 0, alpha=0.1),
+     xlim=range(xn$HGT*25), ylim=c(0,max(xn$lam_hat)),
+     ylab="Density (males/ha)", xlab="Height (m)", cex=0.5, main="Marginal, Conif")
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Decid" & xn$HGT >= 0,],
+     col=rgb(1, 0, 0, alpha=0.1),
+     xlim=range(xn$HGT*25), ylim=c(0,max(xn$lam_hat)),
+     ylab="Density (males/ha)", xlab="Height (m)", cex=0.5, main="Decid")
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Mixed" & xn$HGT >= 0,],
+     col=rgb(0, 205/255, 0, alpha=0.1),
+     xlim=range(xn$HGT*25), ylim=c(0,max(xn$lam_hat)),
+     ylab="Density (males/ha)", xlab="Height (m)", cex=0.5, main="Mixed")
+plot(lam_hat ~ I(jitter(HGT*25)), xn[xn$HAB == "Wet" & xn$HGT >= 0,],
+     col=rgb(0, 0, 1, alpha=0.1),
+     xlim=range(xn$HGT*25), ylim=c(0,max(xn$lam_hat)),
+     ylab="Density (males/ha)", xlab="Height (m)", cex=0.5, main="Wet")
+par(mfrow=c(1,1))
+
+par(op)
+```
+
+## Years since disturbance: loss and fire
+
+```{r,ysd-{{Spp}},echo=FALSE,dev='png',comment=NA}
+printCoefmat(Summ[rownames(Summ) %in% c("YSF","YSL","YSD","BRN","LSS","DTB"),])
+
+op <- par(mfrow=c(1,3), las=1)
+plot(50*(1-xn$YSF), xn$lam_hat, col=COL, pch=21,
+    main="Marginal", xlab="Years since last disturbance: fire", ylab="Density (males/ha)")
+plot(50*(1-xn$YSL), xn$lam_hat, col=COL, pch=21,
+    main="", xlab="Years since last disturbance: loss", ylab="Density (males/ha)")
+plot(50*(1-xn$YSD), xn$lam_hat, col=COL, pch=21,
+    main=, xlab="Years since last disturbance: both", ylab="Density (males/ha)")
+par(op)
+```
+
+## Linear and polygonal disturbance
+
+```{r,dtb-{{Spp}},echo=FALSE,dev='png',comment=NA}
+printCoefmat(Summ[rownames(Summ) %in% c("LIN","POL"),])
+
+op <- par(mfrow=c(1,2), las=1)
+plot(exp(xn$LIN)-1, xn$lam_hat, col=COL, pch=21,
+    main="Marginal", xlab="BEAD total linear disturbance", ylab="Density (males/ha)")
+plot(xn$POL, xn$lam_hat, col=COL, pch=21,
+    main="", xlab="BEAD total polygonal disturbance", ylab="Density (males/ha)")
+par(op)
+```
+
+## Slope and wetness
+
+```{r,slp-{{Spp}},echo=FALSE,dev='png',comment=NA}
+printCoefmat(Summ[rownames(Summ) %in% c("SLP","SLP2","CTI","CTI2"),])
+
+op <- par(mfrow=c(1,2), las=1)
+plot(xn$SLP^2*90, xn$lam_hat, col=COL, pch=21, main="Marginal",
+    xlab="Slope (degrees)", ylab="Density (males/ha)")
+plot(xn$CTI*4+8, xn$lam_hat, col=COL, pch=21,
+    xlab="CTI", ylab="Density (males/ha)")
+par(op)
+```
+
+## Percent annual change
+
+```{r,yr-{{Spp}},echo=FALSE,comment=NA}
+summary(pyr <- 100*(exp(est_yr[,"YR"])-1))
+hist(pyr, col=COL2, xlab="% annual change", xlim=range(c(0, pyr)),
+     main="Coefficient based")
+abline(v=0, col=2, lwd=2)
+```
