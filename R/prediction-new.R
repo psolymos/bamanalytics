@@ -13,7 +13,7 @@ Date <- "2016-04-18"
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2012
-B_use <- 100
+B_use <- 240
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
@@ -151,8 +151,9 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #load(file.path(ROOT2, "XYfull.Rdata"))
 
 PROJECT <- "bam"
-spp <- "CAWA"
+#spp <- "OSFL"
 Date <- "2016-04-18"
+SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
 
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
@@ -163,10 +164,6 @@ BASE_YEAR <- 2012
 ttt <- list()
 brr <- list()
 
-gc()
-fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", Date)
-cat(fo, "\n");flush.console()
-
 e <- new.env()
 load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
 mods <- e$mods
@@ -175,11 +172,9 @@ setdiff(Terms, colnames(e$DAT))
 xn <- e$DAT[1:500,Terms]
 Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
+yy <- e$YY
+xy_p <- e$DAT[,c("Xcl","Ycl")]
 rm(e)
-
-load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
-cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
-est <- getEst(res, stage = Stage, X=Xn)
 
 #regs <- sort(gsub(".Rdata", "",
 #    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3")))))
@@ -213,7 +208,16 @@ regs <- c(
     "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT",
     "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
 
-fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regsAll, "-", Date, ".Rdata")
+for (spp in SPP) {
+gc()
+fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", Date)
+cat(fo, "\n");flush.console()
+
+load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
+cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
+est <- getEst(res, stage = Stage, X=Xn)
+
+fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regs, "-", Date, ".Rdata")
 
 is_null <- integer(length(fl))
 names(is_null) <- fl
@@ -249,8 +253,8 @@ if (TRUE) {
 rn <- intersect(rownames(plam), rownames(XY))
 #compare_sets(rownames(plam), rownames(XY))
 XY2 <- XY[rn,]
-#x <- plam[rn,"Mean"]
-x <- plam[rn,"Median"]
+x <- plam[rn,"Mean"]
+#x <- plam[rn,"Median"]
 probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
 Col <- rev(brewer.pal(5, "RdYlBu"))
@@ -260,7 +264,7 @@ if (!is.finite(br[length(br)]))
 brr[[fo]] <- br
 ttt[[fo]] <- tlam
 
-
+if (FALSE) {
 #e <- new.env()
 #load("e:/peter/bam/Apr2016/out/data/pack_2016-04-18.Rdata", envir=e)
 #with(e$DAT, table(JURS, xBCR))
@@ -272,23 +276,71 @@ plot(XY, col = "lightgrey", pch=".", ann=FALSE, axes=FALSE)
 points(XY2, col = 4, pch=".")
 par(op)
 dev.off()
+}
 
 
-png(file.path(ROOT3, "maps", spp, paste0(fo, "-median.png")),
+png(file.path(ROOT3, "maps", paste0(fo, "-det.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+plot(XY2, col = "grey", pch=".",
+    ann=FALSE, axes=FALSE)
+points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.1, col=1)
+par(op)
+dev.off()
 
+png(file.path(ROOT3, "maps", paste0(fo, "-mean.png")),
+    width = 2000, height = 1000)
+op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
 plot(XY2, col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
+points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.1, col=1)
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
-    #title=paste(spp, "mean abundance"))
-    title=paste(spp, "median abundance"))
+    title=paste(spp, "mean abundance"))
+    #title=paste(spp, "median abundance"))
 par(op)
 dev.off()
 
+png(file.path(ROOT3, "maps", paste0(fo, "-cov.png")),
+    width = 2000, height = 1000)
+op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
+Col <- rev(brewer.pal(5, "RdYlGn"))
+TEXT <- paste0(br[-length(br)], "-", br[-1])
+TEXT[length(TEXT)] <- paste0(">", br[length(br)-1])
+CoV <- plam[,"SD"] / plam[,"Mean"]
+zval <- cut(CoV, breaks=br)
+plot(XY2, col = Col[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+legend("topright", bty = "n", legend=rev(TEXT),
+    fill=rev(Col), border=1, cex=3,
+    title=paste(spp, "SD / mean"))
+par(op)
+dev.off()
+
+png(file.path(ROOT3, "maps", paste0(fo, "-sd.png")),
+    width = 2000, height = 1000)
+op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
+Col <- rev(brewer.pal(5, "RdYlGn"))
+CoV <- plam[,"SD"] / mean(plam[,"Mean"])
+zval <- cut(CoV, breaks=br)
+br <- round(br*mean(plam[,"Mean"]), 4)
+TEXT <- paste0(br[-length(br)], "-", br[-1], "%")
+TEXT[length(TEXT)] <- paste0(">", br[length(br)-1], "%")
+plot(XY2, col = Col[zval], pch=".",
+    ann=FALSE, axes=FALSE)
+legend("topright", bty = "n", legend=rev(TEXT),
+    fill=rev(Col), border=1, cex=3,
+    title=paste(spp, "SD"))
+par(op)
+dev.off()
+
+}
+
+if (FALSE) {
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
 Col <- rev(brewer.pal(5, "RdYlGn"))
 TEXT <- paste0(100*br[-length(br)], "-", 100*br[-1], "%")
@@ -308,7 +360,7 @@ legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
     #title=paste(spp, "SD / mean"))
     title=paste(spp, "IQR / median"))
-
+}
 
 tlam <- data.frame(t(tlam))
 write.csv(tlam, row.names=FALSE,

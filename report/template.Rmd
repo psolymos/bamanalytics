@@ -192,3 +192,9 @@ hist(pyr, col=COL2, xlab="% annual change", xlim=range(c(0, pyr)),
      main="Coefficient based")
 abline(v=0, col=2, lwd=2)
 ```
+
+## Distribution
+
+![](e:/peter/bam/pred-2016/maps/{{Spp}}-6-2012-2016-04-18-mean.png)
+![](e:/peter/bam/pred-2016/maps/{{Spp}}-6-2012-2016-04-18-cov.png)
+
