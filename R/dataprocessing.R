@@ -729,6 +729,12 @@ SS$PPT_sm <- NULL
 SS$PPT_wt <- NULL
 #TD
 
+## lat/lon
+SS$xlon <- (SS$Xcl - 285400) / 1500000
+SS$xlat <- (SS$Ycl - 1320000) / 740000
+SS$xlon2 <- SS$xlon^2
+SS$xlat2 <- SS$xlat^2
+
 SS$FIRE_HA <- NULL
 SS$YearLoss[SS$YearLoss == 0] <- NA
 

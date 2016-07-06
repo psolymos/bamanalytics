@@ -17,7 +17,7 @@ mod_Hgt <- list(
     . ~ . + HGT05 + HGT05:isDM + HGT05:isWet,
     . ~ . + HGT05 + HGT05:isDec + HGT05:isMix + HGT05:isWet,
     . ~ . + HGT05 + HGT + HGT05:isDM + HGT05:isWet + HGT:isDM + HGT:isWet,
-    . ~ . + HGT05 + HGT + HGT05:isDec + HGT05:isMix + HGT05:isWet + 
+    . ~ . + HGT05 + HGT + HGT05:isDec + HGT05:isMix + HGT05:isWet +
             HGT:isDec + HGT:isMix + HGT:isWet)
 ## 2001-2013
 mod_Dist <- list(
@@ -36,6 +36,7 @@ mod_Wet <- list(
     . ~ . + SLP,
     . ~ . + SLP + SLP2)
 mod_Climate <- list(
+## no lat/long
     . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
     . ~ . + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
     . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02,
@@ -43,15 +44,33 @@ mod_Climate <- list(
     . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
     . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
     . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
-    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52)
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52,
+## lat/long linear
+    . ~ . xlat + xlon + xlat:xlon + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD0 + MSP + TD + DD02,
+    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD5 + MSP + TD + DD52,
+    . ~ . xlat + xlon + xlat:xlon + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
+    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52,
+## lat/long quadratic
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD0 + MSP + TD + DD02,
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD5 + MSP + TD + DD52,
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
+    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52)
 mod_Year <- list(
     . ~ . + YR)
 
 mods <- list(
-    Hab=mod_Hab, 
-    Road=mod_Road, 
-    Hgt=mod_Hgt, 
+    Hab=mod_Hab,
+    Road=mod_Road,
+    Hgt=mod_Hgt,
     Dist=mod_Dist,
-    Wet=mod_Wet, 
+    Wet=mod_Wet,
     Clim=mod_Climate,
     Year=mod_Year)

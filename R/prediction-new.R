@@ -7,13 +7,14 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
-spp <- "CAWA"
+#spp <- "CAWA"
 Date <- "2016-04-18"
 
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2012
-B_use <- 240
+B_use <- 100#240
+bfill <- TRUE
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
@@ -81,15 +82,16 @@ dat$YSF[dat$YSF < 0] <- 200
 ## years since loss
 dat$YSL <- BASE_YEAR - dat$YearLoss
 dat$YSL[dat$YSL < 0] <- 200
-## years since most recent burn or loss
-dat$YSD <- pmin(dat$YSF, dat$YSL)
+## years since most recent burn or loss, with backfill option
+dat$YSD <- if (bfill)
+    dat$YSF else pmin(dat$YSF, dat$YSL)
 
 ## cut at 10 yrs
 dat$BRN <- ifelse(dat$YSF <= 10, 1L, 0L)
 dat$LSS <- ifelse(dat$YSL <= 10, 1L, 0L)
-dat$LSS[dat$YEAR < 2000] <- NA
+#dat$LSS[dat$YEAR < 2000] <- NA
 dat$DTB <- ifelse(dat$YSD <= 10, 1L, 0L)
-dat$DTB[dat$YEAR < 2000] <- NA
+#dat$DTB[dat$YEAR < 2000] <- NA
 
 ## refining years since variables
 AGEMAX <- 50
@@ -97,14 +99,36 @@ dat$YSD <- pmax(0, 1 - (dat$YSD / AGEMAX))
 dat$YSF <- pmax(0, 1 - (dat$YSF / AGEMAX))
 dat$YSL <- pmax(0, 1 - (dat$YSL / AGEMAX))
 
+## backfill for all but land cover
+if (bfill) {
+    dat$POL <- 0
+    dat$LIN <- 0
+}
+
 dat0 <- dat[rowSums(is.na(dat)) == 0,]
 Xn0 <- model.matrix(getTerms(mods[1:Stage], "formula"), dat0)
 colnames(Xn0) <- fixNames(colnames(Xn0))
 NR <- nrow(Xn0)
+is_hf <- dat0$HAB %in% c("Devel", "Agr")
+
+## includes land cover, height, and fire
+hab_col <- c("HABAgr", "HABBarren", "HABDecid", "HABDevel",
+    "HABGrass", "HABMixed", "HABShrub", "HABWet", "HABTRAgr", "HABTRBarren",
+    "HABTRConifOpen", "HABTRConifSparse", "HABTRDecidDense", "HABTRDecidOpen",
+    "HABTRDecidSparse", "HABTRDevel", "HABTRGrass", "HABTRMixedDense",
+    "HABTRMixedOpen", "HABTRMixedSparse", "HABTRShrub", "HABTRWetDense",
+    "HABTRWetOpen", "HABTRWetSparse", "HGT", "HGT2", "HGT05",
+    "DTB", "BRN", "LSS", "YSD", "YSF", "YSL", "HGT:isDM", "HGT:isWet", "HGT:isDec", "HGT:isMix",
+    "HGT2:isDM", "HGT2:isWet", "HGT2:isDec", "HGT2:isMix", "HGT05:isDM",
+    "HGT05:isWet", "HGT05:isDec", "HGT05:isMix")
 
 mu0 <- matrix(0, NR, B_use)
 if (NR > 0) {
     for (j in 1:B_use) {
+        if (bfill) {
+            ii <- sample(which(!is_hf), sum(is_hf), replace=TRUE)
+            Xn0[is_hf,hab_col] <- Xn0[ii,hab_col]
+        }
         mu0[,j] <- drop(Xn0 %*% est[j,colnames(Xn0)])
     }
     lam <- lamfun(mu0)
@@ -122,7 +146,8 @@ gc()
 if (!dir.exists(file.path(ROOT3, "species", spp)))
     dir.create(file.path(ROOT3, "species", spp))
 fout <- file.path(ROOT3, "species", spp,
-    paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regi, "-", Date, ".Rdata"))
+    paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"),
+    regi, "-", Date, ".Rdata"))
 save(lam, file=fout)
 rm(lam)
 
@@ -151,13 +176,14 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #load(file.path(ROOT2, "XYfull.Rdata"))
 
 PROJECT <- "bam"
-#spp <- "OSFL"
+#spp <- "CAWA"
 Date <- "2016-04-18"
 SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
 
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2012
+bfill <- FALSE
 
 #xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
 
@@ -213,11 +239,11 @@ gc()
 fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", Date)
 cat(fo, "\n");flush.console()
 
-load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
-cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
-est <- getEst(res, stage = Stage, X=Xn)
+#load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
+#cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
+#est <- getEst(res, stage = Stage, X=Xn)
 
-fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regs, "-", Date, ".Rdata")
+fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
 
 is_null <- integer(length(fl))
 names(is_null) <- fl
@@ -263,6 +289,32 @@ if (!is.finite(br[length(br)]))
     br[length(br)] <- 1.01* max(x, na.rm=TRUE)
 brr[[fo]] <- br
 ttt[[fo]] <- tlam
+
+## total million males
+tlam0 <- tlam
+tlam[!is.finite(tlam)] <- 0
+for (i in 1:nrow(tlam)) {
+    q <- quantile(tlam[i,], 0.99)
+    tlam[i, tlam[i,] > q] <- q
+}
+tlam[!is.finite(tlam)] <- max(tlam[is.finite(tlam)])
+summary(colSums(tlam))
+fstat <- function(x, level=0.95) {
+    c(Mean=mean(x), Median=median(x), quantile(x, c((1-level)/2, 1 - (1-level)/2)))
+}
+fstat(colSums(tlam), 0.9)
+## quick numbers
+100*sum(plam[,"Mean"])/10^6
+100*sum(plam[,"Median"])/10^6
+
+chfun <- function(Na, Nb, ta, tb) {
+    100 * ((Nb/Na)^(1/(tb-ta)) - 1)
+}
+chfun(10.38, 9.88, 2002, 2012) # mean for CAWA
+chfun(10.28, 9.81, 2002, 2012) # median for CAWA
+chfun(11.78, 9.88, 2002, 2012) # mean for CAWA
+chfun(11.60, 9.81, 2002, 2012) # median for CAWA
+
 
 if (FALSE) {
 #e <- new.env()
