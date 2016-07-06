@@ -13,6 +13,7 @@ Date <- "2016-04-18"
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2012
+B_use <- 100
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
@@ -24,17 +25,37 @@ Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
 rm(e)
 
+#regs <- gsub(".Rdata", "",
+#    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3"))))
+regs <- c(
+    "2_AK",
+    "4_AK", "4_BC", "4_NT", "4_YK",
+    "5_AK", "5_BC", "5_YK", #"5_CA", "5_OR", "5_WA",
+    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK",
+    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK",
+    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK",
+    "9_BC", #"9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
+    "10_AB", "10_BC", #"10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY",
+    "11_AB", "11_MB", "11_MN", "11_SK", # ???
+    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI",
+    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT",
+    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT",
+    "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
+
+#SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
+SPP <- c("OSFL","OVEN","CCSP","CONW","MOWA","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
+for (spp in SPP) {
+
 load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
-cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
+cat("<<< ", spp, " --- ", 100 * sum(getOK(res)) / length(res), "% OK >>>\n", sep="")
 est <- getEst(res, stage = Stage, X=Xn)
 
-regs <- gsub(".Rdata", "",
-    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3"))))
+B_use <- min(B_use, nrow(est))
 
 #regi <- "6_AB"
 for (regi in regs) {
 
-cat(regi, "\n");flush.console()
+cat(spp, regi, "\n");flush.console()
 
 load(file.path(ROOT2, "chunks3", paste0("pgdat-", regi, ".Rdata")))
 gc()
@@ -54,7 +75,7 @@ dat$YR <- BASE_YEAR - 2001
 dat$YearFire[is.na(dat$YearFire)] <- BASE_YEAR - 200
 dat$YearLoss[is.na(dat$YearLoss)] <- BASE_YEAR - 200
 
-## years since fire 
+## years since fire
 dat$YSF <- BASE_YEAR - dat$YearFire
 dat$YSF[dat$YSF < 0] <- 200
 ## years since loss
@@ -81,9 +102,9 @@ Xn0 <- model.matrix(getTerms(mods[1:Stage], "formula"), dat0)
 colnames(Xn0) <- fixNames(colnames(Xn0))
 NR <- nrow(Xn0)
 
-mu0 <- matrix(0, NR, 240)
+mu0 <- matrix(0, NR, B_use)
 if (NR > 0) {
-    for (j in 1:nrow(est)) {
+    for (j in 1:B_use) {
         mu0[,j] <- drop(Xn0 %*% est[j,colnames(Xn0)])
     }
     lam <- lamfun(mu0)
@@ -98,14 +119,16 @@ if (NR > 0) {
 }
 gc()
 
-fout <- file.path(ROOT3, "species", spp, 
+if (!dir.exists(file.path(ROOT3, "species", spp)))
+    dir.create(file.path(ROOT3, "species", spp))
+fout <- file.path(ROOT3, "species", spp,
     paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regi, "-", Date, ".Rdata"))
 save(lam, file=fout)
 rm(lam)
 
 }
 
-
+}
 
 
 ## mapping starts here -----------------------------
@@ -161,33 +184,33 @@ est <- getEst(res, stage = Stage, X=Xn)
 #regs <- sort(gsub(".Rdata", "",
 #    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3")))))
 regsAll <- c(
-    "2_AK", 
-    "3_AK", "3_MB", "3_NL", "3_NT", "3_NU", "3_QC", "3_YK", 
-    "4_AK", "4_BC", "4_NT", "4_YK", 
-    "5_AK", "5_BC", "5_CA", "5_OR", "5_WA", "5_YK", 
-    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK", 
-    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK", 
-    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK", 
+    "2_AK",
+    "3_AK", "3_MB", "3_NL", "3_NT", "3_NU", "3_QC", "3_YK",
+    "4_AK", "4_BC", "4_NT", "4_YK",
+    "5_AK", "5_BC", "5_CA", "5_OR", "5_WA", "5_YK",
+    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK",
+    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK",
+    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK",
     "9_BC", "9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
-    "10_AB", "10_BC", "10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY", 
-    "11_AB", "11_IA", "11_MB", "11_MN", "11_MT", "11_ND", "11_NE", "11_SD", "11_SK", 
-    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI", 
-    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT", 
-    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT", 
+    "10_AB", "10_BC", "10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY",
+    "11_AB", "11_IA", "11_MB", "11_MN", "11_MT", "11_ND", "11_NE", "11_SD", "11_SK",
+    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI",
+    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT",
+    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT",
     "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
 regs <- c(
-    "2_AK", 
-    "4_AK", "4_BC", "4_NT", "4_YK", 
-    "5_AK", "5_BC", "5_YK", #"5_CA", "5_OR", "5_WA", 
-    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK", 
-    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK", 
-    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK", 
+    "2_AK",
+    "4_AK", "4_BC", "4_NT", "4_YK",
+    "5_AK", "5_BC", "5_YK", #"5_CA", "5_OR", "5_WA",
+    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK",
+    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK",
+    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK",
     "9_BC", #"9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
-    "10_AB", "10_BC", #"10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY", 
+    "10_AB", "10_BC", #"10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY",
     "11_AB", "11_MB", "11_MN", "11_SK", # ???
-    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI", 
-    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT", 
-    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT", 
+    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI",
+    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT",
+    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT",
     "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
 
 fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", regsAll, "-", Date, ".Rdata")
@@ -251,7 +274,7 @@ par(op)
 dev.off()
 
 
-png(file.path(ROOT3, "maps", spp, paste0(fo, "-median.png")), 
+png(file.path(ROOT3, "maps", spp, paste0(fo, "-median.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 
@@ -259,8 +282,8 @@ zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
 plot(XY2, col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
-legend("topright", bty = "n", legend=rev(TEXT), 
-    fill=rev(Col), border=1, cex=3, 
+legend("topright", bty = "n", legend=rev(TEXT),
+    fill=rev(Col), border=1, cex=3,
     #title=paste(spp, "mean abundance"))
     title=paste(spp, "median abundance"))
 par(op)
@@ -269,7 +292,7 @@ dev.off()
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
 Col <- rev(brewer.pal(5, "RdYlGn"))
 TEXT <- paste0(100*br[-length(br)], "-", 100*br[-1], "%")
-TEXT[length(TEXT)] <- paste0(">", 100*br[length(br)-1], "%") 
+TEXT[length(TEXT)] <- paste0(">", 100*br[length(br)-1], "%")
 #CoV <- plam[,"SD"] / plam[,"Mean"]
 CoV <- plam[,"IQR"] / plam[,"Median"]
 zval <- cut(CoV, breaks=br)
@@ -281,8 +304,8 @@ if (ids$SEXT[fid] == "nam") {
         ann=FALSE, axes=FALSE)
 }
 points(xy1, pch=19, cex=2)
-legend("topright", bty = "n", legend=rev(TEXT), 
-    fill=rev(Col), border=1, cex=3, 
+legend("topright", bty = "n", legend=rev(TEXT),
+    fill=rev(Col), border=1, cex=3,
     #title=paste(spp, "SD / mean"))
     title=paste(spp, "IQR / median"))
 
@@ -311,7 +334,7 @@ for (i in 1:length(ttt)) {
 
 tmp <- t(apply(ttt[[i]], 1, f))
 write.csv(tmp, row.names=TRUE,
-    file=file.path(ROOT2, "species", "cawa-nmbca-tabs", 
+    file=file.path(ROOT2, "species", "cawa-nmbca-tabs",
     paste0("summary-by-region-", names(ttt)[i], ".csv")))
 }
 
@@ -333,15 +356,15 @@ for (i in 1:16) {
     ttt2[[i]] <- tmp
 }
 
-t(sapply(ttt, function(z) 
+t(sapply(ttt, function(z)
         c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6))))
-t(sapply(ttt2, function(z) 
+t(sapply(ttt2, function(z)
         c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6))))
 
 
-df <- data.frame(ids[rep(1:6, each=2),1:3], 
+df <- data.frame(ids[rep(1:6, each=2),1:3],
     Year=c(2002, 2012),
-    t(sapply(ttt[1:12], function(z) 
+    t(sapply(ttt[1:12], function(z)
         c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6)))))
 df$change <- NA
 for (i in 1:6) {
@@ -354,31 +377,31 @@ write.csv(df, file=file.path(ROOT2, "species", "popsize.csv"))
 
 pe <- data.frame(ids[1:6,1:3],
     Year=BASE_YEAR,
-    t(sapply(ttt, function(z) 
+    t(sapply(ttt, function(z)
         c(mean=mean(colSums(z)/10^6), median=median(colSums(z)/10^6)))))
-save(ttt, file=file.path(ROOT, "out", "figs", "nmbca2", 
+save(ttt, file=file.path(ROOT, "out", "figs", "nmbca2",
     paste0(paste0("popsize-", spp, "-", Stage, "-", BASE_YEAR, "-", Date), ".Rdata")))
 
 ## 2003
 
-pe03 <- structure(list(TEXT = structure(c(1L, 2L, 1L, 2L, 1L, 2L), .Label = c("gfw", 
-    "fre"), class = "factor"), SEXT = structure(c(1L, 1L, 1L, 1L, 
-    1L, 1L), .Label = c("can", "nam"), class = "factor"), LCTU = structure(c(1L, 
-    1L, 2L, 2L, 3L, 3L), .Label = c("nlc", "lcc", "eos"), class = "factor"), 
-        Year = c(2003, 2003, 2003, 2003, 2003, 2003), mean = c(7.04675889420143, 
-        8.1948604617475, 7.30885952161788, 8.12954353917993, 7.32127463952691, 
-        8.04625186575813), median = c(7.03908748814014, 7.90960556092234, 
+pe03 <- structure(list(TEXT = structure(c(1L, 2L, 1L, 2L, 1L, 2L), .Label = c("gfw",
+    "fre"), class = "factor"), SEXT = structure(c(1L, 1L, 1L, 1L,
+    1L, 1L), .Label = c("can", "nam"), class = "factor"), LCTU = structure(c(1L,
+    1L, 2L, 2L, 3L, 3L), .Label = c("nlc", "lcc", "eos"), class = "factor"),
+        Year = c(2003, 2003, 2003, 2003, 2003, 2003), mean = c(7.04675889420143,
+        8.1948604617475, 7.30885952161788, 8.12954353917993, 7.32127463952691,
+        8.04625186575813), median = c(7.03908748814014, 7.90960556092234,
         7.28424257344771, 7.97434394721777, 7.29854788856675, 7.70893150271355
         )), .Names = c("TEXT", "SEXT", "LCTU", "Year", "mean", "median"
     ), row.names = c(NA, 6L), class = "data.frame")
 
-pe13 <- structure(list(TEXT = structure(c(1L, 2L, 1L, 2L, 1L, 2L), .Label = c("gfw", 
-    "fre"), class = "factor"), SEXT = structure(c(1L, 1L, 1L, 1L, 
-    1L, 1L), .Label = c("can", "nam"), class = "factor"), LCTU = structure(c(1L, 
-    1L, 2L, 2L, 3L, 3L), .Label = c("nlc", "lcc", "eos"), class = "factor"), 
-        Year = c(2013, 2013, 2013, 2013, 2013, 2013), mean = c(7.03823934905092, 
-        8.2201686110189, 7.29573582539286, 8.15710339698905, 7.2890423740622, 
-        8.0574300369338), median = c(7.02512525548913, 7.93361330635701, 
+pe13 <- structure(list(TEXT = structure(c(1L, 2L, 1L, 2L, 1L, 2L), .Label = c("gfw",
+    "fre"), class = "factor"), SEXT = structure(c(1L, 1L, 1L, 1L,
+    1L, 1L), .Label = c("can", "nam"), class = "factor"), LCTU = structure(c(1L,
+    1L, 2L, 2L, 3L, 3L), .Label = c("nlc", "lcc", "eos"), class = "factor"),
+        Year = c(2013, 2013, 2013, 2013, 2013, 2013), mean = c(7.03823934905092,
+        8.2201686110189, 7.29573582539286, 8.15710339698905, 7.2890423740622,
+        8.0574300369338), median = c(7.02512525548913, 7.93361330635701,
         7.27357416838527, 7.98576510700306, 7.2667175762312, 7.70826606796275
         )), .Names = c("TEXT", "SEXT", "LCTU", "Year", "mean", "median"
     ), row.names = c(NA, 6L), class = "data.frame")
@@ -581,7 +604,7 @@ load("e:/peter/bam/pred-2015/pg-loss.Rdata")
 clim$YearFire <- loss$YearFire[match(clim$pointid, loss$pointid)]
 clim$YearLoss <- loss$YearLoss[match(clim$pointid, loss$pointid)]
 
-for (fn in c("CMIJJA", "CMI", "TD", "DD0", 
+for (fn in c("CMIJJA", "CMI", "TD", "DD0",
     "DD5", "EMT", "MSP", "CTI", "SLP")) {
 
     png(file.path(ROOT, "out", "figs", paste0("x-", fn,".png")), width = 2000, height = 1000)
@@ -593,7 +616,7 @@ for (fn in c("CMIJJA", "CMI", "TD", "DD0",
         ann=FALSE, axes=FALSE)
     title(main=fn)
     legend("bottomleft", bty = "n", legend=rev(levels(z)), fill=rev(Col))
-    
+
 
     par(op)
     dev.off()
