@@ -24,9 +24,10 @@ echo "Starting run at: `date`"
 
 ## arg1: nodes, arg2: species
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 CAWA
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 OSFL
-mpiexec -n 1 Rscript --vanilla bam_models.R 5 OVEN
-#mpiexec -n 1 Rscript --vanilla bam_models.R 5 RUBL
+mpiexec -n 1 Rscript --vanilla bam_models_c1.R 5 RUBL
+mpiexec -n 1 Rscript --vanilla bam_models_c1.R 5 OSFL
+mpiexec -n 1 Rscript --vanilla bam_models_c1.R 5 YEWA
+#mpiexec -n 1 Rscript --vanilla bam_models.R 5 OVEN
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 WEWP
 #mpiexec -n 1 Rscript --vanilla bam_models.R 5 MOWA
 
