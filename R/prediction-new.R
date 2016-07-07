@@ -14,7 +14,7 @@ Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2012
 B_use <- 100#240
-bfill <- TRUE
+bfill <- FALSE
 
 e <- new.env()
 load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
@@ -48,6 +48,7 @@ SPP <- c("OSFL","OVEN","CCSP","CONW","MOWA","RUBL","VATH","WETA","WEWP","WTSP","
 for (spp in SPP) {
 
 load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
+#load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, "_c1.Rdata")))
 cat("<<< ", spp, " --- ", 100 * sum(getOK(res)) / length(res), "% OK >>>\n", sep="")
 est <- getEst(res, stage = Stage, X=Xn)
 
@@ -148,6 +149,7 @@ if (!dir.exists(file.path(ROOT3, "species", spp)))
 fout <- file.path(ROOT3, "species", spp,
     paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"),
     regi, "-", Date, ".Rdata"))
+#    regi, "-", Date, "_c1.Rdata"))
 save(lam, file=fout)
 rm(lam)
 
@@ -244,6 +246,7 @@ cat(fo, "\n");flush.console()
 #est <- getEst(res, stage = Stage, X=Xn)
 
 fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
+fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, "_c1.Rdata")
 
 is_null <- integer(length(fl))
 names(is_null) <- fl
@@ -281,9 +284,9 @@ rn <- intersect(rownames(plam), rownames(XY))
 XY2 <- XY[rn,]
 x <- plam[rn,"Mean"]
 #x <- plam[rn,"Median"]
-probs <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+probs <- c(0, 0.05, 0.1, 0.25, 0.5, 0.75, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
-Col <- rev(brewer.pal(5, "RdYlBu"))
+Col <- rev(brewer.pal(6, "RdYlBu"))
 br <- Lc_quantile(x, probs=probs, type="L")
 if (!is.finite(br[length(br)]))
     br[length(br)] <- 1.01* max(x, na.rm=TRUE)
@@ -334,13 +337,14 @@ dev.off()
 png(file.path(ROOT3, "maps", paste0(fo, "-det.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-plot(XY2, col = "grey", pch=".",
+plot(XY, col = "grey", pch=".",
     ann=FALSE, axes=FALSE)
-points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.1, col=1)
+points(xy_p[yy[,spp] == 0,c("Xcl","Ycl")], pch=19, cex=0.2, col=1)
+points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.5, col=2)
 par(op)
 dev.off()
 
-png(file.path(ROOT3, "maps", paste0(fo, "-mean.png")),
+png(file.path(ROOT3, "maps", paste0(fo, "-mean-c1.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 zval <- if (length(unique(round(br,10))) < 5)
@@ -427,6 +431,24 @@ rm(plam)
 ## brr: list of Lc based breaks
 ## ttt: list of BCR/prov x B matrices
 #save(brr, ttt, file=file.path(ROOT2, "species", "tlam-CAWA.Rdata"))
+
+
+## visualizing climate
+
+xx <- "int"
+x <- DAT$CMIJJA * DAT$DD0
+br <- unique(quantile(x, seq(0, 1, 0.2), na.rm=TRUE))
+br[1] <- -Inf
+br[length(br)] <- Inf
+zval <- as.integer(cut(x, br))
+COL <- rev(brewer.pal(length(br)-1, "RdYlBu"))
+
+op <- par(mar=c(1,1,1,1)+0.1)
+with(DAT, plot(Xcl, Ycl, pch=".", col=COL[zval], main=xx))
+par(op)
+
+
+
 
 load(file.path(ROOT2, "species", "tlam-CAWA.Rdata"))
 

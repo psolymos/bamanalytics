@@ -35,8 +35,7 @@ mod_Wet <- list(
     . ~ . + CTI + CTI2,
     . ~ . + SLP,
     . ~ . + SLP + SLP2)
-mod_Climate <- list(
-## no lat/long
+mod_Climate_1 <- list(
     . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
     . ~ . + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
     . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02,
@@ -44,25 +43,24 @@ mod_Climate <- list(
     . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
     . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
     . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
-    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52,
-## lat/long linear
-    . ~ . xlat + xlon + xlat:xlon + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD0 + MSP + TD + DD02,
-    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD5 + MSP + TD + DD52,
-    . ~ . xlat + xlon + xlat:xlon + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
-    . ~ . xlat + xlon + xlat:xlon + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52,
-## lat/long quadratic
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMIJJA + DD0 + DD5 + EMT + TD + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + DD0 + DD5 + EMT + TD + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD0 + MSP + TD + DD02,
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD5 + MSP + TD + DD52,
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52,
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02,
-    . ~ . xlat + xlon + xlat:xlon xlat2 + xlon2 + xlat2:xlon2 + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52)
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52)
+mod_Climate_2 <- list(
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + EMT:MSP,
+    . ~ . + CMI + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + EMT:MSP,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD,
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD + MSP:EMT)
 mod_Year <- list(
     . ~ . + YR)
 
@@ -72,5 +70,5 @@ mods <- list(
     Hgt=mod_Hgt,
     Dist=mod_Dist,
     Wet=mod_Wet,
-    Clim=mod_Climate,
+    Clim=mod_Climate_2,
     Year=mod_Year)

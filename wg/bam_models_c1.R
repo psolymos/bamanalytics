@@ -44,7 +44,28 @@ if (interactive())
 Date <- "2016-04-18"
 fn <- paste0("pack_", Date, ".Rdata")
 load(file.path("data", fn))
-mods <- mods[c("Clim", "Hab", "Road", "Hgt", "Dist", "Wet", "Year")]
+#mods <- mods[c("Clim", "Hab", "Road", "Hgt", "Dist", "Wet", "Year")]
+
+DAT$CMI2 <- DAT$CMI^2
+DAT$CMIJJA2 <- DAT$CMIJJA^2
+mods$Clim <-list(
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + EMT:MSP,
+    . ~ . + CMI + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + EMT:MSP,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD,
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD + MSP:EMT)
+
 if (TEST)
     mods <- mods[1:3]
 
