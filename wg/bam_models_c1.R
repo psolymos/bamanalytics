@@ -46,8 +46,8 @@ fn <- paste0("pack_", Date, ".Rdata")
 load(file.path("data", fn))
 #mods <- mods[c("Clim", "Hab", "Road", "Hgt", "Dist", "Wet", "Year")]
 
-DAT$CMI2 <- DAT$CMI^2
-DAT$CMIJJA2 <- DAT$CMIJJA^2
+#DAT$CMI2 <- DAT$CMI^2
+#DAT$CMIJJA2 <- DAT$CMIJJA^2
 mods$Clim <-list(
     . ~ . + CMIJJA + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMIJJA2 +
         CMIJJA:DD0 + CMIJJA:DD5 + EMT:MSP,
