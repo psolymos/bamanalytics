@@ -313,8 +313,15 @@ dev.off()
 tt <- c(3,5,10)
 mat0 <- t(sapply(SPPfull, function(z) 1-exp(-tt*cfall0[z, 1])))
 matb <- t(sapply(SPP, function(z) 1-cfallb[z, "c"]*exp(-tt*cfallb[z, "phi_b"])))
+
 summary(mat0)
 summary(matb)
+
+round(apply(mat0, 2, mean), 2)
+round(apply(mat0, 2, sd), 3)
+round(apply(matb, 2, mean), 2)
+round(apply(matb, 2, sd), 3)
+
 
 
 ## model support
@@ -642,11 +649,23 @@ legend("bottomright", col=1, lty=c(1,2,3), lwd=2, bty="n",
         paste0("Mb SE (90% = ", ceiling(vnd[which.min(abs(fitbs-0.9))]), ")")))
 dev.off()
 
-
 ceiling(vnd[which.min(abs(fit0-0.9))])
 ceiling(vnd[which.min(abs(fitb-0.9))])
 ceiling(vnd[which.min(abs(fit0s-0.9))])
 ceiling(vnd[which.min(abs(fitbs-0.9))])
+
+## SE for prediction
+se_fun <- function(mod) {
+    rn <- mvrnorm(4999, coef(mod), vcov(mod))
+    fit <- cbind(plogis(drop(X %*% coef(mod))),
+        apply(rn, 1, function(z) plogis(drop(X %*% z))))
+    apply(fit, 2, function(z) ceiling(vnd[which.min(abs(z-0.9))]))
+}
+rbind(m0=c(est=se_fun(m0x)[1], SE=round(sd(se_fun(m0x)), 1)),
+    m0s=c(se_fun(m0xs)[1], round(sd(se_fun(m0xs)), 1)),
+    mb=c(se_fun(mbx)[1], round(sd(se_fun(mbx)), 1)),
+    mbs=c(se_fun(mbxs)[1], round(sd(se_fun(mbxs)), 1)))
+
 
 with(dat0[dat0$okse==1,], plot(logphi, se_logphi))
 with(dat0[dat0$okse==1,], plot(ym, se_logphi))
@@ -794,6 +813,14 @@ mSPPfull <- SPPfull
 mSPP <- SPP
 OUT <- list()
 
+#migtype <- lht$DATABASE_MIG_TYPE
+#names(migtype) <- rownames(lht)
+#mSPPfull <- SPPfull[migtype[SPPfull]=="W"]
+#mSPP <- SPP[migtype[SPP]=="W"]
+#mSPPfull <- SPPfull[migtype[SPPfull]!="W"]
+#mSPP <- SPP[migtype[SPP]!="W"]
+
+
 for (WHAT in c("TSSR","JDAY","TSLS")) {
 
     Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur[iii,])
@@ -811,7 +838,7 @@ for (WHAT in c("TSSR","JDAY","TSLS")) {
         best0 <- as.character((0:14)[which.max(waic0[spp,])])
         if (best0 %in% COOL) {
             cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
-            sppPred0[,spp] <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "", 
+            sppPred0[,spp] <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "",
                 names(cf02)),drop=FALSE] %*% cf02)))
         }
     }
@@ -821,7 +848,7 @@ for (WHAT in c("TSSR","JDAY","TSLS")) {
         bestb <- as.character((0:14)[which.max(waicb[spp,])])
         if (bestb %in% COOL) {
             cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
-            sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "", 
+            sppPredb[,spp] <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "",
                 names(cfb2)[-1]),drop=FALSE] %*%
                 cfb2[-1])) * exp(-TT*exp(cfb2[1]))
         }
@@ -849,20 +876,20 @@ plf2 <- function(b, ...) {
     box()
 }
 
-png(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.png")), 
+png(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.png")),
     height=1200, width=1600, res=150)
 op <- par(mfrow=c(2,3), las=1)
-plf2(OUT[["TSSR"]][["0"]], 
+plf2(OUT[["TSSR"]][["0"]],
     ylab="Probability (M0)", xlab="Time since sunrise (h)")
-plf2(OUT[["JDAY"]][["0"]], 
+plf2(OUT[["JDAY"]][["0"]],
     ylab="Probability (M0)", xlab="Julian day")
-plf2(OUT[["TSLS"]][["0"]], 
+plf2(OUT[["TSLS"]][["0"]],
     ylab="Probability (M0)", xlab="Days since spring")
-plf2(OUT[["TSSR"]][["b"]], 
+plf2(OUT[["TSSR"]][["b"]],
     ylab="Probability (Mb)", xlab="Time since sunrise (h)")
-plf2(OUT[["JDAY"]][["b"]], 
+plf2(OUT[["JDAY"]][["b"]],
     ylab="Probability (Mb)", xlab="Julian day")
-plf2(OUT[["TSLS"]][["b"]], 
+plf2(OUT[["TSLS"]][["b"]],
     ylab="Probability (Mb)", xlab="Days since spring")
 par(op)
 dev.off()
@@ -970,27 +997,27 @@ col <- rgb(0.75,0.75,0.75,0.1) # "grey"
 pdf(file.path(ROOT2, "tabfig", "responses.pdf"), width=7, height=5, onefile=TRUE)
 for (spp in SPPfull) {
 op <- par(mfrow=c(2,3))
-matplot(vsr*24, r0sr, type=if (all(is.na(r0sr[,spp]))) "n" else "l", 
+matplot(vsr*24, r0sr, type=if (all(is.na(r0sr[,spp]))) "n" else "l",
     lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (M0)", xlab="Time since sunrise (h)", main=spt[spp,"common_name"])
 lines(vsr*24, r0sr[,spp], lwd=3, col=1)
-matplot(vjd*365, r0jd, type=if (all(is.na(r0jd[,spp]))) "n" else "l", 
+matplot(vjd*365, r0jd, type=if (all(is.na(r0jd[,spp]))) "n" else "l",
     lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (M0)", xlab="Julian day")
 lines(vjd*365, r0jd[,spp], lwd=3, col=1)
-matplot(vls*365, r0ls, type=if (all(is.na(r0ls[,spp]))) "n" else "l", 
+matplot(vls*365, r0ls, type=if (all(is.na(r0ls[,spp]))) "n" else "l",
     lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (M0)", xlab="Days since spring")
 lines(vls*365, r0ls[,spp], lwd=3, col=1)
-matplot(vsr*24, rbsr, type=if (all(is.na(rbsr[,spp]))) "n" else "l", 
+matplot(vsr*24, rbsr, type=if (all(is.na(rbsr[,spp]))) "n" else "l",
     lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (Mb)", xlab="Time since sunrise (h)")
 lines(vsr*24, rbsr[,spp], lwd=3, col=1)
-matplot(vjd*365, rbjd, type=if (all(is.na(rbjd[,spp]))) "n" else "l", 
+matplot(vjd*365, rbjd, type=if (all(is.na(rbjd[,spp]))) "n" else "l",
     lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (Mb)", xlab="Julian day")
 lines(vjd*365, rbjd[,spp], lwd=3, col=1)
-matplot(vls*365, rbls, type=if (all(is.na(rbls[,spp]))) "n" else "l", 
+matplot(vls*365, rbls, type=if (all(is.na(rbls[,spp]))) "n" else "l",
     lty=1, col=col, ylim=c(0,1), lwd=3,
     ylab="Probability (Mb)", xlab="Days since spring")
 lines(vls*365, rbls[,spp], lwd=3, col=1)
@@ -1096,7 +1123,8 @@ cn <- c("Mbt_jdsr_mean", "M0t_jdsr_mean", "Mbt_sr", "M0t_sr", "PIF")
 
 sppTadj <- sppTadj0[!(rownames(sppTadj0) %in% c("EVGR", "MAWR", "WIPT")),rev(cn)] # MAWR WIPT EVGR
 
-cor.test(sppTadj[,1], sppTadj[,2])
+cor.test(sppTadj[,"M0t_sr"], sppTadj[,"PIF"])
+cor.test(sppTadj[,"Mbt_sr"], sppTadj[,"PIF"])
 
 png(file.path(ROOT2, "tabfig", "FigX_tadj.png"), height=450, width=450)
 par(las=1, mar=c(5, 6, 4, 2) + 0.1)
