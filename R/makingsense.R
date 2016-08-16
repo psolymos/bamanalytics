@@ -16,6 +16,8 @@ Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
 yy <- e$YY
 xn <- e$DAT[,Terms]
+xn$CMI2 <- xn$CMI^2
+xn$CMIJJA2 <- xn$CMIJJA^2
 Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
 xn <- xn[rownames(Xn),]

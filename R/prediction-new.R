@@ -19,9 +19,31 @@ bfill <- FALSE
 e <- new.env()
 load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
 mods <- e$mods
+
+mods$Clim <-list(
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + EMT:MSP,
+    . ~ . + CMI + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + EMT:MSP,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD,
+    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD + MSP:EMT,
+    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD + MSP:EMT)
+mods$Hgt <- NULL
+
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
 xn <- e$DAT[1:500,Terms]
+xn$CMI2 <- xn$CMI^2
+xn$CMIJJA2 <- xn$CMIJJA^2
 Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
 rm(e)
@@ -47,8 +69,8 @@ regs <- c(
 SPP <- c("OSFL","OVEN","CCSP","CONW","MOWA","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
 for (spp in SPP) {
 
-load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
-#load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, "_c1.Rdata")))
+#load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
+load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, "_c1nohgt.Rdata")))
 cat("<<< ", spp, " --- ", 100 * sum(getOK(res)) / length(res), "% OK >>>\n", sep="")
 est <- getEst(res, stage = Stage, X=Xn)
 
@@ -61,6 +83,9 @@ cat(spp, regi, "\n");flush.console()
 
 load(file.path(ROOT2, "chunks3", paste0("pgdat-", regi, ".Rdata")))
 gc()
+
+dat$CMI2 <- dat$CMI^2
+dat$CMIJJA2 <- dat$CMIJJA^2
 
 dat$HAB <- dat$HAB_NALC2
 dat$HABTR <- dat$HAB_NALC1
@@ -148,8 +173,8 @@ if (!dir.exists(file.path(ROOT3, "species", spp)))
     dir.create(file.path(ROOT3, "species", spp))
 fout <- file.path(ROOT3, "species", spp,
     paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"),
-    regi, "-", Date, ".Rdata"))
-#    regi, "-", Date, "_c1.Rdata"))
+#    regi, "-", Date, ".Rdata"))
+    regi, "-", Date, "_c1nohgt.Rdata"))
 save(lam, file=fout)
 rm(lam)
 
@@ -245,8 +270,8 @@ cat(fo, "\n");flush.console()
 #cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
 #est <- getEst(res, stage = Stage, X=Xn)
 
-fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
-fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, "_c1.Rdata")
+#fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
+fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, "_c1nohgt.Rdata")
 
 is_null <- integer(length(fl))
 names(is_null) <- fl
@@ -279,11 +304,11 @@ if (TRUE) {
     plam[plam[,"Median"] > q,"Median"] <- q
 }
 
-rn <- intersect(rownames(plam), rownames(XY))
+rn <- intersect(rownames(plam), rownames(XYb))
 #compare_sets(rownames(plam), rownames(XY))
-XY2 <- XY[rn,]
-x <- plam[rn,"Mean"]
-#x <- plam[rn,"Median"]
+XY2 <- XYb[rn,]
+#x <- plam[rn,"Mean"]
+x <- plam[rn,"Median"]
 probs <- c(0, 0.05, 0.1, 0.25, 0.5, 0.75, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
 Col <- rev(brewer.pal(6, "RdYlBu"))
@@ -344,13 +369,14 @@ points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.5, col=2)
 par(op)
 dev.off()
 
-png(file.path(ROOT3, "maps", paste0(fo, "-mean-c1.png")),
+png(file.path(ROOT3, "maps", paste0(fo, "-mean-c1nohgt.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
-plot(XY2, col = Col[zval], pch=".",
+plot(XY, col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE)
+points(XY2, col = Col[zval], pch=".")
 points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.1, col=1)
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
