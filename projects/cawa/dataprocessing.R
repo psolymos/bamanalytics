@@ -366,7 +366,18 @@ apply(as.matrix(YY), 2, max)
 OFF <- OFF[pk,colnames(YY)]
 TAX <- TAX[colnames(YY),]
 
+ii <- which(is.na(DAT$DD0))
+for (i in ii) {
+    d <- sqrt((DAT$X - DAT$X[i])^2 + (DAT$Y - DAT$Y[i])^2)
+    d[ii] <- Inf
+    DAT$DD0[i] <- DAT$DD0[which.min(d)]
+}
+DAT$DD02[is.na(DAT$DD02)] <- DAT$DD0[is.na(DAT$DD02)]^2
+
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
+
+stopifnot(all(rownames(DAT) == rownames(YY)))
+stopifnot(all(rownames(DAT) == rownames(OFF)))
 
 save(list = Save,
     file=file.path(ROOT, "out", "data", paste0("pack_", Date, ".Rdata")))

@@ -40,7 +40,8 @@ TAX$SSMA_TimeStamp <- NULL
 SS01 <- sqlFetch(con, "dbo_BBSBAM_V4_XYTBL_ATTRIBUTES1")
 SS01 <- nonDuplicated(SS01, SS, TRUE)
 SS01$COUNTRY <- ifelse(SS01$JURSALPHA %in% c("AB","BC","MB","NB",
-    "NL","NS","NT","NU","ON","PE","QC","SK","YT"), "CAN", "USA")
+    "NL","NS","NT","NU","ON","PEI","QC","SK","YK"), "CAN", "USA")
+save(SS01, file=file.path(ROOT2, "out", "SS-regions-and-xy.Rdata"))
 
 ## Tree proportions
 SS02 <- sqlFetch(con, "dbo_TREE_BBSBAM_V4_tbl")

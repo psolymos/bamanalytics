@@ -1,0 +1,249 @@
+---
+title: "National CAWA model results"
+author: "Peter Solymos (solymos@ualberta.ca)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    toc: no
+    toc_depth: 2
+  html_document:
+    toc: no
+---
+
+
+```{r echo=FALSE,message=FALSE,results='hide'}
+library(mefa4)
+library(pbapply)
+library(pROC)
+ROOT <- "c:/bam/May2015"
+ROOT2 <- "e:/peter/bam/Apr2016/out"
+source("~/repos/bamanalytics/R/makingsense_functions.R")
+
+PROJECT <- "bam"
+Date <- "2016-08-16"
+level <- 0.9
+
+e <- new.env()
+load(file.path(ROOT2, "data", "pack_2016-08-16.Rdata"), envir=e)
+
+mods <- e$mods
+Terms <- getTerms(e$mods, "list")
+setdiff(Terms, colnames(e$DAT))
+yy <- e$YY
+xn <- e$DAT[,Terms]
+Xn <- model.matrix(getTerms(mods, "formula"), xn)
+colnames(Xn) <- fixNames(colnames(Xn))
+xn <- xn[rownames(Xn),]
+off <- e$OFF[rownames(xn),]
+bbb <- unique(e$BB)
+bb <- e$BB
+rm(e)
+ss1 <- which(!(1:nrow(xn) %in% bbb)) # test portion
+ss2 <- which((1:nrow(xn) %in% bbb)) # non-test portion
+
+modTab <- getFancyModsTab(mods)
+xnh <- nonDuplicated(xn, HABTR, TRUE)[,c("HAB","HABTR","isNF","isDev",
+    "isWet","isOpn","isDM","isDec","isMix")]
+xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen",
+    "DecidDense", "DecidSparse", "DecidOpen",
+    "MixedDense", "MixedSparse", "MixedOpen",
+    "WetDense", "WetSparse", "WetOpen",
+    "Shrub", "Grass", "Barren", "Agr", "Devel"),]
+
+spp <- "CAWA"
+Y <- yy[,spp]
+Y1 <- ifelse(yy[,spp]>0, 1, 0)
+off1 <- off[,spp]
+
+fn <- file.path(ROOT2, "results", "cawa",
+    paste0(PROJECT, "_", spp, "_", Date, ".Rdata"))
+load(fn)
+#100 * sum(getOK(res)) / length(res)
+est_hab <- getEst(res, stage = 2, X=Xn)
+est_habhgt <- getEst(res, stage = 3, X=Xn)
+est_dtb <- getEst(res, stage = 4, X=Xn)
+est_wet <- getEst(res, stage = 5, X=Xn)
+est <- getEst(res, stage = length(mods)-1, X=Xn)
+est_yr <- getEst(res, stage = length(mods), X=Xn)
+```
+
+# Model summaries
+
+## Model selection
+
+```{r echo=FALSE,message=FALSE}
+(mt <- getFancyMidTab(res, mods))
+plotMid(res, mods, web=TRUE)
+```
+
+## Coeffients summary
+
+```{r echo=FALSE,message=FALSE}
+printCoefmat(su <- getSummary(res), digits=2)
+```
+
+# Habitat associations
+
+## Roadside bias
+
+```{r echo=FALSE,message=FALSE}
+xn1 <- xnh
+xn1$ROAD <- 1
+Xn1 <- model.matrix(getTerms(mods[2], "formula", intercept=FALSE), xn1)
+colnames(Xn1) <- fixNames(colnames(Xn1))
+est1 <- est[,colnames(Xn1)]
+
+pr <- t(apply(est1, 1, function(z) Xn1 %*% z))
+colnames(pr) <- rownames(Xn1)
+pr <- exp(pr)
+pr[pr>2] <- 2
+
+op <- par(mar=c(5,8,2,2), las=1)
+boxplot(pr[,rev(colnames(pr))], horizontal=TRUE, range=0,
+    xlab="Expected abundance: On-road / Off-road",
+    col=terrain.colors(nlevels(xn$HABTR)),
+    main=spp)
+abline(v=1, col=2)
+par(op)
+```
+
+## Land cover
+
+```{r echo=FALSE,message=FALSE}
+xn2 <- xnh
+xn2$ROAD <- 0
+Xn2 <- model.matrix(getTerms(mods[1:2], "formula"), xn2)
+colnames(Xn2) <- fixNames(colnames(Xn2))
+est2 <- est_hab[,colnames(Xn2)]
+
+pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
+colnames(pr) <- rownames(xn2)
+
+pr <- pr[,order(colMeans(pr))]
+
+op <- par(mar=c(5,8,2,2), las=1)
+boxplot(pr, horizontal=TRUE, range=0,
+    xlab="Expected density (males / ha)",
+    col=rev(terrain.colors(ncol(pr))),
+    main=spp)
+par(op)
+```
+
+## Forest height
+
+```{r echo=FALSE,message=FALSE}
+HGT <- seq(0,1,by=0.01)
+xn2 <- expand.grid(HABTR=factor(c("ConifDense", #"ConifSparse","ConifOpen",
+    "DecidDense", #"DecidSparse", "DecidOpen",
+    "MixedDense", #"MixedSparse", "MixedOpen",
+    "WetDense"), #"WetSparse", "WetOpen"),
+    levels(xn$HABTR)), HGT=HGT)
+xn2 <- data.frame(xnh[match(xn2$HABTR, rownames(xnh)),],
+    ROAD=0, HGT=xn2$HGT, HGT2=xn2$HGT^2, HGT05=sqrt(xn2$HGT))
+Xn2 <- model.matrix(getTerms(mods[1:3], "formula"), xn2)
+colnames(Xn2) <- fixNames(colnames(Xn2))
+est2 <- est_habhgt[,colnames(Xn2)]
+
+pr <- exp(t(apply(est2, 1, function(z) Xn2 %*% z)))
+xn2$Density <- colMeans(pr)
+xn2$lcl <- apply(pr, 2, quantile, 0.05)
+xn2$ucl <- apply(pr, 2, quantile, 0.95)
+
+lam <- t(matrix(xn2$Density, nrow=4))
+op <- par(las=1)
+matplot(HGT*25, lam, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
+    ylab="Density (males/ha)", xlab="Height (m)", main=spp,
+    col=1:4, lty=1)
+legend("topleft",
+    lty=1, lwd=2, bty="n", col=1:4, legend=c("Conif", "Decid", "Mixed", "Wet"))
+par(op)
+```
+
+# Model validation
+
+## ROC curves and AUC
+
+```{r echo=FALSE,message=FALSE}
+mn <- matrix(0, length(ss1), length(mods)+1)
+colnames(mn) <- c("NULL", names(mods))
+rownames(mn) <- rownames(xn)[ss1]
+for (i in 0:length(mods)) {
+    est_i <- getEst(res, stage = i, X=Xn)
+    col_keep <- colSums(abs(est_i) > 0) != 0
+    pr <- exp(sapply(1:nrow(est_i), function(j)
+        Xn[ss1,colnames(est_i[,col_keep,drop=FALSE]),drop=FALSE] %*%
+        est_i[j,col_keep]))
+    mn[,i+1] <- rowMeans(pr)
+}
+## ROC/AUC
+rocAll1 <- lapply(1:ncol(mn), function(i) {
+      pp <- mn[,i] * exp(off1[ss1])
+      roc(Y1[ss1], pp)
+  })
+names(rocAll1) <- c("NULL", names(mods))
+auc <- sapply(rocAll1, function(z) as.numeric(z$auc))
+
+barplot(auc, ylim=c(0,1), space=0, ylab="AUC", xlab="Stages")
+lines(0:length(mods)+0.5, auc, col=4, lwd=2)
+```
+
+```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4,results='hide'}
+op <- par(mfrow=c(1,2))
+plot(rocAll1[["NULL"]], col=4)
+plot(rocAll1[["Clim"]], col=4)
+par(op)
+```
+
+## QQ plots
+
+```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4}
+## QQ
+vals <- seq(min(Y[ss1]), max(Y[ss1]), 1)
+pobs <- numeric(length(vals))
+names(pobs) <- vals
+tab <- table(Y[ss1])
+for (k in vals) {
+    pobs[as.character(k)] <- if (as.character(k) %in% names(tab))
+        tab[as.character(k)]/length(ss1) else 0
+}
+pobs <- cumsum(pobs)
+
+pexp <- matrix(0, length(vals), ncol(mn))
+rownames(pexp) <- vals
+colnames(pexp) <- colnames(mn)
+for (i in 1:ncol(mn)) {
+    m_pexp <- matrix(0, length(ss1), length(vals))
+    colnames(m_pexp) <- vals
+    for (k in vals) {
+        m_pexp[,as.character(k)] <- dpois(x=rep(k, length(ss1)),
+            lambda=mn[,i] * exp(off1[ss1]))
+    }
+    m_pexp[,ncol(m_pexp)] <- 1 - rowSums(m_pexp[,-ncol(m_pexp)])
+    pexp[,i] <- cumsum(colMeans(m_pexp))
+}
+
+p_min <- min(cbind(pobs,pexp))
+op <- par(mfrow=c(1,2))
+plot(pobs, pexp[,"NULL"], type="b", pch=rownames(pexp),
+    xlab="Observed", ylab="Expected", xlim=c(p_min, 1), ylim=c(p_min, 1), col=4)
+abline(0, 1, col="grey")
+plot(pobs, pexp[,"Clim"], type="b", pch=rownames(pexp),
+    xlab="Observed", ylab="Expected", xlim=c(p_min, 1), ylim=c(p_min, 1), col=4)
+abline(0, 1, col="grey")
+par(op)
+```
+
+## Ranking
+
+```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4}
+pro <- table(Y[ss1])/length(ss1)
+par(mfrow=c(1,2))
+boxplot(mn[,"NULL"] * exp(off1[ss1]) ~ Y[ss1], range=0,
+    at=cumsum(2*pro^0.2), width=2*pro^0.2, main="NULL",
+    xlab="Observed count", ylab="Corrected density", col="grey")
+boxplot(mn[,"Clim"] * exp(off1[ss1]) ~ Y[ss1], range=0,
+    at=cumsum(2*pro^0.2), width=2*pro^0.2, main="Clim",
+    xlab="Observed count", ylab="Corrected density", col="grey")
+par(op)
+```
+
