@@ -82,6 +82,8 @@ DAT$off <- off1
 DAT$YR <- xn$YR
 DAT$D <- rowMeans(pr)
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
+BBS_PCODE <- levels(DAT$PCODE)[substr(levels(DAT$PCODE), 1, 3) == "BBS"]
+DAT$isBBS <- DAT$PCODE %in% BBS_PCODE
 
 ## Boreal year effect estimates
 
@@ -95,13 +97,18 @@ round(c(fstat(100 * (exp(est_yr[,"YR"]) - 1)),
 
 ## Residual trend estimates
 
-yr_fun <- function(i, subset=NULL) {
+yr_fun <- function(i, subset=NULL, part=c("all", "bbs","bam")) {
+    part <- match.arg(part)
     if (is.null(subset))
         subset <- rep(TRUE, nrow(DAT))
     dat <- DAT
     dat$SUBSET <- subset
     dat <- dat[bb[,i],]
-    dat <- dat[dat$SUBSET,]
+    dat <- dat[dat$SUBSET,,drop=FALSE]
+    if (part=="bbs")
+        dat <- dat[dat$isBBS,,drop=FALSE]
+    if (part=="bam")
+        dat <- dat[!dat$isBBS,,drop=FALSE]
     dat$logDoff <- log(dat$D) + dat$off
     mod <- glm(Y ~ YR, data=dat, offset=dat$logDoff, family=poisson)
     100 * (exp(coef(mod)[2]) - 1)
@@ -131,7 +138,9 @@ levels(DAT$JURS2)[levels(DAT$JURS2) %in% c("NS","PEI")] <- "NS+PEI"
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 DAT$BCRPROV2 <- interaction(DAT$BCR, DAT$JURS2, drop=TRUE, sep="_")
 
-tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN")
+PART <- "all"
+
+tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN", part=PART)
 
 tres_prov <- list()
 #for (i in c("AB","MB","QC","ON","NB","NS+PEI"))
@@ -139,7 +148,7 @@ for (i in levels(DAT$JURS2))
 {
     cat(i, "\n");flush.console()
     ii <- DAT$JURS2 == i
-    tres_prov[[i]] <- pbsapply(1:240, yr_fun, subset=ii)
+    tres_prov[[i]] <- pbsapply(1:240, yr_fun, subset=ii, part=PART)
     print(fstat(tres_prov[[i]]))
 }
 
@@ -149,7 +158,7 @@ for (i in unique(DAT$BCR))
 {
     cat(i, "\n");flush.console()
     ii <- DAT$BCR == i
-    tres_bcr[[as.character(i)]] <- pbsapply(1:240, yr_fun, subset=ii)
+    tres_bcr[[as.character(i)]] <- pbsapply(1:240, yr_fun, subset=ii, part=PART)
     print(fstat(tres_bcr[[i]]))
 }
 
@@ -160,7 +169,7 @@ for (i in levels(DAT$BCRPROV2))
 {
     cat(i, "\n");flush.console()
     ii <- DAT$BCRPROV2 == i
-    tres_bcrprov[[as.character(i)]] <- pbsapply(1:240, yr_fun, subset=ii)
+    tres_bcrprov[[as.character(i)]] <- pbsapply(1:240, yr_fun, subset=ii, part=PART)
     print(fstat(tres_bcrprov[[i]]))
 }
 
@@ -170,5 +179,5 @@ t(sapply(tres_bcr, fstat))
 t(sapply(tres_bcrprov, fstat))
 
 save(DAT, tres_prov, tres_bcr, tres_can, tres_bcrprov,
-    file="e:/peter/bam/Apr2016/out/cawa/trend-est-full.Rdata")
+    file=paste0("e:/peter/bam/Apr2016/out/cawa/trend-est-full-", PART, ".Rdata"))
 
