@@ -88,7 +88,9 @@ DAT$isBBS <- DAT$PCODE %in% BBS_PCODE
 ## Boreal year effect estimates
 
 fstat <- function(x, level=0.95, digits=3) {
-    round(c(Mean=mean(x), Median=median(x), quantile(x, c((1-level)/2, 1 - (1-level)/2))), digits)
+    round(c(Mean=mean(x, na.rm=TRUE),
+    Median=median(x, na.rm=TRUE),
+    quantile(x, c((1-level)/2, 1 - (1-level)/2), na.rm=TRUE)), digits)
 }
 hist(100 * (exp(est_yr[,"YR"]) - 1), col="grey",
      main="", xlab="% annual population change")
@@ -109,6 +111,8 @@ yr_fun <- function(i, subset=NULL, part=c("all", "bbs","bam")) {
         dat <- dat[dat$isBBS,,drop=FALSE]
     if (part=="bam")
         dat <- dat[!dat$isBBS,,drop=FALSE]
+    if (nrow(dat) < 1)
+        return(NA)
     dat$logDoff <- log(dat$D) + dat$off
     mod <- glm(Y ~ YR, data=dat, offset=dat$logDoff, family=poisson)
     100 * (exp(coef(mod)[2]) - 1)
@@ -138,7 +142,7 @@ levels(DAT$JURS2)[levels(DAT$JURS2) %in% c("NS","PEI")] <- "NS+PEI"
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 DAT$BCRPROV2 <- interaction(DAT$BCR, DAT$JURS2, drop=TRUE, sep="_")
 
-PART <- "all"
+PART <- "bbs"
 
 tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN", part=PART)
 
