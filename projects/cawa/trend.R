@@ -157,13 +157,13 @@ for (i in levels(DAT$JURS2))
 }
 
 tres_bcr <- list()
-for (i in c(6, 7, 8, 11, 12, 13, 14, 23))
+#for (i in c(6, 7, 8, 11, 12, 13, 14, 23))
 for (i in unique(DAT$BCR))
 {
     cat(i, "\n");flush.console()
     ii <- DAT$BCR == i
     tres_bcr[[as.character(i)]] <- pbsapply(1:240, yr_fun, subset=ii, part=PART)
-    print(fstat(tres_bcr[[i]]))
+    print(fstat(tres_bcr[[as.character(i)]]))
 }
 
 tres_bcrprov <- list()
@@ -177,6 +177,7 @@ for (i in levels(DAT$BCRPROV2))
     print(fstat(tres_bcrprov[[i]]))
 }
 
+PART
 fstat(tres_can)
 t(sapply(tres_prov, fstat))
 t(sapply(tres_bcr, fstat))
