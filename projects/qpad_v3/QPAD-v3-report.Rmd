@@ -114,26 +114,6 @@ formula interface in the `cmulti` function (using `type = "dis"`):
 
 We used the same general approach as in Solymos et al. [1], 
 please consult that for details on method.
-As part of QPAD v3, we are providing parameter estimates for the 
-following bird species:
-
-```{r echo=FALSE,message=FALSE,results='asis'}
-#library(QPAD)
-source(system.file(paste0("estimates/QPAD_v3.R"), package = "QPAD"))
-#library(knitr)
-#kable(.BAMCOEFS$spp_table[,-1])
-f <- function(i) {
-    cat(i, ". ",
-        as.character(.BAMCOEFS$spp_table[i,3]), " (*",
-        as.character(.BAMCOEFS$spp_table[i,2]), "*, ",
-        as.character(.BAMCOEFS$spp_table[i,1]), ")\n",
-        sep="")
-}
-for (i in 1:nrow(.BAMCOEFS$spp_table)) {
-    f(i)
-}
-```
-
 Estimates can be retrieved using the **QPAD** R package [4]. Here is how
 the package can be installed:
 
@@ -152,6 +132,58 @@ it interactively.
 ```{r}
 library(QPAD)
 load_BAM_QPAD(version = 3)
+```
+
+```{r echo=FALSE,message=FALSE,results='hide'}
+#library(QPAD)
+v2 <- new.env()
+source(system.file(paste0("estimates/QPAD_v2.R"), package = "QPAD"), local = v2)
+v3 <- new.env()
+source(system.file(paste0("estimates/QPAD_v3.R"), package = "QPAD"), local = v3)
+source(system.file(paste0("estimates/QPAD_v3.R"), package = "QPAD"))
+new_spp <- setdiff(rownames(.BAMCOEFS$spp_table), rownames(v2$.BAMCOEFS$spp_table))
+new_spp <- new_spp[new_spp != "YEWA"]
+#library(knitr)
+#kable(.BAMCOEFS$spp_table[,-1])
+f <- function(i) {
+    cat(i, ". ",
+        as.character(.BAMCOEFS$spp_table[i,3]), " (*",
+        as.character(.BAMCOEFS$spp_table[i,2]), "*, ",
+        as.character(.BAMCOEFS$spp_table[i,1]), ")",
+        if (rownames(.BAMCOEFS$spp_table)[i] %in% new_spp) "*\n" else "\n",
+        sep="")
+}
+nsra2 <- v2$.BAMCOEFS$sra_n
+nsra3 <- v3$.BAMCOEFS$sra_n
+nedr2 <- v2$.BAMCOEFS$edr_n
+nedr3 <- v3$.BAMCOEFS$edr_n
+names(nsra2)[names(nsra2) == "YWAR"] <- "YEWA"
+names(nedr2)[names(nedr2) == "YWAR"] <- "YEWA"
+join_spp <- intersect(names(nsra2), names(nsra3))
+
+#plot(nsra2[join_spp]/1000, nsra3[join_spp]/1000)
+#abline(0,1)
+#plot(nedr2[join_spp]/1000, nedr3[join_spp]/1000)
+#abline(0,1)
+#summary(nedr3[join_spp] - nedr2[join_spp])
+#summary(nsra3[join_spp] - nsra2[join_spp])
+#summary(100 * nedr3[join_spp] / nedr2[join_spp])
+#summary(100 * nsra3[join_spp] / nsra2[join_spp])
+
+```
+
+QPAD v2 included results for `r length(v2$.BAMCOEFS$spp)`,
+v3 includes results for `r length(v3$.BAMCOEFS$spp)`.
+As part of QPAD v3, we are providing parameter estimates for the 
+following bird species (* indicates the 
+`r length(v3$.BAMCOEFS$spp) - length(v2$.BAMCOEFS$spp)`
+species that were not part of QPAD v2 
+species list):
+
+```{r echo=FALSE,message=FALSE,results='asis'}
+for (i in 1:nrow(.BAMCOEFS$spp_table)) {
+    f(i)
+}
 ```
 
 Here is how one can visualize the results for a given species
