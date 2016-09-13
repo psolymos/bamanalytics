@@ -186,6 +186,36 @@ for (i in 1:nrow(.BAMCOEFS$spp_table)) {
 }
 ```
 
+Sample sizes have increased by
+`r round(mean(-100 + 100 * nsra3[join_spp] / nsra2[join_spp]), 1)`% for time-removal, and
+`r round(mean(-100 + 100 * nedr3[join_spp] / nedr2[join_spp]), 1)`% for distance-sampling
+models across the species that were included in both versions.
+
+```{r dev='png',fig.height=4,echo=FALSE,results='hide',message=FALSE}
+op <- par(mfrow=c(1,2))
+plot(nsra2[join_spp]/1000, nsra3[join_spp]/1000,
+     xlab="Version 2 (x1000)",
+     ylab="Version 3 (x1000)",
+     main="Time-removal sample sizes",
+     xlim=c(0, max(nsra2, nsra3)/1000), ylim=c(0, max(nsra2, nsra3)/1000))
+tmp <- nsra3[!(names(nsra3) %in% join_spp)]
+points(rep(0, length(tmp)), tmp/1000, col = 2, pch=21)
+abline(0,1, lty=2, col="lightblue")
+abline(lm(nsra3[join_spp] ~ nsra2[join_spp] - 1), lty=1, col="lightblue")
+plot(nedr2[join_spp]/1000, nedr3[join_spp]/1000,
+     xlab="Version 2 (x1000)",
+     ylab="Version 3 (x1000)",
+     main="Distance sampling sample sizes",
+     xlim=c(0, max(nedr2, nedr3)/1000), ylim=c(0, max(nedr2, nedr3)/1000))
+tmp <- nedr3[!(names(nedr3) %in% join_spp)]
+points(rep(0, length(tmp)), tmp/1000, col = 2, pch=21)
+abline(0,1, lty=2, col="lightblue")
+abline(lm(nedr3[join_spp] ~ nedr2[join_spp] - 1), lty=1, col="lightblue")
+legend("bottomright", bty="n", pch=21, col=c(1,2), legend=c("v2 and v3","v3 only"))
+par(op)
+```
+
+
 Here is how one can visualize the results for a given species
 (here Canada Warbler, `CAWA`) and a given version depending on
 what was specified as part of the `load_BAM_QPAD` call.
@@ -223,7 +253,10 @@ plot_BAM_QPAD("CAWA")
 
 A general and through comparison of the results from the different versions is
 outside of the scope of this report, but it can be performed using
-the **QPAD** R package.
+the **QPAD** R package. The R functions and their usage described
+in the supporting information for Solymos et al. [1] are available as part of the
+**QPAD** package. Please refer to the Appendices of this report
+for technical details of parameter estimation and offset calculation.
 
 # Acknowledgements
 
