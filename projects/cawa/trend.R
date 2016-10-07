@@ -142,7 +142,7 @@ levels(DAT$JURS2)[levels(DAT$JURS2) %in% c("NS","PEI")] <- "NS+PEI"
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 DAT$BCRPROV2 <- interaction(DAT$BCR, DAT$JURS2, drop=TRUE, sep="_")
 
-PART <- "bbs"
+PART <- "all"
 
 tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN", part=PART)
 
@@ -185,4 +185,79 @@ t(sapply(tres_bcrprov, fstat))
 
 save(DAT, tres_prov, tres_bcr, tres_can, tres_bcrprov,
     file=paste0("e:/peter/bam/Apr2016/out/cawa/trend-est-full-", PART, ".Rdata"))
+
+## summaries
+
+ebam <- new.env()
+ebbs <- new.env()
+eall <- new.env()
+load("e:/peter/bam/Apr2016/out/cawa/trend-est-full-bam.Rdata", envir=ebam)
+load("e:/peter/bam/Apr2016/out/cawa/trend-est-full-bbs.Rdata", envir=ebbs)
+load("e:/peter/bam/Apr2016/out/cawa/trend-est-full-all.Rdata", envir=eall)
+DAT <- eall$DAT
+eall$DAT <- NULL
+ebam$DAT <- NULL
+ebbs$DAT <- NULL
+BBS_PCODE <- levels(DAT$PCODE)[substr(levels(DAT$PCODE), 1, 3) == "BBS"]
+DAT$isBBS <- DAT$PCODE %in% BBS_PCODE
+DAT$Y01 <- ifelse(DAT$Y>0,1,0)
+fstat <- function(x, level=0.95, digits=3) {
+    round(c(Mean=mean(x, na.rm=TRUE),
+    Median=median(x, na.rm=TRUE),
+    quantile(x, c((1-level)/2, 1 - (1-level)/2), na.rm=TRUE)), digits)
+}
+
+tr <- list(all=as.list(eall), bam=as.list(ebam), bbs=as.list(ebbs))
+
+## Canada
+d <- aggregate(DAT$Y01, list(Country=DAT$COUNTRY, BCR=DAT$BCR, PROV=DAT$JURS2, BCRPROV=DAT$BCRPROV), sum)
+d$ndet <- d$x
+d$prop <- aggregate(DAT$Y01, list(Country=DAT$COUNTRY, BCR=DAT$BCR, PROV=DAT$JURS2, BCRPROV=DAT$BCRPROV), mean)$x
+
+tmpd <- with(DAT[DAT$Y01>0,], table(COUNTRY, isBBS))
+tmpn <- with(DAT, table(COUNTRY, isBBS))
+tmpp <- tmpd/tmpn
+table(DAT$COUNTRY[DAT$Y01>0])
+table(DAT$COUNTRY)
+table(DAT$COUNTRY[DAT$Y01>0])/table(DAT$COUNTRY)
+
+tr1 <- data.frame(ndet=c(table(DAT$COUNTRY[DAT$Y01>0])[1], tmpd[1,1:2]),
+    ntot=c(table(DAT$COUNTRY)[1], tmpn[1,1:2]))
+tr1$prop <- tr1$ndet/tr1$ntot
+tr1 <- data.frame(t(sapply(tr, function(z) fstat(z$tres_can))), tr1)
+round(tr1,3)
+
+
+tab <- data.frame(Country="Canada", BCR="", PROV="", BCRPROV="",
+    Data=names(tr), t(sapply(tr, function(z) fstat(z$tres_can))))
+
+tmp <- lapply(tr, function(z) t(sapply(z$tres_bcr, fstat)))
+tmp$all <- data.frame(Country="", BCR=rownames(tmp$all),
+    PROV="", BCRPROV="", Data="all", tmp$all)
+tmp$bam <- data.frame(Country="", BCR=rownames(tmp$bam),
+    PROV="", BCRPROV="", Data="bam", tmp$bam)
+tmp$bbs <- data.frame(Country="", BCR=rownames(tmp$bbs),
+    PROV="", BCRPROV="", Data="bbs", tmp$bbs)
+tab <- rbind(tab, tmp$all, tmp$bam, tmp$bbs)
+
+tmp <- lapply(tr, function(z) t(sapply(z$tres_prov, fstat)))
+tmp$all <- data.frame(Country="", BCR="",
+    PROV=rownames(tmp$all), BCRPROV="", Data="all", tmp$all)
+tmp$bam <- data.frame(Country="", BCR="",
+    PROV=rownames(tmp$bam), BCRPROV="", Data="bam", tmp$bam)
+tmp$bbs <- data.frame(Country="", BCR="",
+    PROV=rownames(tmp$bbs), BCRPROV="", Data="bbs", tmp$bbs)
+tab <- rbind(tab, tmp$all, tmp$bam, tmp$bbs)
+
+tmp <- lapply(tr, function(z) t(sapply(z$tres_bcrprov, fstat)))
+tmp$all <- data.frame(Country="", BCR="",
+    PROV="", BCRPROV=rownames(tmp$all), Data="all", tmp$all)
+tmp$bam <- data.frame(Country="", BCR="",
+    PROV="", BCRPROV=rownames(tmp$bam), Data="bam", tmp$bam)
+tmp$bbs <- data.frame(Country="", BCR="",
+    PROV="", BCRPROV=rownames(tmp$bbs), Data="bbs", tmp$bbs)
+tab <- rbind(tab, tmp$all, tmp$bam, tmp$bbs)
+
+write.csv(tab, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-trend-2016-10-07.csv")
+write.csv(d, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-det-2016-10-07.csv")
 
