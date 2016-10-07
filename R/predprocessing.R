@@ -13,23 +13,26 @@ getOption("datatable.fread.datatable")
 ## Climate preprocessing -------------------------
 z <- fread(file.path(ROOT, "cti", "ECGrid_climMarch2014.csv"))
 #z <- read.csv(file.path(ROOT, "cti", "ECGrid_climMarch2014.csv"))
-cn1 <- c("pointid", "POINT_X", "POINT_Y", 
-    "NORM_6190_CMIJJApm", "NORM_6190_DD0", "NORM_6190_DD5", 
-    "NORM_6190_EMT", "NORM_6190_TD", "NORM_6190_CMIpm", "NORM_6190_MSP")
+cn1 <- c("pointid", "POINT_X", "POINT_Y",
+    "NORM_6190_CMDpm", "NORM_6190_CMIJJApm", "NORM_6190_CMIpm",
+    "NORM_6190_DD0", "NORM_6190_DD5", "NORM_6190_MWMT", "NORM_6190_MCMT",
+    "NORM_6190_EMT", "NORM_6190_TD", "NORM_6190_MSP")
+
 write.csv(z[,cn1], file=file.path(ROOT, "cti", "clim-only.csv"))
+
 ## NALC 4x4
 if (FALSE) { # no surrounding stuff
 cn2 <- c("pointid", "POINT_X", "POINT_Y",
-    "lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17", 
+    "lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17",
     "lc18", "lc19", "lc2", "lc5", "lc6", "lc8")
 z <- z[,cn2]
 ltnalc <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv")
 rownames(ltnalc) <- paste0("lc", ltnalc$Value)
-ltnalc <- ltnalc[c("lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17", 
+ltnalc <- ltnalc[c("lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17",
     "lc18", "lc19", "lc2", "lc5", "lc6", "lc8"),]
 ltnalc$Label <- as.character(ltnalc$Label)
 ltnalc$Label[is.na(ltnalc$Label)] <- "NONE"
-m <- as.matrix(z[,c("lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17", 
+m <- as.matrix(z[,c("lc1", "lc10", "lc11", "lc12", "lc13", "lc14", "lc15", "lc16", "lc17",
     "lc18", "lc19", "lc2", "lc5", "lc6", "lc8")])
 m <- groupSums(m, 2, ltnalc$Label)
 rownames(m) <- z$pointid
@@ -57,6 +60,33 @@ clim$MSP <- (clim$NORM_6190_MSP - 400) / 200
 clim$NORM_6190_MSP <- NULL
 #clim$DD02 <- clim$DD0^2
 #clim$DD52 <- clim$DD5^2
+#clim$CMI2 <- clim$CMI^2
+#clim$CMIJJA2 <- clim$CMIJJA^2
+clim$NORM_6190_CMDpm <- NULL
+clim$NORM_6190_MWMT <- NULL
+clim$NORM_6190_MCMT <- NULL
+
+climN <- read.csv("e:/peter/bam/Apr2016/north/climlu_NorthXY_2016.csv")
+climN <- climN[,c("pointid", "east", "north", "CMD",
+    "CMI", "CMIJJA", "dd01", "dd51", "EMT", "mcmt", "msp", "mwmt", "td")]
+climN$POINT_X <- climN$east
+climN$east <- NULL
+climN$POINT_Y <- climN$north
+climN$north <- NULL
+climN$CMIJJA <- (climN$CMIJJA - 0) / 50
+climN$CMI <- (climN$CMI - 0) / 50
+climN$TD <- (climN$td - 300) / 100
+climN$td <- NULL
+climN$DD0 <- (climN$dd01 - 1000) / 1000
+climN$dd01 <- NULL
+climN$DD5 <- (climN$dd51 - 1600) / 1000
+climN$dd51 <- NULL
+climN$EMT <- (climN$EMT + 400) / 100
+climN$MSP <- (climN$msp - 400) / 200
+climN$msp <- NULL
+climN <- climN[,colnames(clim)]
+
+clim <- rbind(clim, climN)
 
 ## loading CTI
 pg2 <- fread(file.path(ROOT, "cti", "EC1kclip_cti90.csv"))
@@ -75,6 +105,9 @@ head(pg2)
 
 pg2$lat <- NULL
 pg2$lon <- NULL
+
+pgN <- read.csv("e:/peter/bam/Apr2016/north/NorthernXY_2016_terrain90.csv")
+pg2 <- rbind(pg2,pgN[,c("pointid","cti90")])
 rownames(pg2) <- pg2$pointid
 
 pg2$CTI <- (pg2$cti90 - 8) / 4
@@ -96,13 +129,15 @@ pg3a <- fread(file.path(ROOT, "cti", "EC1kclip_slope90_extra.csv"))[,c("pointid"
 pg3b <- fread(file.path(ROOT, "cti", "EC1kclip_slope90_extra_NB.csv"))[,c("pointid","slope90")]
 pg3ab <- rbind(pg3a,pg3b)
 pg3 <- rbind(pg3,pg3ab)
+pg3 <- rbind(pg3,pgN[,c("pointid","slope90")])
 
 
 ## slope, cti, elev
 pg3$SLP <- sqrt(pg3$slope90)
 clim$SLP <- pg3$SLP[match(clim$pointid, pg3$pointid)]
 clim$SLP2 <- clim$SLP^2
-rm(pg3,pg3a,pg3ab,pg3b)
+rm(pg3,pg3a,pg3ab,pg3b,pgN)
+gc()
 
 save(clim, file=file.path(ROOT, "pg-clim.Rdata"))
 
@@ -116,20 +151,19 @@ x$BCRNAME <- NULL
 x$COUNTRY <- as.factor(x$COUNTRY)
 x$PROVINCE_S <- as.factor(x$PROVINCE_S)
 
-
 ## REG (based on BCR and Jurs)
 x$JURS <- x$PROVINCE_S
 #x$JURS <- droplevels(x$JURS)
 
-levels(x$JURS) <- c("", "AK", "AB", "BC", "CA", 
-    "CT", "DE", "ID", "IL", "IN", "IA", 
-    "ME", "MB", "MD", "MA", "MI", 
-    "MN", "MO", "MT", "NE", "NV", "NB", 
-    "NH", "NJ", "NY", "NL", "ND", 
-    "NT", "NS", "NU", "OH", "ON", 
-    "OR", "PA", "PE", "QC", "RI", 
-    "SK", "SD", "UT", "VT", "VA", 
-    "WA", "WV", "WI", "WY", "YK")
+#levels(x$JURS) <- c("", "AK", "AB", "BC", "CA",
+#    "CT", "DE", "ID", "IL", "IN", "IA",
+#    "ME", "MB", "MD", "MA", "MI",
+#    "MN", "MO", "MT", "NE", "NV", "NB",
+#    "NH", "NJ", "NY", "NL", "ND",
+#    "NT", "NS", "NU", "OH", "ON",
+#    "OR", "PA", "PE", "QC", "RI",
+#    "SK", "SD", "UT", "VT", "VA",
+#    "WA", "WV", "WI", "WY", "YK")
 
 ## fill in unknown BCRs with closest
 if (FALSE) {
@@ -159,113 +193,14 @@ for (j in 1:length(ii)) {
 save(x, file=file.path(ROOT, "pg-main-raw-NALConly.Rdata"))
 }
 
-x <- droplevels(x[x$BCR %in% c(2:14, 23),])
+#x <- droplevels(x[x$BCR %in% c(2:14, 23),])
 
-x$BCR_JURS <- interaction(x$BCR, x$JURS, drop=TRUE, sep="_")
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("0_",   "100_"  )] <- "UNKNOWN"
-
-if (FALSE) { # regions are not totally relevant (no interactions)
-x$BCR_JURS0 <- x$BCR_JURS
-
-levels(x$BCR_JURS)[grepl("_AK", levels(x$BCR_JURS))] <- "AK"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("9_BC","9_ID","9_WA",
-    "5_BC","5_WA","10_AB","10_BC","10_ID","10_MT","10_WA")] <- "Mtn"
-#levels(x$BCR_JURS)[grepl("11_", levels(x$BCR_JURS))] <- "Pra" # Prairies
-#levels(x$BCR_JURS)[grepl("17_", levels(x$BCR_JURS))] <- "Pra"
-#levels(x$BCR_JURS)[grepl("22_", levels(x$BCR_JURS))] <- "Pra"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("11_AB", "11_MB", "11_MT", "11_SK",
-    "17_MT", "17_ND", "17_SD", "11_ND", "11_SD")] <- "Pra_west" # Prairies
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("11_MN", 
-    "22_IL", "22_IN", "22_MI", "22_MN", "22_OH", "22_WI")] <- "Pra_east"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("4_BC","4_NT","4_YK")] <- "4_all"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB",
-    "6_YK","6_NT")] <- "6_all"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_AB","6_BC","6_SK","6_MB")] <- "6_south"
-
-## keep northern points in
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_NT","7_MB","7_NT","3_NU")] <- "3+7_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_ON","7_QC","7_NL")] <- "3+7_east"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("8_MB","8_SK")] <- "8_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("8_NL","8_ON","8_QC")] <- "8_east"
-
-levels(x$BCR_JURS)[grepl("12_", levels(x$BCR_JURS))] <- "Grl" # Great Lakes
-levels(x$BCR_JURS)[grepl("13_", levels(x$BCR_JURS))] <- "Grl"
-levels(x$BCR_JURS)[grepl("23_", levels(x$BCR_JURS))] <- "Grl"
-
-levels(x$BCR_JURS)[grepl("14_", levels(x$BCR_JURS))] <- "Mar" # Maritimes
-levels(x$BCR_JURS)[grepl("30_", levels(x$BCR_JURS))] <- "Mar"
-
-levels(x$BCR_JURS)[grepl("24_", levels(x$BCR_JURS))] <- "SEus" # SE US
-levels(x$BCR_JURS)[grepl("26_", levels(x$BCR_JURS))] <- "SEus"
-levels(x$BCR_JURS)[grepl("28_", levels(x$BCR_JURS))] <- "SEus"
-levels(x$BCR_JURS)[grepl("29_", levels(x$BCR_JURS))] <- "SEus"
-
-sort(levels(x$BCR_JURS))
-table(x$BCR_JURS)
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("5_YK")] <- "Mtn"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_YK")] <- "3+7_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_MB")] <- "3+7_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_NL")] <- "3+7_east"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("3_QC")] <- "3+7_east"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_NU")] <- "6_all"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("8_AB")] <- "8_west"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_SK")] <- "3+7_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_AB")] <- "3+7_west"
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("7_NU")] <- "3+7_west"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("6_MN")] <- "6_all"
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("5_CA",  "5_OR" ,
-    "9_CA",  "9_NV", "9_OR", "9_UT",  "9_WY",
-    "10_OR", "10_UT", "10_WY",
-    "16_ID",  "16_UT", "16_WY")] <- "Mtn"
-
-#levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("18_NE", "18_SD", "18_WY",
-#    "19_NE", "19_SD")] <- "Pra"      
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("18_SD", "18_WY",
-    "19_SD", "11_NE", "17_NE", "17_WY",
-    "18_NE", "19_NE", "22_NE", "22_SD")] <- "Pra_west"      
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("22_IA", "22_MO", "11_IA")] <- "Pra_east"      
-
-levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("0_",   "100_"  )] <- "UNKNOWN"
-
-
-## regions for trend
-x$REG <- x$BCR_JURS
-levels(x$REG)[levels(x$REG) %in% c("Mtn", "AK")] <- "Coast"
-levels(x$REG)[levels(x$REG) %in% c("4_all", "3+7_west", "3+7_east")] <- "North"
-levels(x$REG)[levels(x$REG) %in% c("Pra_west","Pra_east")] <- "South"
-levels(x$REG)[levels(x$REG) %in% c("8_west","6_all")] <- "West"
-levels(x$REG)[levels(x$REG) %in% c("Mar","SEus","8_east","Grl")] <- "East"
-
-table(x$BCR_JURS, x$REG)
-table(x$BCR_JURS0, x$REG)
-x$REG <- relevel(x$REG, "West")
-table(x$REG)
-#plot(x[,2:3],pch=".",col=x$REG)
-
-x$EW <- x$BCR_JURS
-levels(x$EW)[levels(x$EW) %in% c("Mtn", "AK", "4_all", "3+7_west", 
-    "Pra_west", "8_west","6_all")] <- "W"
-levels(x$EW)[levels(x$EW) %in% c("3+7_east", "Pra_east",
-    "Mar","SEus","8_east","Grl")] <- "E"
-table(x$BCR_JURS, x$EW)
-table(x$EW)
-x$EW <- relevel(x$EW, "W")
-#plot(x[,2:3],pch=".",col=x$EW)
-}
+#x$BCR_JURS <- interaction(x$BCR, x$JURS, drop=TRUE, sep="_")
+#levels(x$BCR_JURS)[levels(x$BCR_JURS) %in% c("0_",   "100_"  )] <- "UNKNOWN"
 
 ## EOSC/LCC/NALC skeleton: gridcode and eosd extent definition !!!
 
-x$LCCV1_3Can <- NULL
+#x$LCCV1_3Can <- NULL
 x$eosdbam <- NULL
 
 #xx <- x[sample.int(nrow(tmp), 10000),c("POINT_X","POINT_Y","eosdbam")]
@@ -325,11 +260,11 @@ x$isDM_LCC <- ifelse(x$HAB_LCC2 %in% c("Decid", "Mixed"), 1L, 0L)
 x$isDM_EOSD <- ifelse(x$HAB_EOSD2 %in% c("Decid", "Mixed"), 1L, 0L)
 x$isDM_NALC <- ifelse(x$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
 ## non-forest (wet etc)
-x$isNF_LCC <- ifelse(x$HAB_LCC2 %in% 
+x$isNF_LCC <- ifelse(x$HAB_LCC2 %in%
     c("Agr", "Barren", "Burn", "Devel", "Grass", "Wet"), 1L, 0L)
-x$isNF_EOSD <- ifelse(x$HAB_EOSD2 %in% 
+x$isNF_EOSD <- ifelse(x$HAB_EOSD2 %in%
     c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
-x$isNF_NALC <- ifelse(x$HAB_NALC2 %in% 
+x$isNF_NALC <- ifelse(x$HAB_NALC2 %in%
     c("Agr", "Barren", "Devel", "Grass", "Shrub", "Wet"), 1L, 0L)
 }
 
@@ -360,8 +295,8 @@ table(x$HAB_NALC2, x$HAB_NALC1)
 ## decid + mixed
 x$isDM <- ifelse(x$HAB_NALC2 %in% c("Decid", "Mixed"), 1L, 0L)
 ## non-forest (wet etc)
-x$isNF <- ifelse(x$HAB_NALC1 %in% 
-    c("Agr", "Barren", "Devel", "Grass", "Shrub", 
+x$isNF <- ifelse(x$HAB_NALC1 %in%
+    c("Agr", "Barren", "Devel", "Grass", "Shrub",
     "WetOpen", "DecidOpen", "ConifOpen", "MixedOpen"), 1L, 0L)
 x$isDev <- ifelse(x$HAB_NALC2 %in% c("Agr", "Devel"), 1L, 0L)
 x$isOpn <- x$isNF
@@ -388,6 +323,16 @@ rownames(br) <- br$pointid
 table(br$TYPE)
 x$Brandt <- br$TYPE[match(rownames(x), br$pointid)]
 
+x$LEVEL3 <- NA
+xN <- read.csv("e:/peter/bam/Apr2016/north/MissingPredValuesJune8.csv")
+xN$LCCV1_3Can <- NA
+
+c("pointid", "POINT_X", "POINT_Y", "BCR", "LCCV1_3Can", "JURS",
+"HAB_NALC2", "HGT", "HGT2", "TR3", "HAB_NALC1", "isDM", "isNF",
+"isDev", "isOpn", "isWet", "isDec", "isMix", "LIN", "POL", "Brandt", "LEVEL3")
+
+xN2 <- xN[,c()
+
 #x <- droplevels(x[x$BCR_JURS != "UNKNOWN",])
 save(x, file=file.path(ROOT, "pg-main-NALConly.Rdata"))
 
@@ -403,10 +348,10 @@ zz$OBJECTID <- NULL
 zz$FID_Pred1kmIdentGrid4k <- NULL
 zz$FID_Ec_1k_clip <- NULL
 zz$grid_code <- NULL
-zz$POINT_X <- NULL             
+zz$POINT_X <- NULL
 zz$POINT_Y <- NULL
 zz$FID_Grid4x4GFWall <- NULL
-zz$Id <- NULL                    
+zz$Id <- NULL
 zz$gridcode <- NULL
 zz$Grid4x4 <- NULL
 zz$FID_MergeLossLCC <- NULL
@@ -420,132 +365,10 @@ length(intersect(z$pointid, zz$pointid))
 colnames(z)[colnames(z) == "YEAR"] <- "YearFire"
 z$YearLoss <- zz$YearLoss[match(z$pointid, zz$pointid)]
 
+## N here
+
 loss <- z
 save(loss, file=file.path(ROOT, "pg-loss.Rdata"))
-
-if (FALSE) { # no 4x4 used
-## LCC 4x4
-
-fn <- file.path(ROOT, "PredictionIntersections", "Pred_LCC05_4x4CAN.csv")
-ltlcc <- read.csv("~/repos/bamanalytics/lookup/lcc05.csv")
-ltlcc$vv <- paste0("LCCVV", ltlcc$lcc05v1_2)
-ltlcc$BAMLCC05V2_label2 <- as.character(ltlcc$BAMLCC05V2_label2)
-ltlcc$BAMLCC05V2_label2[is.na(ltlcc$BAMLCC05V2_label2)] <- "NONE"
-
-tmp0 <- read.csv(fn, nrows=2, skip=0, header=TRUE)
-
-f1 <- function(tmp0) {
-    tmp0$LCCVVSUM <- NULL
-    tmp0$LCCVV0 <- NULL
-    m <- as(as.matrix(tmp0[,grepl("LCCVV", colnames(tmp0))]), "dgCMatrix")
-    rownames(m) <- gsub(",", "", tmp0$pointid)
-    groupSums(m, 2, ltlcc$BAMLCC05V2_label2)
-}
-#f1(tmp0)
-#rBind(tmp0,tmp0)
-
-nlines <- function(file) {
-    ## http://r.789695.n4.nabble.com/Fast-way-to-determine-number-of-lines-in-a-file-td1472962.html
-    ## needs Rtools on Windows
-    if (.Platform$OS.type == "windows") { 
-        nr <- as.integer(strsplit(system(paste("/RTools/bin/wc -l", 
-            file), intern=TRUE), " ")[[1]][1])
-    } else {
-        nr <- as.integer(strsplit(system(paste("wc -l", 
-            file), intern=TRUE), " ")[[1]][1])
-    }
-    nr
-}
-nlines(fn)
-
-n <- 10^6
-nr <- 7935918
-cn <- colnames(tmp0)
-#res <- list()
-m <- floor((nr-1) / n)
-mm <- (nr-1) %% n
-if (mm > 0)
-    m <- m+1
-for (i in 1:m) {
-    cat(i, "/", m, "\n");flush.console()
-    tmp <- fread(fn, nrows=n, skip=(i-1)*n+1, header=FALSE)
-    colnames(tmp) <- cn
-    res <- f1(tmp)
-    save(res, file = file.path(ROOT, paste0("lcc4x4-", i, ".Rdata")))
-    rm(tmp, res)
-    gc()
-}
-
-## EOSD 4x4
-
-fn <- file.path(ROOT, "eosd4x4", "EOSD4x4Pred_eosdextent.csv")
-lteosd <- read.csv("~/repos/bamanalytics/lookup/eosd.csv")
-lteosd$vv <- paste0("eosdVV", lteosd$Value)
-lteosd$Reclass_label2 <- as.character(lteosd$Reclass_label2)
-rownames(lteosd) <- lteosd$vv
-
-tmp0 <- read.csv(fn, nrows=2, skip=0, header=TRUE)
-tmp0$eosdVVSUM <- NULL
-m <- as(as.matrix(tmp0[,grepl("eosdVV", colnames(tmp0))]), "dgCMatrix")
-rownames(m) <- gsub(",", "", tmp0$pointid)
-lteosd <- lteosd[colnames(m),]
-rownames(lteosd) <- colnames(m)
-lteosd$Reclass_label2[is.na(lteosd$Reclass_label2)] <- "OUT"
-
-f1 <- function(tmp0) {
-    tmp0$eosdVVSUM <- NULL
-    m <- as(as.matrix(tmp0[,grepl("eosdVV", colnames(tmp0))]), "dgCMatrix")
-    rownames(m) <- gsub(",", "", tmp0$pointid)
-    groupSums(m, 2, lteosd$Reclass_label2)
-}
-#f1(tmp0)
-#rBind(tmp0,tmp0)
-
-nlines(fn)
-
-n <- 10^6
-nr <- 6357648
-cn <- colnames(tmp0)
-#res <- list()
-m <- floor((nr-1) / n)
-mm <- (nr-1) %% n
-if (mm > 0)
-    m <- m+1
-for (i in 1:m) {
-    cat(i, "/", m, "\n");flush.console()
-    tmp <- fread(fn, nrows=n, skip=(i-1)*n+1, header=FALSE)
-    colnames(tmp) <- cn
-    res <- f1(tmp)
-    save(res, file = file.path(ROOT, paste0("eosd4x4-", i, ".Rdata")))
-    rm(tmp, res)
-    gc()
-}
-
-nalc4x4 <- fread(file.path(ROOT, "cti", "nalc4x4-processed.csv"))
-rownames(nalc4x4) <- nalc4x4[,1]
-nalc4x4[,1] <- NULL
-nalc4x4 <- as(as.matrix(nalc4x4), "dgCMatrix")
-
-load(file.path(ROOT, paste0("eosd4x4-", 1, ".Rdata")))
-eosd4x4 <- res
-for (i in 2:7) {
-    cat(i, "\t");flush.console()
-    load(file.path(ROOT, paste0("eosd4x4-", i, ".Rdata")))
-    eosd4x4 <- rBind(eosd4x4, res)
-}
-rm(res)
-
-load(file.path(ROOT, paste0("lcc4x4-", 1, ".Rdata")))
-lcc4x4 <- res
-for (i in 2:8) {
-    cat(i, "\t");flush.console()
-    load(file.path(ROOT, paste0("lcc4x4-", i, ".Rdata")))
-    lcc4x4 <- rBind(lcc4x4, res)
-}
-rm(res)
-
-save(lcc4x4, eosd4x4, nalc4x4, file=file.path(ROOT, "pg-4x4.Rdata"))
-}
 
 ################# PACKAGING ###############################
 
