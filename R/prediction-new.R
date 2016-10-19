@@ -270,8 +270,8 @@ cat(fo, "\n");flush.console()
 #cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
 #est <- getEst(res, stage = Stage, X=Xn)
 
-#fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
-fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, "_c1nohgt.Rdata")
+fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
+#fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, "_c1nohgt.Rdata")
 
 is_null <- integer(length(fl))
 names(is_null) <- fl
@@ -345,6 +345,11 @@ chfun(11.60, 9.81, 2002, 2012) # median for CAWA
 
 
 if (FALSE) {
+
+pp <- data.frame(plam[,c("Mean","SD")])
+pp$pointid <- rownames(plam)
+write.csv(pp, row.names=FALSE, file=file.path(ROOT3, "CAWA-data-forSam-2016-10-19.csv"))
+
 #e <- new.env()
 #load("e:/peter/bam/Apr2016/out/data/pack_2016-04-18.Rdata", envir=e)
 #with(e$DAT, table(JURS, xBCR))
@@ -369,7 +374,7 @@ points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.5, col=2)
 par(op)
 dev.off()
 
-png(file.path(ROOT3, "maps", paste0(fo, "-mean-c1nohgt.png")),
+png(file.path(ROOT3, "maps", paste0(fo, "-mean-for Sam.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 zval <- if (length(unique(round(br,10))) < 5)
@@ -402,7 +407,7 @@ legend("topright", bty = "n", legend=rev(TEXT),
 par(op)
 dev.off()
 
-png(file.path(ROOT3, "maps", paste0(fo, "-sd.png")),
+png(file.path(ROOT3, "maps", paste0(fo, "-sd-forSam.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
