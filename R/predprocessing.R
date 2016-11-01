@@ -127,21 +127,14 @@ save(clim, file=file.path(ROOT, "pg-clim.Rdata"))
 ## -----------------------------------
 
 ## CEC
-x <- fread(file.path(ROOT2, "PredictionGridCECIntersections.csv"))
-x$LEVEL3 <- x$LEVEL3_1
-xN <- read.csv("e:/peter/bam/Apr2016/north/MissingPredValuesJune8.csv")
-compare_sets(x$pointid, xN$pointid)
-cec <- rbind(x[,c("pointid", "LEVEL3", "POINT_X", "POINT_Y")],
-    xN[,c("pointid", "LEVEL3", "POINT_X", "POINT_Y")])
+x <- fread(file.path(ROOT2, "north2", "AllPredPointsCECFrameworkOct23_2016.csv"))
+x$LEVEL3[x$LEVEL3 == ""] <- NA
+x$LEVEL3[x$LEVEL3 == "Water"] <- NA
+x$LEVEL3 <- as.factor(x$LEVEL3)
+cec <- x[,c("pointid", "LEVEL3", "POINT_X", "POINT_Y")]
 rownames(cec) <- cec$pointid
-rm(x, xN)
+rm(x)
 gc()
-
-points(cec$POINT_X, cec$POINT_Y,pch=".",col="pink")
-cec$LEVEL3[cec$LEVEL3 == ""] <- NA
-cec$LEVEL3[cec$LEVEL3 == "Water"] <- NA
-table(cec$LEVEL3, useNA="a")
-cec$LEVEL3 <- as.factor(cec$LEVEL3)
 
 save(cec, file=file.path(ROOT, "cec.Rdata"))
 
@@ -227,7 +220,8 @@ x$BEAD_poly <- NULL
 all(rownames(x) == as.character(x$pointid))
 
 ## Brandt boreal
-br <- read.csv(file.path(ROOT, "brandt", "Pred_BrandtBoreal.csv"))
+#br <- read.csv(file.path(ROOT, "brandt", "Pred_BrandtBoreal.csv"))
+br <- fread(file.path(ROOT, "brandt", "Pred_BrandtBoreal.csv"))
 levels(br$pointid) <- gsub(",", "", levels(br$pointid))
 br <- br[!duplicated(br$pointid),]
 rownames(br) <- br$pointid
@@ -245,6 +239,13 @@ x2 <- with(xN, data.frame(
     JURS=NAME,
     Brandt=NA
 ))
+rownames(x2) <- x2$pointid
+
+br2 <- fread(file.path(ROOT2, "north2", "MissingPredValuesBoreal_Oct23_2016.csv"))
+rownames(br2) <- br2$pointid
+compare_sets(x2$pointid, br2$pointid)
+x2$Brandt <- factor(br2$TYPE[match(x2$pointid, br2$pointid)],
+    c("B_ALPINE","BOREAL","H_ALPINE","HEMIBOREAL"))
 
 ## "HAB_NALC2", "HGT", "HGT2", "TR3", "HAB_NALC1", "isDM", "isNF",
 ## "isDev", "isOpn", "isWet", "isDec", "isMix", "LIN", "POL"
@@ -298,11 +299,18 @@ x2$POL <- xN$BEAD_P
 x2$POL[x2$POL < 0] <- NA
 
 setdiff(colnames(x), colnames(x2))
-compare_sets(x$pointid, x2$pointid)
+#compare_sets(x$pointid, x2$pointid)
 
 x <- rbind(x, x2[,colnames(x)])
 rownames(x) <- x$pointid
 gc()
+
+## new tree cover -- same as the old ...
+#xtree <- fread(file.path(ROOT2, "north2", "AllPredPointsTreecover_oct23.csv"))
+#compare_sets(x$pointid, xtree$pointid)
+#x$tree_new <- xtree$treecov[match(x$pointid, xtree$pointid)]
+#summary(x$tree_new - x$tree)
+
 
 load(file.path(ROOT, "cec.Rdata"))
 compare_sets(x$pointid, cec$pointid)
@@ -338,6 +346,33 @@ with(x[!is.na(x[,i]),], points(POINT_X, POINT_Y,pch=".",col="tomato"))
 par(op)
 dev.off()
 }
+png(paste0("e:/peter/bam/Apr2016/maps/LEVEL3-allVals.png"), width=2000, height=1500)
+op <- par(mar=c(1,1,1,1))
+plot(x$POINT_X, x$POINT_Y,pch=".", axes=FALSE, ann=FALSE, main="LEVEL3",
+    col=as.integer(x$LEVEL3))
+par(op)
+dev.off()
+
+st <- read.csv(file.path(ROOT2, "BAMCECStudyAreaEcoregionLevel2.csv"))
+levs <- levels(st$LEVEL3)
+iii <- x$LEVEL3 %in% levs
+png(paste0("e:/peter/bam/Apr2016/maps/LEVEL3-usedVals.png"), width=2000, height=1500)
+op <- par(mar=c(1,1,1,1))
+plot(x$POINT_X, x$POINT_Y,pch=".", axes=FALSE, ann=FALSE, main="LEVEL3", col="lightgrey")
+with(x[iii,], points(POINT_X, POINT_Y,pch=".",col=LEVEL3))
+par(op)
+dev.off()
+
+st <- read.csv(file.path(ROOT2, "BAMCECStudyAreaEcoregionLevel2.csv"))
+levs <- levels(st$LEVEL3)
+iii <- x$LEVEL3 %in% levs
+png(paste0("e:/peter/bam/Apr2016/maps/LEVEL3-usedVals2.png"), width=2000, height=1500)
+op <- par(mar=c(1,1,1,1))
+plot(x$POINT_X, x$POINT_Y,pch=".", axes=FALSE, ann=FALSE, main="LEVEL3", col="lightgrey")
+with(x[iii,], points(POINT_X, POINT_Y,pch=".",col="tomato"))
+par(op)
+dev.off()
+
 
 ## Fire, GWF
 
@@ -372,26 +407,25 @@ z$YearLoss <- zz$YearLoss[match(z$pointid, zz$pointid)]
 lN <- read.csv("e:/peter/bam/Apr2016/north/MissingPred_GFWC_Loss.csv")
 lN$YearLoss <- as.integer(lN$GFWC_noFire + 2000)
 lN$YearLoss[lN$GFWC_noFire < 1] <- NA
-lN$YearFire <- NA
 
-#fN <- read.csv("e:/peter/bam/Apr2016/north/fire_NorthXY_2016.csv")
-#fNx <- fN[fN$YEAR != 0,]
-#fNx$zzz <- NA
-#for (i in 1:nrow(fNx)) {
-#    d <- sqrt((lN$POINT_X - fNx$x[i])^2 + (lN$POINT_Y - fNx$y[i])^2)
-#    fNx$zzz[i] <- which.min(d)
-#}
+fN <- fread(file.path(ROOT2, "north2", "fire_NorthXY_2016.csv"))
+fN$YEAR[fN$YEAR==0] <- NA
+lN$YearFire <- fN$YEAR[match(lN$pointid,fN$pointid)]
 
 loss <- rbind(z[,c("pointid", "YearFire", "YearLoss")],
     lN[,c("pointid", "YearFire", "YearLoss")])
 rownames(loss) <- loss$pointid
+ii <- !is.na(loss$YearFire) & loss$YearFire > 9000
+loss$YearFire[ii] <- loss$YearFire[ii] - 8000
 save(loss, file=file.path(ROOT, "pg-loss.Rdata"))
 
 ################# PACKAGING ###############################
 
-## save bcr/jurs chunks
+
+## save Level3 chunks
 
 ROOT <- "e:/peter/bam/pred-2015"
+ROOT2 <- "e:/peter/bam/Apr2016"
 library(mefa4)
 
 load(file.path(ROOT, "pg-main-NALConly.Rdata"))
@@ -411,36 +445,42 @@ clim <- clim[match(x$pointid, clim$pointid),4:14]
 x <- data.frame(x, clim)
 rm(clim)
 
-#ii <- !is.na(x$CTI) & ! is.na(x$TD)
-#x <- x[ii,]
+
+gc()
+#cti_missing <- x[is.na(x$CTI),c("pointid","POINT_X","POINT_Y")]
+#write.csv(cti_missing, row.names=FALSE, file="e:/peter/bam/Apr2016/cti-missing.csv")
+
+ii <- colnames(x)
+jj <- sample.int(nrow(x), 10^6)
+xtmp <- x[jj,]
+
+for (i in ii) {
+gc()
+cat(i, "\n");flush.console()
+png(paste0("e:/peter/bam/Apr2016/maps-sub/", i, ".png"), width=2000, height=1500)
+op <- par(mar=c(1,1,1,1))
+plot(xtmp$POINT_X, xtmp$POINT_Y,pch=".",col="lightgrey", axes=FALSE, ann=FALSE, main=i)
+with(xtmp[!is.na(xtmp[,i]),], points(POINT_X, POINT_Y,pch=".",col="tomato"))
+par(op)
+dev.off()
+}
 
 x$DD02 <- x$DD0^2
 x$DD52 <- x$DD5^2
-
-if (FALSE) {
-load(file.path(ROOT, "pg-4x4.Rdata"))
-tmp <- setdiff(rownames(x), rownames(lcc4x4))
-plot(x[,2:3],pch=".",col=ifelse(rownames(x) %in% tmp,2,1))
-x <- x[rownames(x) %in% rownames(lcc4x4),]
-
-length(setdiff(rownames(x), rownames(lcc4x4)))
-length(setdiff(rownames(x), rownames(eosd4x4)))
-length(setdiff(rownames(x), rownames(nalc4x4)))
-
-x$REG <- droplevels(x$REG)
-x$BCR_JURS0 <- droplevels(x$BCR_JURS0)
-lcc4x4 <- lcc4x4[rownames(x),]
-eosd4x4 <- eosd4x4[rownames(x),]
-nalc4x4 <- nalc4x4[rownames(x),]
-}
-
+x$CMI2 <- x$CMI^2
+x$CMIJJA2 <- x$CMIJJA^2
 x$TR3[is.na(x$TR3)] <- "Open" # this is global
 
-#XYeosd <- as.matrix(x[,2:3])
-#rownames(XYeosd) <- x[,1]
-#save(XYeosd, file=file.path(ROOT, "XYeosd.Rdata"))
+st <- read.csv(file.path(ROOT2, "BAMCECStudyAreaEcoregionLevel2.csv"))
+levs <- levels(st$LEVEL3)
+iii <- x$LEVEL3 %in% levs
+x <- x[iii,]
+gc()
 
-reg <- levels(droplevels(x$BCR_JURS))
+x <- x[!is.na(x$LEVEL3),]
+aa <- data.frame(colSums(is.na(x)))
+
+reg <- levels(droplevels(x$LEVEL3))
 for (i in reg) {
     cat(i, "\n");flush.console()
     ii <- x$BCR_JURS == i
