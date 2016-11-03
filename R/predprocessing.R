@@ -124,6 +124,30 @@ gc()
 
 save(clim, file=file.path(ROOT, "pg-clim.Rdata"))
 
+## adding in missing Northern belt points for CTI and Slope
+load(file.path(ROOT, "pg-clim.Rdata"))
+sum(is.na(clim$CTI))
+ctin <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap_2016_terrain90.csv")
+compare_sets(clim$pointid, ctin$pointid)
+compare_sets(clim$pointid[is.na(clim$CTI)], ctin$pointid)
+
+pid <- as.character(intersect(clim$pointid[is.na(clim$CTI)], ctin$pointid))
+rownames(ctin) <- ctin$pointid
+rownames(clim) <- clim$pointid
+length(pid)
+ctin2 <- ctin[pid,]
+ctin2$CTI <- (ctin2$cti90 - 8) / 4
+ctin2$CTI2 <- ctin2$CTI^2
+ctin2$SLP <- sqrt(ctin2$slope90)
+ctin2$SLP2 <- ctin2$SLP^2
+clim[pid,"CTI"] <- ctin2[pid,"CTI"]
+clim[pid,"CTI2"] <- ctin2[pid,"CTI2"]
+clim[pid,"SLP"] <- ctin2[pid,"SLP"]
+clim[pid,"SLP2"] <- ctin2[pid,"SLP2"]
+sum(is.na(clim$CTI))
+
+save(clim, file=file.path(ROOT, "pg-clim-gap.Rdata"))
+
 ## -----------------------------------
 
 ## CEC
