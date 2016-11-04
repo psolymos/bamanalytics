@@ -135,6 +135,11 @@ pid <- as.character(intersect(clim$pointid[is.na(clim$CTI)], ctin$pointid))
 rownames(ctin) <- ctin$pointid
 rownames(clim) <- clim$pointid
 length(pid)
+
+with(clim, plot(POINT_X, POINT_Y, pch="."))
+with(clim[is.na(clim$CTI),], points(POINT_X, POINT_Y, pch=".", col=2))
+with(clim[pid,], points(POINT_X, POINT_Y, pch=".", col=3))
+
 ctin2 <- ctin[pid,]
 ctin2$CTI <- (ctin2$cti90 - 8) / 4
 ctin2$CTI2 <- ctin2$CTI^2
