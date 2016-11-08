@@ -7,85 +7,66 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
+Date <- "2016-08-16"
+#level <- 0.9
 #spp <- "CAWA"
-Date <- "2016-04-18"
 
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
 BASE_YEAR <- 2012
-B_use <- 100#240
+B_use <- 240#100#240
 bfill <- FALSE
 
 e <- new.env()
-load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
+load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-08-16.Rdata"), envir=e)
 mods <- e$mods
 
-mods$Clim <-list(
-    . ~ . + CMIJJA + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMIJJA2 +
-        CMIJJA:DD0 + CMIJJA:DD5 + EMT:MSP,
-    . ~ . + CMI + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMI2 +
-        CMI:DD0 + CMI:DD5 + EMT:MSP,
-    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + DD02 + CMI2 + CMIJJA2 +
-        CMI:DD0 + CMIJJA:DD0 + MSP:TD,
-    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + DD52 + CMI2 + CMIJJA2 +
-        CMI:DD5 + CMIJJA:DD5 + MSP:TD,
-    . ~ . + CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMIJJA2 +
-        CMIJJA:DD0 + CMIJJA:DD5 + MSP:TD + MSP:EMT,
-    . ~ . + CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMI2 +
-        CMI:DD0 + CMI:DD5 + MSP:TD + MSP:EMT,
-    . ~ . + CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02 + CMI2 + CMIJJA2 +
-        CMI:DD0 + CMIJJA:DD0 + MSP:TD + MSP:EMT,
-    . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52 + CMI2 + CMIJJA2 +
-        CMI:DD5 + CMIJJA:DD5 + MSP:TD + MSP:EMT)
-mods$Hgt <- NULL
+#mods$Hgt <- NULL
 
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
 xn <- e$DAT[1:500,Terms]
-xn$CMI2 <- xn$CMI^2
-xn$CMIJJA2 <- xn$CMIJJA^2
+#xn$CMI2 <- xn$CMI^2
+#xn$CMIJJA2 <- xn$CMIJJA^2
 Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
 rm(e)
 
-#regs <- gsub(".Rdata", "",
-#    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3"))))
-regs <- c(
-    "2_AK",
-    "4_AK", "4_BC", "4_NT", "4_YK",
-    "5_AK", "5_BC", "5_YK", #"5_CA", "5_OR", "5_WA",
-    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK",
-    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK",
-    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK",
-    "9_BC", #"9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
-    "10_AB", "10_BC", #"10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY",
-    "11_AB", "11_MB", "11_MN", "11_SK", # ???
-    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI",
-    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT",
-    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT",
-    "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
+st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
+regs <- levels(st$LEVEL3)
 
-#SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
-SPP <- c("OSFL","OVEN","CCSP","CONW","MOWA","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
-for (spp in SPP) {
+## includes land cover, height, and fire
+hab_col <- c("HABAgr", "HABBarren", "HABDecid", "HABDevel",
+    "HABGrass", "HABMixed", "HABShrub", "HABWet", "HABTRAgr", "HABTRBarren",
+    "HABTRConifOpen", "HABTRConifSparse", "HABTRDecidDense", "HABTRDecidOpen",
+    "HABTRDecidSparse", "HABTRDevel", "HABTRGrass", "HABTRMixedDense",
+    "HABTRMixedOpen", "HABTRMixedSparse", "HABTRShrub", "HABTRWetDense",
+    "HABTRWetOpen", "HABTRWetSparse",
+    "HGT", "HGT2", "HGT05",
+    "DTB", "BRN", "LSS", "YSD", "YSF", "YSL",
+    "HGT:isDM", "HGT:isWet", "HGT:isDec", "HGT:isMix",
+    "HGT2:isDM", "HGT2:isWet", "HGT2:isDec", "HGT2:isMix", "HGT05:isDM",
+    "HGT05:isWet", "HGT05:isDec", "HGT05:isMix")
 
-#load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
-load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, "_c1nohgt.Rdata")))
-cat("<<< ", spp, " --- ", 100 * sum(getOK(res)) / length(res), "% OK >>>\n", sep="")
+## spp ---------------------------------
+
+spp <- "CAWA"
+
+fn <- file.path("e:/peter/bam/Apr2016/out", "results", "cawa",
+    paste0(PROJECT, "_", spp, "_", Date, ".Rdata"))
+load(fn)
+100 * sum(getOK(res)) / length(res)
 est <- getEst(res, stage = Stage, X=Xn)
 
 B_use <- min(B_use, nrow(est))
 
-#regi <- "6_AB"
+#regi <- "10.1.1"
 for (regi in regs) {
 
 cat(spp, regi, "\n");flush.console()
 
-load(file.path(ROOT2, "chunks3", paste0("pgdat-", regi, ".Rdata")))
+load(file.path(ROOT3, "chunks", paste0("pgdat-", regi, ".Rdata")))
 gc()
-
-dat$CMI2 <- dat$CMI^2
-dat$CMIJJA2 <- dat$CMIJJA^2
 
 dat$HAB <- dat$HAB_NALC2
 dat$HABTR <- dat$HAB_NALC1
@@ -101,6 +82,9 @@ dat$YR <- BASE_YEAR - 2001
 ## disturbance
 dat$YearFire[is.na(dat$YearFire)] <- BASE_YEAR - 200
 dat$YearLoss[is.na(dat$YearLoss)] <- BASE_YEAR - 200
+## backfill means no forest loss, pnly due to fire
+if (bfill)
+    dat$YearLoss <- BASE_YEAR - 200
 
 ## years since fire
 dat$YSF <- BASE_YEAR - dat$YearFire
@@ -124,6 +108,10 @@ AGEMAX <- 50
 dat$YSD <- pmax(0, 1 - (dat$YSD / AGEMAX))
 dat$YSF <- pmax(0, 1 - (dat$YSF / AGEMAX))
 dat$YSL <- pmax(0, 1 - (dat$YSL / AGEMAX))
+levels(dat$Brandt) <- c(levels(dat$Brandt), "OUT")
+dat$Brandt[is.na(dat$Brandt)] <- "OUT"
+
+dat$subreg <- paste(regi, dat$BCR, dat$JURS, dat$Brandt, sep=" + ")
 
 ## backfill for all but land cover
 if (bfill) {
@@ -131,22 +119,13 @@ if (bfill) {
     dat$LIN <- 0
 }
 
+#(aa <- data.frame(na=sort(colSums(is.na(dat)))))
 dat0 <- dat[rowSums(is.na(dat)) == 0,]
+#stopifnot((nrow(dat)-nrow(dat0))/nrow(dat) < 0.05)
 Xn0 <- model.matrix(getTerms(mods[1:Stage], "formula"), dat0)
 colnames(Xn0) <- fixNames(colnames(Xn0))
 NR <- nrow(Xn0)
 is_hf <- dat0$HAB %in% c("Devel", "Agr")
-
-## includes land cover, height, and fire
-hab_col <- c("HABAgr", "HABBarren", "HABDecid", "HABDevel",
-    "HABGrass", "HABMixed", "HABShrub", "HABWet", "HABTRAgr", "HABTRBarren",
-    "HABTRConifOpen", "HABTRConifSparse", "HABTRDecidDense", "HABTRDecidOpen",
-    "HABTRDecidSparse", "HABTRDevel", "HABTRGrass", "HABTRMixedDense",
-    "HABTRMixedOpen", "HABTRMixedSparse", "HABTRShrub", "HABTRWetDense",
-    "HABTRWetOpen", "HABTRWetSparse", "HGT", "HGT2", "HGT05",
-    "DTB", "BRN", "LSS", "YSD", "YSF", "YSL", "HGT:isDM", "HGT:isWet", "HGT:isDec", "HGT:isMix",
-    "HGT2:isDM", "HGT2:isWet", "HGT2:isDec", "HGT2:isMix", "HGT05:isDM",
-    "HGT05:isWet", "HGT05:isDec", "HGT05:isMix")
 
 mu0 <- matrix(0, NR, B_use)
 if (NR > 0) {
@@ -159,13 +138,17 @@ if (NR > 0) {
     }
     lam <- lamfun(mu0)
     rownames(lam) <- rownames(dat0)
-    rm(mu0, dat0, Xn0)
+    ## km^2 vs ha diff is 100
+    lam_total <- groupSums(exp(mu0) * 100, 1, dat0$subreg)
+    #rm(mu0, dat0, Xn0)
     attr(lam, "spp") <- spp
     attr(lam, "stage") <- Stage
     attr(lam, "base-year") <- BASE_YEAR
-    attr(lam, "bcr-jurs") <- regi
+    attr(lam, "level3") <- regi
+    attr(lam, "pdrop") <- (nrow(dat)-nrow(dat0))/nrow(dat) # NA values
 } else {
     lam <- NULL
+    lam_total <- NULL
 }
 gc()
 
@@ -173,12 +156,9 @@ if (!dir.exists(file.path(ROOT3, "species", spp)))
     dir.create(file.path(ROOT3, "species", spp))
 fout <- file.path(ROOT3, "species", spp,
     paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"),
-#    regi, "-", Date, ".Rdata"))
-    regi, "-", Date, "_c1nohgt.Rdata"))
-save(lam, file=fout)
-rm(lam)
-
-}
+    regi, "-", Date, ".Rdata"))
+save(lam, lam_total, file=fout)
+#rm(lam, lam_total)
 
 }
 

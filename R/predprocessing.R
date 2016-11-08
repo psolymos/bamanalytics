@@ -494,104 +494,46 @@ par(op)
 dev.off()
 }
 
-x$DD02 <- x$DD0^2
-x$DD52 <- x$DD5^2
-x$CMI2 <- x$CMI^2
-x$CMIJJA2 <- x$CMIJJA^2
-x$TR3[is.na(x$TR3)] <- "Open" # this is global
-
 st <- read.csv(file.path(ROOT2, "BAMCECStudyAreaEcoregionLevel2.csv"))
 levs <- levels(st$LEVEL3)
 iii <- x$LEVEL3 %in% levs
 x <- x[iii,]
 gc()
 
-x <- x[!is.na(x$LEVEL3),]
+#x <- x[!is.na(x$LEVEL3),]
+
+x$DD02 <- x$DD0^2
+x$DD52 <- x$DD5^2
+x$CMI2 <- x$CMI^2
+x$CMIJJA2 <- x$CMIJJA^2
+x$TR3[is.na(x$TR3)] <- "Open" # this is global
+
 aa <- data.frame(colSums(is.na(x)))
 
 reg <- levels(droplevels(x$LEVEL3))
 for (i in reg) {
     cat(i, "\n");flush.console()
-    ii <- x$BCR_JURS == i
+    ii <- x$LEVEL3 == i
     dat <- x[ii,]
-    save(dat, file=file.path(ROOT, "chunks3", paste0("pgdat-", i, ".Rdata")))
+    save(dat, file=file.path("e:/peter/bam/pred-2016", "chunks", paste0("pgdat-", i, ".Rdata")))
     gc()
 }
-
-## packaging: NALC full extent
-
-## use eosd coverage to save bcr/jurs0 chunks
-
-ROOT <- "e:/peter/bam/pred-2015"
-library(mefa4)
-
-load(file.path(ROOT, "pg-main.Rdata"))
-#x <- x[x$EOSD_COVER == 1,]
-rownames(x) <- x$pointid
-
-load(file.path(ROOT, "pg-loss.Rdata"))
-ii <- loss$YearFire >= 9000 & !is.na(loss$YearFire)
-loss$YearFire[ii] <- loss$YearFire[ii] - 8000
-x$YearFire <- loss$YearFire[match(x$pointid, loss$pointid)]
-x$YearLoss <- loss$YearLoss[match(x$pointid, loss$pointid)]
-rm(loss)
-
-load(file.path(ROOT, "pg-clim.Rdata"))
-rownames(clim) <- clim$pointid
-clim <- clim[match(x$pointid, clim$pointid),4:14]
-x <- data.frame(x, clim)
-rm(clim)
-gc()
-
-ii <- !is.na(x$CTI) & ! is.na(x$TD)
-x <- x[ii,]
-
-x$DD02 <- x$DD0^2
-x$DD52 <- x$DD5^2
-
-x$REG <- droplevels(x$REG)
-x$BCR_JURS0 <- droplevels(x$BCR_JURS0)
-
-x$TR3[is.na(x$TR3)] <- "Open" # this is global
-
-x$pointid <- NULL
-
-XYfull <- as.matrix(x[,c("POINT_X","POINT_Y")])
-rownames(XYfull) <- rownames(x)
-
-br <- read.csv(file.path(ROOT2, "brandt", "Pred_BrandtBoreal.csv"))
-levels(br$pointid) <- gsub(",", "", levels(br$pointid))
-br <- br[!duplicated(br$pointid),]
-rownames(br) <- br$pointid
-table(br$TYPE)
-Brandt <- br$TYPE
-names(Brandt) <- rownames(br)
-
-save(XYfull, Brandt, file=file.path(ROOT, "XYfull.Rdata"))
-
-reg <- levels(x$BCR_JURS0)
-for (i in reg) {
-    gc()
-    cat(i, "\n");flush.console()
-    ii <- x$BCR_JURS0 == i
-    dat <- x[ii,]
-    save(dat, file=file.path(ROOT, "chunks2", paste0("pgdat-full-", i, ".Rdata")))
-}
-dat <- x
-save(dat, file=file.path(ROOT, paste0("pgdat-full.Rdata")))
-
 
 ################# POSTPROCESSING ###############################
 
 
 ## placeholders: HSH, HSH2, isDM, isNF
-x$HSH <- 0
-x$HSH2 <- 0
 x$HAB <- 0
+x$HABTR <- 0
 x$isDM <- 0
+x$isDec <- 0
+x$isMix <- 0
+x$isWet <- 0
 x$isNF <- 0
+x$isDev <- 0
+x$isOpn <- 0
 
-BASE_YEAR <- 2015
+BASE_YEAR <- 2012
 
 ## YR
 x$YR <- BASE_YEAR - 1997
