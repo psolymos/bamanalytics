@@ -174,6 +174,7 @@ ROOT2 <- "e:/peter/bam/pred-2015"
 ROOT3 <- "e:/peter/bam/pred-2016"
 
 load(file.path("e:/peter/bam/pred-2015", "pg-main-NALConly.Rdata"))
+## pointid is rownames
 XY <- x[,c("POINT_X","POINT_Y","BCR","JURS","LEVEL3","Brandt")]
 levels(XY$Brandt) <- c(levels(XY$Brandt), "OUT")
 XY$Brandt[is.na(XY$Brandt)] <- "OUT"
@@ -185,6 +186,11 @@ XY$studyarea <- XY$LEVEL3 %in% regs
 summary(XY)
 rm(x)
 gc()
+
+XY3 <- nonDuplicated(XY, subreg, TRUE)
+XY3$POINT_X <- NULL
+XY3$POINT_Y <- NULL
+rownames(XY3) <- XY3$subreg
 
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 #source("~/repos/bamanalytics/R/analysis_mods.R")
@@ -209,7 +215,8 @@ ttt <- list()
 brr <- list()
 
 e <- new.env()
-load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
+#load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
+load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-08-16.Rdata"), envir=e)
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
@@ -220,38 +227,7 @@ yy <- e$YY
 xy_p <- e$DAT[,c("Xcl","Ycl")]
 rm(e)
 
-#regs <- sort(gsub(".Rdata", "",
-#    gsub("pgdat-", "", list.files(file.path(ROOT2, "chunks3")))))
-regsAll <- c(
-    "2_AK",
-    "3_AK", "3_MB", "3_NL", "3_NT", "3_NU", "3_QC", "3_YK",
-    "4_AK", "4_BC", "4_NT", "4_YK",
-    "5_AK", "5_BC", "5_CA", "5_OR", "5_WA", "5_YK",
-    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK",
-    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK",
-    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK",
-    "9_BC", "9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
-    "10_AB", "10_BC", "10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY",
-    "11_AB", "11_IA", "11_MB", "11_MN", "11_MT", "11_ND", "11_NE", "11_SD", "11_SK",
-    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI",
-    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT",
-    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT",
-    "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
-regs <- c(
-    "2_AK",
-    "4_AK", "4_BC", "4_NT", "4_YK",
-    "5_AK", "5_BC", "5_YK", #"5_CA", "5_OR", "5_WA",
-    "6_AB", "6_BC", "6_MB", "6_MN", "6_NT", "6_NU", "6_SK", "6_YK",
-    "7_AB", "7_MB", "7_NL", "7_NT", "7_NU", "7_ON", "7_QC", "7_SK",
-    "8_AB", "8_MB", "8_NL", "8_ON", "8_QC", "8_SK",
-    "9_BC", #"9_CA", "9_ID", "9_NV", "9_OR", "9_UT", "9_WA", "9_WY",
-    "10_AB", "10_BC", #"10_ID", "10_MT", "10_OR", "10_UT", "10_WA", "10_WY",
-    "11_AB", "11_MB", "11_MN", "11_SK", # ???
-    "12_MB", "12_MI", "12_MN", "12_ON", "12_QC", "12_WI",
-    "13_MI", "13_NY", "13_OH", "13_ON", "13_PA", "13_QC", "13_VT",
-    "14_CT", "14_MA", "14_ME", "14_NB", "14_NH", "14_NS", "14_NY", "14_PE", "14_QC", "14_VT",
-    "23_IA", "23_IL", "23_IN", "23_MI", "23_MN", "23_OH", "23_WI")
-
+#spp <- "CAWA"
 for (spp in SPP) {
 gc()
 fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", Date)
@@ -262,7 +238,6 @@ cat(fo, "\n");flush.console()
 #est <- getEst(res, stage = Stage, X=Xn)
 
 fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
-#fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, "_c1nohgt.Rdata")
 
 is_null <- integer(length(fl))
 names(is_null) <- fl
@@ -271,7 +246,7 @@ if (is.null(lam)) {
     is_null[1] <- 1L
 } else {
     plam <- lam
-    tlam <- attr(lam, "total")
+    tlam <- lam_total
 }
 for (fn in fl[-1]) {
     cat("loading", fn, "\n");flush.console()
@@ -280,14 +255,15 @@ for (fn in fl[-1]) {
         is_null[fn] <- 1L
     } else {
         plam <- rbind(plam, lam)
-        tlam <- rbind(tlam, attr(lam, "total"))
+        tlam <- rbind(tlam, lam_total)
     }
 }
-rownames(tlam) <- regs[is_null==0]
+#rownames(tlam) <- regs[is_null==0]
 dim(plam)
 sum(duplicated(rownames(plam)))
 
-if (TRUE) {
+## already done in lamfun()
+if (FALSE) {
     q <- quantile(plam[,"Mean"], 0.99)
     plam[plam[,"Mean"] > q,"Mean"] <- q
 
@@ -295,14 +271,11 @@ if (TRUE) {
     plam[plam[,"Median"] > q,"Median"] <- q
 }
 
-rn <- intersect(rownames(plam), rownames(XYb))
-#compare_sets(rownames(plam), rownames(XY))
-XY2 <- XYb[rn,]
-#x <- plam[rn,"Mean"]
-x <- plam[rn,"Median"]
+XY2 <- XY[rownames(plam),c("POINT_X","POINT_Y")]
+
+x <- plam[,"Median"]
 probs <- c(0, 0.05, 0.1, 0.25, 0.5, 0.75, 1)
 TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
-Col <- rev(brewer.pal(6, "RdYlBu"))
 br <- Lc_quantile(x, probs=probs, type="L")
 if (!is.finite(br[length(br)]))
     br[length(br)] <- 1.01* max(x, na.rm=TRUE)
@@ -321,19 +294,11 @@ summary(colSums(tlam))
 fstat <- function(x, level=0.95) {
     c(Mean=mean(x), Median=median(x), quantile(x, c((1-level)/2, 1 - (1-level)/2)))
 }
-fstat(colSums(tlam), 0.9)
+fstat(colSums(tlam/10^6), 0.9)
+fstat(colSums(tlam0/10^6), 0.9)
 ## quick numbers
 100*sum(plam[,"Mean"])/10^6
 100*sum(plam[,"Median"])/10^6
-
-chfun <- function(Na, Nb, ta, tb) {
-    100 * ((Nb/Na)^(1/(tb-ta)) - 1)
-}
-chfun(10.38, 9.88, 2002, 2012) # mean for CAWA
-chfun(10.28, 9.81, 2002, 2012) # median for CAWA
-chfun(11.78, 9.88, 2002, 2012) # mean for CAWA
-chfun(11.60, 9.81, 2002, 2012) # median for CAWA
-
 
 if (FALSE) {
 
@@ -358,20 +323,22 @@ dev.off()
 png(file.path(ROOT3, "maps", paste0(fo, "-det.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-plot(XY, col = "grey", pch=".",
-    ann=FALSE, axes=FALSE)
+plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
+    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
+points(XY[XY$studyarea,1:2], col = "tan", pch=".")
 points(xy_p[yy[,spp] == 0,c("Xcl","Ycl")], pch=19, cex=0.2, col=1)
 points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.5, col=2)
 par(op)
 dev.off()
 
-png(file.path(ROOT3, "maps", paste0(fo, "-mean-for Sam.png")),
+png(file.path(ROOT3, "maps", paste0(fo, "-mean.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+Col <- rev(brewer.pal(6, "RdYlBu"))
 zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
-plot(XY, col = "lightgrey", pch=".",
-    ann=FALSE, axes=FALSE)
+plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
+    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
 points(XY2, col = Col[zval], pch=".")
 points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.1, col=1)
 legend("topright", bty = "n", legend=rev(TEXT),
@@ -390,7 +357,9 @@ TEXT <- paste0(br[-length(br)], "-", br[-1])
 TEXT[length(TEXT)] <- paste0(">", br[length(br)-1])
 CoV <- plam[,"SD"] / plam[,"Mean"]
 zval <- cut(CoV, breaks=br)
-plot(XY2, col = Col[zval], pch=".",
+plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
+    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
+points(XY2, col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
@@ -398,7 +367,7 @@ legend("topright", bty = "n", legend=rev(TEXT),
 par(op)
 dev.off()
 
-png(file.path(ROOT3, "maps", paste0(fo, "-sd-forSam.png")),
+png(file.path(ROOT3, "maps", paste0(fo, "-sd.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
@@ -408,7 +377,9 @@ zval <- cut(CoV, breaks=br)
 br <- round(br*mean(plam[,"Mean"]), 4)
 TEXT <- paste0(br[-length(br)], "-", br[-1], "%")
 TEXT[length(TEXT)] <- paste0(">", br[length(br)-1], "%")
-plot(XY2, col = Col[zval], pch=".",
+plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
+    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
+points(XY2, col = Col[zval], pch=".",
     ann=FALSE, axes=FALSE)
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
@@ -417,6 +388,51 @@ par(op)
 dev.off()
 
 }
+
+XY3s <- droplevels(XY3[rownames(tlam),])
+colnames(tlam) <- paste0(spp, "_run", 1:ncol(tlam))
+write.csv(data.frame(XY3s, tlam), row.names=FALSE, file=file.path(ROOT3, "maps",
+    paste0(fo, "-", BASE_YEAR, "-", ifelse(bfill, "-bf-", "-"), "totals.csv")))
+save(XY3s, tlam, file=file.path(ROOT3, "maps",
+    paste0(fo, "-", BASE_YEAR, "-", ifelse(bfill, "-bf-", "-"), "totals.Rdata")))
+
+CAN <- c("ALBERTA", "BRITISH COLUMBIA", "MANITOBA",
+    "NEW BRUNSWICK", "NEWFOUNDLAND",
+    "NORTHWEST TERRITORIES", "NOVA SCOTIA", "NUNAVUT",
+    "ONTARIO", "PRINCE EDWARD ISLAND", "QUEBEC", "SASKATCHEWAN", "YUKON")
+
+## pop size in full study area
+fstat(colSums(tlam)/10^6, 0.9)
+## pop size in Canada
+ss <- XY3s$JURS %in% CAN
+fstat(colSums(tlam[ss,])/10^6, 0.9)
+## pop size in Brandt boreal
+ss <- XY3s$Brandt != "OUT"
+fstat(colSums(tlam[ss,])/10^6, 0.9)
+## pop size in Canada/Boreal
+ss <- XY3s$JURS %in% CAN & XY3s$Brandt != "OUT"
+fstat(colSums(tlam[ss,])/10^6, 0.9)
+## by state/prov/terr
+by_jurs <- data.frame(t(apply(groupSums(tlam/10^6, 1, XY3s$JURS), 1, fstat)))
+by_jurs$perc <- by_jurs[,2] * 100 / sum(by_jurs[,2])
+by_jurs <- by_jurs[order(by_jurs$perc),]
+round(by_jurs, 4)
+## by bcr
+by_bcr <- data.frame(t(apply(groupSums(tlam/10^6, 1, XY3s$BCR), 1, fstat)))
+by_bcr$perc <- by_bcr[,2] * 100 / sum(by_bcr[,2])
+by_bcr <- by_bcr[order(by_bcr$perc),]
+round(by_bcr, 4)
+
+chfun <- function(Na, Nb, ta, tb) {
+    100 * ((Nb/Na)^(1/(tb-ta)) - 1)
+}
+chfun(5.729, 5.704, 2002, 2012)
+
+
+
+
+
+## --
 
 if (FALSE) {
 br <- c(0, 0.4, 0.8, 1.2, 1.6, Inf)
