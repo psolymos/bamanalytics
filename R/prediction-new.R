@@ -13,7 +13,7 @@ Date <- "2016-08-16"
 
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013
-BASE_YEAR <- 2012
+BASE_YEAR <- 2012#2002#2012
 B_use <- 240#100#240
 bfill <- FALSE
 
@@ -34,6 +34,8 @@ rm(e)
 
 st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
 regs <- levels(st$LEVEL3)
+#regs <- c("2.1.9", "2.2.1", "2.2.2", "2.3.1", "2.4.1", "2.4.2", "2.4.4",
+#    "3.1.1", "3.1.3", "3.2.1", "3.2.3", "3.3.1", "3.4.5", "6.1.1")
 
 ## includes land cover, height, and fire
 hab_col <- c("HABAgr", "HABBarren", "HABDecid", "HABDevel",
@@ -170,9 +172,17 @@ library(mefa4)
 ROOT <- "e:/peter/bam/Apr2016"
 ROOT2 <- "e:/peter/bam/pred-2015"
 ROOT3 <- "e:/peter/bam/pred-2016"
+
 load(file.path("e:/peter/bam/pred-2015", "pg-main-NALConly.Rdata"))
-XY <- as.matrix(x[,c("POINT_X","POINT_Y")])
-XYb <- as.matrix(x[!is.na(x$Brandt),c("POINT_X","POINT_Y")])
+XY <- x[,c("POINT_X","POINT_Y","BCR","JURS","LEVEL3","Brandt")]
+levels(XY$Brandt) <- c(levels(XY$Brandt), "OUT")
+XY$Brandt[is.na(XY$Brandt)] <- "OUT"
+XY <- XY[rowSums(is.na(XY)) == 0,]
+XY$subreg <- as.factor(paste(XY$LEVEL3, XY$BCR, XY$JURS, XY$Brandt, sep=" + "))
+st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
+regs <- levels(st$LEVEL3)
+XY$studyarea <- XY$LEVEL3 %in% regs
+summary(XY)
 rm(x)
 gc()
 
@@ -183,9 +193,10 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #load(file.path(ROOT2, "XYfull.Rdata"))
 
 PROJECT <- "bam"
+Date <- "2016-08-16"
+#level <- 0.9
 #spp <- "CAWA"
-Date <- "2016-04-18"
-SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
+#SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
 
 Stage <- 6 # which(names(mods) == "Clim")
 # 2001, 2005, 2009, 2013

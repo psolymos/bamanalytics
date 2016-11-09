@@ -128,17 +128,17 @@ save(clim, file=file.path(ROOT, "pg-clim.Rdata"))
 load(file.path(ROOT, "pg-clim.Rdata"))
 sum(is.na(clim$CTI))
 ctin <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap_2016_terrain90.csv")
-compare_sets(clim$pointid, ctin$pointid)
-compare_sets(clim$pointid[is.na(clim$CTI)], ctin$pointid)
+#compare_sets(clim$pointid, ctin$pointid)
+#compare_sets(clim$pointid[is.na(clim$CTI)], ctin$pointid)
 
 pid <- as.character(intersect(clim$pointid[is.na(clim$CTI)], ctin$pointid))
 rownames(ctin) <- ctin$pointid
 rownames(clim) <- clim$pointid
 length(pid)
 
-with(clim, plot(POINT_X, POINT_Y, pch="."))
-with(clim[is.na(clim$CTI),], points(POINT_X, POINT_Y, pch=".", col=2))
-with(clim[pid,], points(POINT_X, POINT_Y, pch=".", col=3))
+#with(clim, plot(POINT_X, POINT_Y, pch="."))
+#with(clim[is.na(clim$CTI),], points(POINT_X, POINT_Y, pch=".", col=2))
+#with(clim[pid,], points(POINT_X, POINT_Y, pch=".", col=3))
 
 ctin2 <- ctin[pid,]
 ctin2$CTI <- (ctin2$cti90 - 8) / 4
@@ -468,30 +468,44 @@ x$YearFire <- loss$YearFire[match(x$pointid, loss$pointid)]
 x$YearLoss <- loss$YearLoss[match(x$pointid, loss$pointid)]
 rm(loss)
 
-load(file.path(ROOT, "pg-clim.Rdata"))
+#load(file.path(ROOT, "pg-clim.Rdata"))
+load(file.path(ROOT, "pg-clim-gap.Rdata"))
 rownames(clim) <- clim$pointid
 clim <- clim[match(x$pointid, clim$pointid),4:14]
 x <- data.frame(x, clim)
 rm(clim)
-
-
 gc()
 #cti_missing <- x[is.na(x$CTI),c("pointid","POINT_X","POINT_Y")]
 #write.csv(cti_missing, row.names=FALSE, file="e:/peter/bam/Apr2016/cti-missing.csv")
 
-ii <- colnames(x)
-jj <- sample.int(nrow(x), 10^6)
-xtmp <- x[jj,]
+if (FALSE) {
 
-for (i in ii) {
-gc()
-cat(i, "\n");flush.console()
-png(paste0("e:/peter/bam/Apr2016/maps-sub/", i, ".png"), width=2000, height=1500)
-op <- par(mar=c(1,1,1,1))
-plot(xtmp$POINT_X, xtmp$POINT_Y,pch=".",col="lightgrey", axes=FALSE, ann=FALSE, main=i)
-with(xtmp[!is.na(xtmp[,i]),], points(POINT_X, POINT_Y,pch=".",col="tomato"))
-par(op)
-dev.off()
+    #tmp <- is.na(x$CTI) & !is.na(clim$CTI)
+    table(clim=is.na(x$CTI), clim_gap=!is.na(clim$CTI))
+    aa <- table(x$LEVEL3, gap=is.na(x$CTI) & !is.na(clim$CTI))
+    gap3 <- rownames(aa[aa[,2]>0,])
+    ## gap3
+    c("2.1.5", "2.1.9", "2.2.1", "2.2.2", "2.3.1", "2.4.1", "2.4.2",
+    "2.4.4", "3.1.1", "3.1.3", "3.2.1", "3.2.3", "3.3.1", "3.4.5", "6.1.1")
+    ## gap3 %in% levs
+    c("2.1.9", "2.2.1", "2.2.2", "2.3.1", "2.4.1", "2.4.2", "2.4.4",
+    "3.1.1", "3.1.3", "3.2.1", "3.2.3", "3.3.1", "3.4.5", "6.1.1")
+
+
+    ii <- colnames(x)
+    jj <- sample.int(nrow(x), 10^6)
+    xtmp <- x[jj,]
+
+    for (i in ii) {
+    gc()
+    cat(i, "\n");flush.console()
+    png(paste0("e:/peter/bam/Apr2016/maps-sub/", i, ".png"), width=2000, height=1500)
+    op <- par(mar=c(1,1,1,1))
+    plot(xtmp$POINT_X, xtmp$POINT_Y,pch=".",col="lightgrey", axes=FALSE, ann=FALSE, main=i)
+    with(xtmp[!is.na(xtmp[,i]),], points(POINT_X, POINT_Y,pch=".",col="tomato"))
+    par(op)
+    dev.off()
+    }
 }
 
 st <- read.csv(file.path(ROOT2, "BAMCECStudyAreaEcoregionLevel2.csv"))
