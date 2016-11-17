@@ -127,19 +127,71 @@ save(clim, file=file.path(ROOT, "pg-clim.Rdata"))
 ## adding in missing Northern belt points for CTI and Slope
 load(file.path(ROOT, "pg-clim.Rdata"))
 sum(is.na(clim$CTI))
-ctin <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap_2016_terrain90.csv")
+#ctin <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap_2016_terrain90.csv")
 #compare_sets(clim$pointid, ctin$pointid)
 #compare_sets(clim$pointid[is.na(clim$CTI)], ctin$pointid)
 
-pid <- as.character(intersect(clim$pointid[is.na(clim$CTI)], ctin$pointid))
-rownames(ctin) <- ctin$pointid
+ctin <- fread("e:/peter/bam/Apr2016/north3/cracksXY2_2016_cti90.csv")
+slpin <- fread("e:/peter/bam/Apr2016/north3/cracksXY2_2016_slope90.csv")
+#ctin <- ctin[,c("pointid","cti90")]
+ctin$slope90 <- slpin$slope90[match(ctin$pointid, slpin$pointid)]
+rm(slpin)
+
+ctin2 <- fread("e:/peter/bam/Apr2016/north3/missingXY2_2016_cti90.csv")
+slpin <- fread("e:/peter/bam/Apr2016/north3/missingXY2_2016_slope90.csv")
+#ctin2 <- ctin2[,c("pointid","cti90")]
+ctin2$slope90 <- slpin$slope90[match(ctin2$pointid, slpin$pointid)]
+rm(slpin)
+
+xy <-  fread("e:/peter/bam/Apr2016/north3/missing-cti.csv")
+if (FALSE) {
+with(clim[!is.na(clim$CTI),],plot(POINT_X,POINT_Y,pch=".",col=1))
+with(clim[is.na(clim$CTI),],points(POINT_X,POINT_Y,pch=".",col=2))
+
+ct1 <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap_2016_terrain90.csv")
+ct2 <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap2_2016_cti90.csv")
+ct3 <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap2_2016_slope90.csv")
+ct4 <- fread("e:/peter/bam/Apr2016/north/NorthernXY_2016_terrain90.csv")
+
+with(xy,plot(POINT_X,POINT_Y,pch=".",col=1))
+with(ctin,points(x,y,pch=".",col=3))
+with(ctin2,points(x,y,pch=".",col=4))
+with(ct1,points(x,y,pch=".",col=2))
+with(ct4,points(x,y,pch=".",col="grey"))
+
+compare_sets(xy$pointid, c(ctin$pointid,ctin2$pointid,
+    ct1$pointid,ct2$pointid,ct3$pointid,ct4$pointid))
+
+pid <- setdiff(xy$pointid, c(ctin$pointid,ctin2$pointid,
+    ct1$pointid,ct2$pointid,ct3$pointid,ct4$pointid))
+rownames(xy) <- xy$pointid
+xy2 <- xy[pid,]
+write.csv(xy2, row.names=FALSE, file="missing-cti-2016-11-17.csv")
+compare_sets(clim$pointid[is.na(clim$CTI)], xy$pointid)
+compare_sets(clim$pointid[is.na(clim$CTI)], xy2$pointid)
+compare_sets(clim$pointid, xy$pointid)
+compare_sets(clim$pointid, xy2$pointid)
+
+}
+
+compare_sets(ctin$pointid, ctin2$pointid)
+ctin <- rbind(ctin, ctin2)
+sum(duplicated(ctin$pointid))
+ctin <- nonDuplicated(ctin, pointid, TRUE)
 rownames(clim) <- clim$pointid
+
+
+#pid <- as.character(intersect(clim$pointid[is.na(clim$CTI)], ctin$pointid))
+#compare_sets(clim$pointid, ctin$pointid)
+pid <- as.character(intersect(clim$pointid, ctin$pointid))
 length(pid)
 
 #with(clim, plot(POINT_X, POINT_Y, pch="."))
 #with(clim[is.na(clim$CTI),], points(POINT_X, POINT_Y, pch=".", col=2))
 #with(clim[pid,], points(POINT_X, POINT_Y, pch=".", col=3))
 
+sum(is.na(clim$CTI))
+sum(is.na(clim$SLP))
 ctin2 <- ctin[pid,]
 ctin2$CTI <- (ctin2$cti90 - 8) / 4
 ctin2$CTI2 <- ctin2$CTI^2
@@ -150,6 +202,7 @@ clim[pid,"CTI2"] <- ctin2[pid,"CTI2"]
 clim[pid,"SLP"] <- ctin2[pid,"SLP"]
 clim[pid,"SLP2"] <- ctin2[pid,"SLP2"]
 sum(is.na(clim$CTI))
+sum(is.na(clim$SLP))
 
 save(clim, file=file.path(ROOT, "pg-clim-gap.Rdata"))
 
@@ -470,6 +523,8 @@ rm(loss)
 
 #load(file.path(ROOT, "pg-clim.Rdata"))
 load(file.path(ROOT, "pg-clim-gap.Rdata"))
+#with(clim[!is.na(clim$CTI),],plot(POINT_X,POINT_Y,pch=".",col=1))
+#with(clim[is.na(clim$CTI),],points(POINT_X,POINT_Y,pch=".",col=2))
 rownames(clim) <- clim$pointid
 clim <- clim[match(x$pointid, clim$pointid),4:14]
 x <- data.frame(x, clim)
