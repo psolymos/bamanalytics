@@ -127,58 +127,56 @@ save(clim, file=file.path(ROOT, "pg-clim.Rdata"))
 ## adding in missing Northern belt points for CTI and Slope
 load(file.path(ROOT, "pg-clim.Rdata"))
 sum(is.na(clim$CTI))
+rownames(clim) <- clim$pointid
 #ctin <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap_2016_terrain90.csv")
 #compare_sets(clim$pointid, ctin$pointid)
 #compare_sets(clim$pointid[is.na(clim$CTI)], ctin$pointid)
 
 ctin <- fread("e:/peter/bam/Apr2016/north3/cracksXY2_2016_cti90.csv")
 slpin <- fread("e:/peter/bam/Apr2016/north3/cracksXY2_2016_slope90.csv")
-#ctin <- ctin[,c("pointid","cti90")]
 ctin$slope90 <- slpin$slope90[match(ctin$pointid, slpin$pointid)]
 rm(slpin)
 
-ctin2 <- fread("e:/peter/bam/Apr2016/north3/missingXY2_2016_cti90.csv")
-slpin <- fread("e:/peter/bam/Apr2016/north3/missingXY2_2016_slope90.csv")
-#ctin2 <- ctin2[,c("pointid","cti90")]
+## Nov 18 2016 update from DS
+#ctin2 <- fread("e:/peter/bam/Apr2016/north3/missingXY2_2016_cti90.csv")
+#slpin <- fread("e:/peter/bam/Apr2016/north3/missingXY2_2016_slope90.csv")
+ctin2 <- fread("e:/peter/bam/Apr2016/north4/MissingXY_2016_cti90.csv")
+slpin <- fread("e:/peter/bam/Apr2016/north4/missingXY_2016_slope90.csv")
 ctin2$slope90 <- slpin$slope90[match(ctin2$pointid, slpin$pointid)]
 rm(slpin)
 
-xy <-  fread("e:/peter/bam/Apr2016/north3/missing-cti.csv")
-if (FALSE) {
-with(clim[!is.na(clim$CTI),],plot(POINT_X,POINT_Y,pch=".",col=1))
-with(clim[is.na(clim$CTI),],points(POINT_X,POINT_Y,pch=".",col=2))
-
 ct1 <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap_2016_terrain90.csv")
+
 ct2 <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap2_2016_cti90.csv")
 ct3 <- fread("e:/peter/bam/Apr2016/north2/NorthernXYgap2_2016_slope90.csv")
+ct2$slope90 <- ct3$slope90[match(ct2$pointid, ct3$pointid)]
+rm(ct3)
+
 ct4 <- fread("e:/peter/bam/Apr2016/north/NorthernXY_2016_terrain90.csv")
 
+ct5 <- fread("e:/peter/bam/Apr2016/north4/missingXY4_2016_cti90.csv")
+ct6 <- fread("e:/peter/bam/Apr2016/north4/missingXY4_2016_slope90.csv")
+ct5$slope90 <- ct6$slope90[match(ct5$pointid, ct6$pointid)]
+rm(ct6)
+
+if (FALSE) {
+xy <-  fread("e:/peter/bam/Apr2016/north3/missing-cti.csv")
 with(xy,plot(POINT_X,POINT_Y,pch=".",col=1))
 with(ctin,points(x,y,pch=".",col=3))
 with(ctin2,points(x,y,pch=".",col=4))
 with(ct1,points(x,y,pch=".",col=2))
-with(ct4,points(x,y,pch=".",col="grey"))
-
-compare_sets(xy$pointid, c(ctin$pointid,ctin2$pointid,
-    ct1$pointid,ct2$pointid,ct3$pointid,ct4$pointid))
-
-pid <- setdiff(xy$pointid, c(ctin$pointid,ctin2$pointid,
-    ct1$pointid,ct2$pointid,ct3$pointid,ct4$pointid))
-rownames(xy) <- xy$pointid
-xy2 <- xy[pid,]
-write.csv(xy2, row.names=FALSE, file="missing-cti-2016-11-17.csv")
-compare_sets(clim$pointid[is.na(clim$CTI)], xy$pointid)
-compare_sets(clim$pointid[is.na(clim$CTI)], xy2$pointid)
-compare_sets(clim$pointid, xy$pointid)
-compare_sets(clim$pointid, xy2$pointid)
-
+with(ct4,points(x,y,pch=".",col="gold"))
+with(ct2,points(x,y,pch=".",col="lightblue"))
+with(ct5,points(x,y,pch=".",col="pink"))
 }
 
-compare_sets(ctin$pointid, ctin2$pointid)
-ctin <- rbind(ctin, ctin2)
-sum(duplicated(ctin$pointid))
+#compare_sets(ctin$pointid, ctin2$pointid)
+ctin0 <- ctin
+cn <- c("pointid", "cti90", "slope90")
+ctin <- rbind(ctin0[,cn], ctin2[,cn], ct1[,cn], ct2[,cn], ct4[,cn], ct5[,cn])
+dim(ctin);sum(duplicated(ctin$pointid))
 ctin <- nonDuplicated(ctin, pointid, TRUE)
-rownames(clim) <- clim$pointid
+#rownames(clim) <- clim$pointid
 
 
 #pid <- as.character(intersect(clim$pointid[is.na(clim$CTI)], ctin$pointid))
@@ -204,6 +202,7 @@ clim[pid,"SLP2"] <- ctin2[pid,"SLP2"]
 sum(is.na(clim$CTI))
 sum(is.na(clim$SLP))
 
+sum(duplicated(clim$pointid))
 save(clim, file=file.path(ROOT, "pg-clim-gap.Rdata"))
 
 ## -----------------------------------
@@ -525,8 +524,10 @@ rm(loss)
 load(file.path(ROOT, "pg-clim-gap.Rdata"))
 #with(clim[!is.na(clim$CTI),],plot(POINT_X,POINT_Y,pch=".",col=1))
 #with(clim[is.na(clim$CTI),],points(POINT_X,POINT_Y,pch=".",col=2))
+sum(duplicated(clim$pointid))
 rownames(clim) <- clim$pointid
-clim <- clim[match(x$pointid, clim$pointid),4:14]
+sum(duplicated(x$pointid))
+clim <- clim[match(x$pointid, clim$pointid),]
 x <- data.frame(x, clim)
 rm(clim)
 gc()
@@ -561,11 +562,50 @@ if (FALSE) {
     par(op)
     dev.off()
     }
+
+nn <- c("BCR", "JURS",
+    "HAB_NALC2", "HGT", "HGT2", "TR3", "HAB_NALC1",
+    "isDM", "isNF", "isDev", "isOpn",
+    "isWet", "isDec", "isMix",
+    "CMIJJA", "CMI", "TD", "DD0", "DD5", "EMT", "MSP", "CTI", "CTI2",
+    "SLP", "SLP2", "DD02", "DD52", "CMI2", "CMIJJA2")
+IS_OK <- rowSums(is.na(x[,nn])) == 0
+table(IS_NA)
+(aa <- data.frame(colSums(is.na(x[,nn]))))
+
+png(paste0("e:/peter/bam/Apr2016/maps-sub/all_NA.png"), width=2000, height=1500)
+op <- par(mar=c(1,1,1,1))
+with(x[IS_OK,], plot(POINT_X, POINT_Y, pch=".",col="grey", axes=FALSE, ann=FALSE))
+with(x[!IS_OK,], points(POINT_X, POINT_Y,pch=".",col="tomato"))
+par(op)
+dev.off()
+
+nnn <- c("pointid", "POINT_X", "POINT_Y", "JURS", "HAB_NALC2", "HAB_NALC1", "CMIJJA", "CTI")
+x <- x[,nnn]
+#i <- "CTI"
+for (i in colnames(x)[-(1:3)]) {
+    gc()
+    cat(i, "\n");flush.console()
+    IS_OK <- !is.na(x[,i])
+    png(paste0("e:/peter/bam/Apr2016/maps-sub/xxx", i, ".png"), width=2000, height=1500)
+    op <- par(mar=c(1,1,1,1))
+    #plot(x$POINT_X, x$POINT_Y,pch=".",col="lightgrey", axes=FALSE, ann=FALSE, main=i)
+    #with(x[!is.na(x[,i]),], points(POINT_X, POINT_Y,pch=".",col="tomato"))
+    with(x[IS_OK,], plot(POINT_X, POINT_Y, pch=".",col="grey", axes=FALSE, ann=FALSE))
+    with(x[!IS_OK,], points(POINT_X, POINT_Y,pch=".",col="tomato"))
+
+#    with(x, plot(POINT_X, POINT_Y, pch=".",col="tomato", axes=FALSE, ann=FALSE))
+#    with(x[IS_OK,], points(POINT_X, POINT_Y,pch=".",col="grey"))
+    par(op)
+    dev.off()
+}
+
 }
 
 st <- read.csv(file.path(ROOT2, "BAMCECStudyAreaEcoregionLevel2.csv"))
 levs <- levels(st$LEVEL3)
 iii <- x$LEVEL3 %in% levs
+table(iii)
 x <- x[iii,]
 gc()
 
@@ -576,6 +616,9 @@ x$DD52 <- x$DD5^2
 x$CMI2 <- x$CMI^2
 x$CMIJJA2 <- x$CMIJJA^2
 x$TR3[is.na(x$TR3)] <- "Open" # this is global
+x$pointid.1 <- NULL
+x$POINT_X.1 <- NULL
+x$POINT_Y.1 <- NULL
 
 aa <- data.frame(colSums(is.na(x)))
 
