@@ -607,7 +607,7 @@ for (i in colnames(x)[-(1:3)]) {
     gc()
     cat(i, "\n");flush.console()
     IS_OK <- !is.na(x[,i])
-    png(paste0("e:/peter/bam/Apr2016/maps-sub/xxx", i, ".png"), width=2000, height=1500)
+    png(paste0("e:/peter/bam/Apr2016/maps-sub/fix", i, ".png"), width=2000, height=1500)
     op <- par(mar=c(1,1,1,1))
     #plot(x$POINT_X, x$POINT_Y,pch=".",col="lightgrey", axes=FALSE, ann=FALSE, main=i)
     #with(x[!is.na(x[,i]),], points(POINT_X, POINT_Y,pch=".",col="tomato"))
@@ -650,6 +650,7 @@ for (i in reg) {
     save(dat, file=file.path("e:/peter/bam/pred-2016", "chunks", paste0("pgdat-", i, ".Rdata")))
     gc()
 }
+
 
 ################# POSTPROCESSING ###############################
 
