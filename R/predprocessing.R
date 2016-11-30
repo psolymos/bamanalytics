@@ -257,9 +257,21 @@ x$HGT <- x$SimardG / 25
 x$HGT2 <- x$HGT^2
 x$SimardG <- NULL
 
+## TREE fix comes here -------------------
+tf <- fread(file.path(ROOT2, "tree_update",
+    "TreePredNov29.csv"))
+rownames(tf) <- tf$pointid
+x$tree_wrong <- x$tree
+x$tree <- tf$Tree[match(x$pointid, tf$pointid)]
+sum(is.na(x$tree_wrong))
+sum(is.na(x$tree))
+#with(x[sample(nrow(x), 10^5),], plot(jitter(tree_wrong), jitter(tree),
+#    xlim=c(0,100), ylim=c(0,100), col=rgb(0,0,1,0.05), pch=19, cex=1))
+
 ## TR3
 #x$TREE <- x$tree
 x$tree[x$tree > 100] <- NA
+x$tree[x$tree < 0] <- NA
 x$tree <- x$tree / 100
 x$TR3 <- factor(NA, levels=c("Open", "Sparse", "Dense"))
 x$TR3[x$tree < 0.25] <- "Open"
@@ -267,6 +279,7 @@ x$TR3[x$tree >= 0.25 & x$tree < 0.60] <- "Sparse"
 x$TR3[x$tree >= 0.60] <- "Dense"
 table(x$TR3, useNA="a")
 x$tree <- NULL
+x$tree_wrong <- NULL
 
 ## NALC-TREE combo
 x$HAB_NALC1 <- as.character(x$HAB_NALC2)
@@ -341,8 +354,15 @@ table(x2$HAB_NALC2)
 x2$HGT <- xN$Simard / 25
 x2$HGT2 <- x2$HGT^2
 
+## TREE fix comes here -------------------
+xN$tree_wrong <- xN$Tree
+xN$Tree <- tf$Tree[match(xN$pointid, tf$pointid)]
+sum(is.na(xN$tree_wrong))
+sum(is.na(xN$Tree))
+
 ## TR3
-xN$Tree[x$tree > 100] <- NA
+xN$Tree[xN$Tree > 100] <- NA
+xN$Tree[xN$Tree < 0] <- NA
 xN$Tree <- xN$Tree / 100
 x2$TR3 <- factor(NA, levels=c("Open", "Sparse", "Dense"))
 x2$TR3[xN$Tree < 0.25] <- "Open"
