@@ -548,7 +548,7 @@ library(QPAD)
 ## Load functions kept in separate file
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
-load(file.path(ROOT, "out", paste0("data_package_2016-04-18.Rdata")))
+load(file.path(ROOT, "out", paste0("data_package_2016-12-01.Rdata")))
 
 load_BAM_QPAD(3)
 getBAMversion()
@@ -634,10 +634,10 @@ which(!is.finite(Ra[2,]))
 
 SPP <- sppp
 save(OFF, SPP,
-    file=file.path(ROOT, "out", "offsets-v3_2016-04-18.Rdata"))
+    file=file.path(ROOT, "out", "offsets-v3_2016-12-01.Rdata"))
 offdat <- offdat[,c("PKEY","TSSR","JDAY","DSLS","TREE","LCC4","MAXDUR","MAXDIS")]
 save(offdat,
-    file=file.path(ROOT, "out", "offsets-v3data_2016-04-18.Rdata"))
+    file=file.path(ROOT, "out", "offsets-v3data_2016-12-01.Rdata"))
 
 ######## These are the transformations #################
 
@@ -649,8 +649,8 @@ library(mefa4)
 ## Load functions kept in separate file
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
-load(file.path(ROOT, "out", paste0("data_package_2016-04-18.Rdata")))
-load(file.path(ROOT, "out", "offsets-v3_2016-04-18.Rdata"))
+load(file.path(ROOT, "out", paste0("data_package_2016-12-01.Rdata")))
+load(file.path(ROOT, "out", "offsets-v3_2016-12-01.Rdata"))
 
 TAX <- nonDuplicated(TAX, Species_ID, TRUE)
 TAX <- droplevels(TAX[SPP,])
@@ -941,7 +941,7 @@ nmin <- 25
 B <- 239
 Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl", "Units", "xBCR", "JURS")
 Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB")
-Date <- "2016-04-18"
+Date <- "2016-12-01"
 
 pk <- intersect(rownames(DAT), rownames(YY))
 DAT <- DAT[pk,]
@@ -973,6 +973,9 @@ apply(as.matrix(YY), 2, max)
 OFF <- OFF[pk,colnames(YY)]
 TAX <- TAX[colnames(YY),]
 
+DAT$CMI2 <- DAT$CMI^2
+DAT$CMIJJA2 <- DAT$CMIJJA^2
+
 DAT <- DAT[,c(Extra, getTerms(mods, "list"))]
 
 save(list = Save,
@@ -990,5 +993,5 @@ plot(getMap(resolution = "low"),
 points(X0[, c("X","Y")], pch=19, cex=0.25, col=as.integer(X0$Units)+1)
 
 library(lattice)
-densityplot(~ I(HGT*25) | HABTR, DAT)
+densityplot(~ I(HGT*25) | HABTR, DAT[DAT$HGT>0,])
 
