@@ -1,4 +1,5 @@
-ROOT <- "e:/peter/ABbam/May2015"
+ROOT <- "e:/peter/bam/May2015"
+ROOT2 <- "e:/peter/bam/Apr2016"
 
 ## Load required packages
 library(mefa4)
@@ -123,6 +124,11 @@ points(x$JDAY*365, x$HOUR, col=CL, pch=19)
 
 ## counts
 
+load(file.path(ROOT2, "out",
+    #paste0("data_package_2016-04-18.Rdata")))
+#    paste0("data_package_2016-07-05.Rdata")))
+    paste0("data_package_2016-12-01.Rdata")))
+
 PCTBL_abmi <- pcabmi
 levels(PCTBL_abmi$COMMON_NAME)[levels(PCTBL_abmi$COMMON_NAME) == "Black and White Warbler"] <- "Black-and-white Warbler"
 compare.sets(TAX$English_Name, PCTBL_abmi$COMMON_NAME)
@@ -135,7 +141,7 @@ levels(PCTBL_abmi$SPECIES) <- c(levels(PCTBL_abmi$SPECIES), "NONE")
 PCTBL_abmi$SPECIES[PCTBL_abmi$SPECIES == "TERN_UNI"] <- "NONE"
 PCTBL_abmi$SPECIES <- droplevels(PCTBL_abmi$SPECIES)
 
-PCTBL_abmi$TBB_TIME_1ST_DETECTED[PCTBL_abmi$TBB_TIME_1ST_DETECTED %in% 
+PCTBL_abmi$TBB_TIME_1ST_DETECTED[PCTBL_abmi$TBB_TIME_1ST_DETECTED %in%
     c("DNC", "NONE", "VNA")] <- NA
 PCTBL_abmi$TBB_TIME_1ST_DETECTED <- as.numeric(as.character(PCTBL_abmi$TBB_TIME_1ST_DETECTED))
 PCTBL_abmi$period1st <- as.numeric(cut(PCTBL_abmi$TBB_TIME_1ST_DETECTED, c(-1, 200, 400, 600)))
@@ -147,7 +153,7 @@ PCTBL_abmi$TBB_INTERVAL_1 <- as.integer(PCTBL_abmi$TBB_INTERVAL_1) - 1L
 PCTBL_abmi$TBB_INTERVAL_2 <- as.integer(PCTBL_abmi$TBB_INTERVAL_2) - 1L
 PCTBL_abmi$TBB_INTERVAL_3 <- as.integer(PCTBL_abmi$TBB_INTERVAL_3) - 1L
 
-tmp <- col(matrix(0,nrow(PCTBL_abmi),3)) * 
+tmp <- col(matrix(0,nrow(PCTBL_abmi),3)) *
     PCTBL_abmi[,c("TBB_INTERVAL_1","TBB_INTERVAL_2","TBB_INTERVAL_3")]
 tmp[tmp==0] <- NA
 tmp <- cbind(999,tmp)
@@ -161,8 +167,8 @@ with(PCTBL_abmi, table(period123, period1))
 ## Data package for new offsets
 dat <- data.frame(PKEY[,c("PCODE","PKEY","SS","YEAR","TSSR","JDAY","JULIAN",
     "srise","start_time","MAXDUR","MAXDIS","METHOD","DURMETH","DISMETH","ROAD")],
-    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","LCC_combo","HAB_NALC1","HAB_NALC2",
-    "BCR","JURS","SPRNG","DD51","X","Y")], NR=NA)
+    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","HAB_NALC1","HAB_NALC2",
+    "BCR","JURS","SPRNG","DD51","X","Y")], NR=NA, LCC_combo=NA)
 dat <- dat[dat$ROAD == 0,]
 rownames(dat) <- dat$PKEY
 ii <- intersect(dat$PKEY, levels(PCTBL$PKEY))
@@ -217,3 +223,86 @@ rownames(ls_abmi) <- ls_abmi$PKEY
 ls_abmi <- ls_abmi[rownames(dat2),]
 dat2$SPRNG <- ls_abmi$JSD_00_13
 dat2$TSLS <- (dat2$JULIAN - dat2$SPRNG) / 365
+
+
+## Oddities that should not happen:
+PCTBL$dur <- as.character(PCTBL$dur)
+PCTBL$dur[with(PCTBL, DURMETH=="A" & dur=="0-3")] <- "0-10"
+# PCTBL$dur[with(PCTBL, DURMETH=="B" & dur=="5-8")] <- "0-5" -- fixed on proj summ
+PCTBL$dur[with(PCTBL, DURMETH=="X" & dur=="10-10")] <- "6.66-10"
+PCTBL$dur <- as.factor(PCTBL$dur)
+
+PCTBL$dis <- as.character(PCTBL$dis)
+PCTBL$dis[with(PCTBL, DISMETH=="B" & dis=="0-Inf")] <- "0-50" # best guess
+PCTBL$dis[with(PCTBL, DISMETH=="C" & dis=="0-Inf")] <- "0-50" # best guess
+PCTBL$dis[with(PCTBL, DISMETH=="F")] <- "0-100" # all kinds of weird stuff
+PCTBL$dis[with(PCTBL, DISMETH=="I" & dis=="100-125")] <- "0-25"
+PCTBL$dis[with(PCTBL, DISMETH=="I" & dis=="100-Inf")] <- "0-25" # best guess
+#PCTBL$dis[with(PCTBL, DISMETH=="L" & dis=="150-Inf")] <- "100-150" # no >150
+PCTBL$dis[with(PCTBL, DISMETH=="M" & dis=="0-Inf")] <- "150-Inf"
+#PCTBL$dis[with(PCTBL, DISMETH=="T" & dis=="100-Inf")] <- "-" # no >100
+PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="0-50")] <- "40-50"
+PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="100-150")] <- "125-150"
+PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="100-Inf")] <- "150-Inf"
+PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="50-100")] <- "90-100"
+PCTBL$dis[with(PCTBL, DISMETH=="U" & dis=="50-Inf")] <- "150-Inf"
+PCTBL$dis[with(PCTBL, DISMETH=="W" & dis=="150-Inf")] <- "100-Inf"
+PCTBL$dis[with(PCTBL, DISMETH=="W" & dis=="100-125")] <- "100-Inf"
+PCTBL$dis <- as.factor(PCTBL$dis)
+
+#PCTBL$dis <- droplevels(PCTBL$dis)
+#PCTBL$dur <- droplevels(PCTBL$dur)
+
+pc <- droplevels(PCTBL[PCTBL$PKEY %in% levels(dat$PKEY),])
+levels(pc$PKEY) <- c(levels(pc$PKEY), setdiff(levels(dat$PKEY), levels(pc$PKEY)))
+
+pc2 <- with(PCTBL_abmi, data.frame(
+    PCODE="ABMI",
+    PKEY=as.factor(Label),
+    SS=as.factor(Label2),
+    SPECIES=SPECIES,
+    ABUND=1,
+    dur=factor(period1),
+    dis="0-Inf",
+    DISMETH="D",
+    DURMETH="X"))
+levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
+
+
+## combine dat, dat2 and pc pc2
+dat <- rbind(dat, dat2[,colnames(dat)])
+pc <- rbind(pc, pc2[,colnames(pc)])
+
+durmat <- as.matrix(Xtab(~ DURMETH + dur, pc))
+durmat[durmat > 0] <- 1
+dismat <- as.matrix(Xtab(~ DISMETH + dis, pc))
+dismat[dismat > 0] <- 1
+
+ltdur <- arrange.intervals(durmat)
+ltdis <- arrange.intervals(dismat)
+## divide by 100
+ltdis$end <- ltdis$end / 100
+
+if (FALSE) {
+pcc <- nonDuplicated(pc, PKEY, TRUE)
+ii <- intersect(rownames(pcc), rownames(dat))
+pkk <- dat[ii,]
+pcc <- pcc[ii,]
+table(pcc=droplevels(pcc$DISMET), pkk=droplevels(pkk$DISMET), useNA="a")
+table(pcc=droplevels(pcc$DURMET), pkk=droplevels(pkk$DURMET), useNA="a")
+
+}
+
+
+save(dat2, pc2,
+    file=file.path(ROOT, "out",
+    paste0("abmi_data_package_", Sys.Date(), ".Rdata")))
+
+save(dat, pc, ltdur, ltdis, TAX,
+    file=file.path(ROOT, "out",
+    paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
+
+save(SS, PKEY, PCTBL, TAX,
+    file=file.path(ROOT, "out",
+    paste0("data_package_", Sys.Date(), ".Rdata")))
+

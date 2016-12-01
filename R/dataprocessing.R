@@ -47,7 +47,14 @@ save(SS01, file=file.path(ROOT2, "out", "SS-regions-and-xy.Rdata"))
 SS02 <- sqlFetch(con, "dbo_TREE_BBSBAM_V4_tbl")
 SS02 <- nonDuplicated(SS02, SS, TRUE)
 SS02 <- SS02[rownames(SS01),]
+
+## TREE update 2016-12-01
+tr <- read.csv("e:/peter/bam/Apr2016/tree_update/BAM_BBS_2015_XY_AVHRRTREE_nov30_2016.csv")
+SS02$TREE_WRONG <- SS02$TREE
+SS02$TREE <- tr$VCFAVHRR[match(SS02$SS, tr$SS)]
+
 SS02$TREE[SS02$TREE > 100] <- NA
+SS02$TREE[SS02$TREE < 0] <- NA
 SS02$TREE <- SS02$TREE / 100
 SS02$TREE3 <- factor(NA, levels=c("Open", "Sparse", "Dense"))
 SS02$TREE3[SS02$TREE < 0.25] <- "Open"
@@ -526,8 +533,8 @@ compare_sets(PKEY$PKEY, PCTBL$PKEY)
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT2, "out",
     #paste0("data_package_2016-04-18.Rdata")))
-    paste0("data_package_2016-07-05.Rdata")))
-
+#    paste0("data_package_2016-07-05.Rdata")))
+    paste0("data_package_2016-12-01.Rdata")))
 
 
 #### Calculate the offsets (optional) -----------------------------------------
