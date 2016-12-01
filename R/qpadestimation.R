@@ -11,7 +11,7 @@
 ### Preliminaries
 
 ## Define root folder where data are stored
-ROOT <- "c:/bam/May2015"
+ROOT <- "e:/peter/bam/May2015"
 
 ## Load required packages
 library(mefa4)
@@ -26,7 +26,8 @@ rownames(sppt) <- sppt$Species_ID
 spp_singing <- sort(rownames(sppt)[sppt$Singing_birds])
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
+#load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2016-12-01.Rdata"))
 
 ### Removal sampling
 
@@ -106,7 +107,7 @@ names(ff) <- 0:14
 ## crosstab for species
 xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
 #xtDur[["NONE"]] <- NULL
-xtDur <- xtDur[spp_singing]
+xtDur <- xtDur[intersect(names(xtDur), spp_singing)]
 
 fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
@@ -266,7 +267,7 @@ names(ff) <- 0:5
 ## crosstab for species
 xtDis <- Xtab(ABUND ~ PKEY + dis + SPECIES, pc)
 #xtDis[["NONE"]] <- NULL
-xtDis <- xtDis[spp_singing]
+xtDis <- xtDis[intersect(names(xtDis), spp_singing)]
 
 fitDisFun <- function(spp, fit=TRUE) {
     rn <- intersect(rownames(pkDis), rownames(xtDis[[spp]]))
@@ -422,7 +423,7 @@ for (spp in rownames(edr_mod)) {
                     cat("EDR LCC4 min issue for", spp, "model", mid, "\n")
                     edr_models[spp,mid] <- 0
                 }
-                if (mid %in% c("1", "4", "5") && 
+                if (mid %in% c("1", "4", "5") &&
                     resDis[[spp]][[mid]]$coefficients["log.tau_TREE"] > 0) {
                     cat("EDR TREE > 0 issue for", spp, "model", mid, "\n")
                     edr_models[spp,mid] <- 0
@@ -775,8 +776,8 @@ xval <- if (mi$sra %in% c("9","10","11","12","13","14"))
     ls*365 else jd*365
 image(xval, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"), 
-        "Days since local springs", "Julian days"), 
+    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"),
+        "Days since local springs", "Julian days"),
     ylab="Hours since sunrise",
     main=paste("Best model:", mi$sra))
 box()
@@ -849,7 +850,7 @@ rownames(TAX) <- TAX$Species_ID
 TAX <- droplevels(TAX[spp3,])
 rm(e)
 
-tab <- data.frame(getBAMspeciestable(), 
+tab <- data.frame(getBAMspeciestable(),
     v2=n2[match(spp3,spp2),], v2=est2[match(spp3,spp2),],
     v3=n3, v3=est3,
     Order=TAX$Order, Family=TAX$Family_Sci)
@@ -899,17 +900,17 @@ np <- sapply(SPP, function(z) selectmodelBAMspecies(z)$sra$nobs[1])
 
 waic0 <- t(apply(aic0, 1, function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }))
 waicb <- t(apply(aicb, 1, function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }))
 waic <- t(apply(aic, 1, function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }))
 
@@ -985,14 +986,14 @@ mib <- as.character(0:14)[which.min(aicb[spp,])]
 cfib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$coefficients
 vcib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$vcov
 
-#     TSSR             JDAY            TSLS       
-# Min.   :-0.315   Min.   :0.351   Min.   :-0.101  
-# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103  
-# Median : 0.149   Median :0.455   Median : 0.131  
-# Mean   : 0.141   Mean   :0.455   Mean   : 0.133  
-# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164  
-# Max.   : 0.520   Max.   :0.641   Max.   : 0.442  
-# NA's   :8455     NA's   :5804    NA's   :17255  
+#     TSSR             JDAY            TSLS
+# Min.   :-0.315   Min.   :0.351   Min.   :-0.101
+# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103
+# Median : 0.149   Median :0.455   Median : 0.131
+# Mean   : 0.141   Mean   :0.455   Mean   : 0.133
+# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164
+# Max.   : 0.520   Max.   :0.641   Max.   : 0.442
+# NA's   :8455     NA's   :5804    NA's   :17255
 jd <- seq(0.35, 0.55, 0.01)
 ts <- seq(-0.3, 0.5, 0.01)
 ls <- seq(-0.1, 0.4, len=length(jd))
@@ -1084,8 +1085,8 @@ xval <- if (mi$sra %in% c("9","10","11","12","13","14"))
     ls*365 else jd*365
 image(xval, ts*24, pmat,
     col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"), 
-        "Days since local springs", "Julian days"), 
+    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"),
+        "Days since local springs", "Julian days"),
     ylab="Hours since sunrise",
     main=paste("Best model:", mi$sra))
 box()
@@ -1094,8 +1095,8 @@ xval <- if (mib %in% c("9","10","11","12","13","14"))
     ls*365 else jd*365
 image(xval, ts*24, pmatb,
     col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mib %in% c("9","10","11","12","13","14"), 
-        "Days since local springs", "Julian days"), 
+    xlab=ifelse(mib %in% c("9","10","11","12","13","14"),
+        "Days since local springs", "Julian days"),
     ylab="Hours since sunrise",
     main=paste("Best model:", mib))
 box()
