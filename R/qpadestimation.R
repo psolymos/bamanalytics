@@ -359,13 +359,15 @@ ROOT <- "c:/bam/May2015"
 
 ## n.min is threshold above which all models are considered
 ## n.con is threshold above which the 0 constant model is considered
-n.con <- 50#25
-n.min <- 50#75
+n.con <- 25#50
+n.min <- 75#50
+n.min.class <- 5 # min number of detections within each class
+
 type <- "rem"
 load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
 load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2016.Rdata"))
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2016-12-01.Rdata"), envir=e)
 
 ## 0/1 table for successful model fit
 edr_mod <- t(sapply(resDis, function(z)
@@ -415,11 +417,11 @@ for (spp in rownames(edr_mod)) {
                 "( len.coef =", lcf, ", len.name =", lnm, ")\n")
                 edr_models[spp,mid] <- 0
             } else {
-                if (mid %in% c("2", "4") && min(table(Dat$LCC2)) < 5) {
+                if (mid %in% c("2", "4") && min(table(Dat$LCC2)) < n.min.class) {
                     cat("EDR LCC2 min issue for", spp, "model", mid, "\n")
                     edr_models[spp,mid] <- 0
                 }
-                if (mid %in% c("3", "5") && min(table(Dat$LCC4)) < 5) {
+                if (mid %in% c("3", "5") && min(table(Dat$LCC4)) < n.min.class) {
                     cat("EDR LCC4 min issue for", spp, "model", mid, "\n")
                     edr_models[spp,mid] <- 0
                 }
