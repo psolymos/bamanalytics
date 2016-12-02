@@ -15,8 +15,9 @@ library(snow)
 if (!interactive())
     library(Rmpi)
 library(MASS)
-library(ResourceSelection)
-library(mefa4)
+library(Matrix)
+#library(ResourceSelection)
+#library(mefa4)
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/analysis_functions.R")
 if (!interactive())
@@ -41,7 +42,7 @@ if (interactive())
     #setwd("e:/peter/bam/Apr2016/out")
     setwd(ROOT)
 
-Date <- "2016-04-18"
+Date <- "2016-12-01"
 fn <- paste0("pack_", Date, ".Rdata")
 load(file.path("data", fn))
 if (TEST)
@@ -58,9 +59,10 @@ if (!interactive())
 
 #### loading packages on slaves ####
 
-tmpcl <- clusterEvalQ(cl, library(ResourceSelection))
+#tmpcl <- clusterEvalQ(cl, library(ResourceSelection))
 tmpcl <- clusterEvalQ(cl, library(MASS))
-tmpcl <- clusterEvalQ(cl, library(mefa4))
+#tmpcl <- clusterEvalQ(cl, library(mefa4))
+tmpcl <- clusterEvalQ(cl, library(Matrix))
 tmpcl <- clusterEvalQ(cl, source("~/repos/bragging/R/glm_skeleton.R"))
 
 #### load all the objects on the slaves ####
@@ -80,7 +82,7 @@ spp <- if (interactive()) # CAWA OSFL RUBL WEWP OVEN MOWA
 
 #system.time(aaa <- do_1spec1run_noW(1, i=spp, mods=mods, hsh_name=NA, CAICalpha=CA))
 
-res <- parLapply(cl, 1:BBB, do_1spec1run_noW, i=spp, mods=mods, 
+res <- parLapply(cl, 1:BBB, do_1spec1run_noW, i=spp, mods=mods,
     hsh_name=NA, CAICalpha=CA)
 
 fout <- paste0(PROJECT, "_", spp, "_", Date, ".Rdata")
