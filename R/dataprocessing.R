@@ -617,7 +617,7 @@ phi1 <- exp(drop(Xp2[OKp,,drop=FALSE] %*% cfi$sra))
 tau1 <- exp(drop(Xq2[OKq,,drop=FALSE] %*% cfi$edr))
 p[OKp] <- sra_fun(offdat$MAXDUR[OKp], phi1)
 unlim <- ifelse(offdat$MAXDIS[OKq] == Inf, TRUE, FALSE)
-A[OKq] <- ifelse(unlim, pi * tau1, pi * offdat$MAXDIS[OKq]^2)
+A[OKq] <- ifelse(unlim, pi * tau1^2, pi * offdat$MAXDIS[OKq]^2)
 q[OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[OKq], tau1))
 
 ii <- which(p == 0)

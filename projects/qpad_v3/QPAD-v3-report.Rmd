@@ -60,7 +60,7 @@ We considered the following predictor variables for time-removal sampling:
 * `JDAY2`, `TSSR2`, `DSLS2`: quadratic terms ($x^2$) for the above 3 variables.
 
 Calculation of `JDAY` and `TSSR` follows Solymos et al. [1]
-and its supporting material, 
+and its supporting material,
 see McKenney et al. [2] for `DSLS` variable that is now added to v3 QPAD offset
 models and estimates.
 
@@ -93,11 +93,11 @@ We considered the following predictor variables for distance sampling:
 * `LCC2`: land cover as a 4-level factor (`Forest`, `OpenWet` levels) based on the NALCMS land cover product [3],
 * `LCC2`: land cover as a 2-level factor (`DecidMixed`, `Conif`, `Open`, `Wet` levels) based on the NALCMS land cover product [3].
 
-The reason we switched from the Canadian land cover product 
+The reason we switched from the Canadian land cover product
 (using 5 land cover categories as described in [1])
 to the North American one [3] is that BAM data set includes many data points
 outside of Canada and we wanted to have consistent land cover classification
-across Canada and the US Boreal/Hemiboreal 
+across Canada and the US Boreal/Hemiboreal
 (including Alaska, Minnesota, for example).
 
 The following model formulae were used as part of the right-hand side of the
@@ -112,7 +112,7 @@ formula interface in the `cmulti` function (using `type = "dis"`):
 
 # Parameter estimates
 
-We used the same general approach as in Solymos et al. [1], 
+We used the same general approach as in Solymos et al. [1],
 please consult that for details on method.
 Estimates can be retrieved using the **QPAD** R package [4]. Here is how
 the package can be installed:
@@ -174,10 +174,10 @@ join_spp <- intersect(names(nsra2), names(nsra3))
 
 QPAD v2 included results for `r length(v2$.BAMCOEFS$spp)`,
 v3 includes results for `r length(v3$.BAMCOEFS$spp)`.
-As part of QPAD v3, we are providing parameter estimates for the 
-following bird species (* indicates the 
+As part of QPAD v3, we are providing parameter estimates for the
+following bird species (* indicates the
 `r length(v3$.BAMCOEFS$spp) - length(v2$.BAMCOEFS$spp)`
-species that were not part of QPAD v2 
+species that were not part of QPAD v2
 species list):
 
 ```{r echo=FALSE,message=FALSE,results='asis'}
@@ -242,8 +242,8 @@ We can plot the updated v3 results for the species, to compare sample sizes,
 model support, general relationships between different versions
 (note: some species' results might not be available in v2).
 Sample sizes for time-removal and distance sampling can be different because
-the conditional maximum likelihood estimation uses different observations 
-depending on methodologies (i.e. availability of multiple duration or distance 
+the conditional maximum likelihood estimation uses different observations
+depending on methodologies (i.e. availability of multiple duration or distance
 intervals in a given survey).
 
 ```{r dev='png',fig.height=7}
@@ -261,10 +261,10 @@ for technical details of parameter estimation and offset calculation.
 # Acknowledgements
 
 This work is a contribution of the Boreal Avian Modelling (BAM) Project, an
-international research collaboration on the ecology, management, and conservation of boreal birds. 
-We acknowledge the BAM Project's members, avian and biophysical data partners, 
+international research collaboration on the ecology, management, and conservation of boreal birds.
+We acknowledge the BAM Project's members, avian and biophysical data partners,
 and funding agencies
-(including Environment Canada and the U.S. Fish &amp; Wildlife Service), 
+(including Environment Canada and the U.S. Fish &amp; Wildlife Service),
 listed in full at
 [www.borealbirds.ca/index.php/acknowledgements](www.borealbirds.ca/index.php/acknowledgements).
 
@@ -908,7 +908,7 @@ phi1 <- exp(drop(Xp2[OKp,,drop=FALSE] %*% cfi$sra))
 tau1 <- exp(drop(Xq2[OKq,,drop=FALSE] %*% cfi$edr))
 p[OKp] <- sra_fun(offdat$MAXDUR[OKp], phi1)
 unlim <- ifelse(offdat$MAXDIS[OKq] == Inf, TRUE, FALSE)
-A[OKq] <- ifelse(unlim, pi * tau1, pi * offdat$MAXDIS[OKq]^2)
+A[OKq] <- ifelse(unlim, pi * tau1^2, pi * offdat$MAXDIS[OKq]^2)
 q[OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[OKq], tau1))
 
 ii <- which(p == 0)
