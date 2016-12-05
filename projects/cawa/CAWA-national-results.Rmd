@@ -17,8 +17,7 @@ library(knitr)
 library(mefa4)
 library(pbapply)
 library(pROC)
-ROOT <- "c:/bam/May2015"
-ROOT2 <- "e:/peter/bam/Apr2016/out"
+ROOT <- "e:/peter/bam/Apr2016/out"
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 
 PROJECT <- "bam"
@@ -26,7 +25,7 @@ Date <- "2016-12-01"
 level <- 0.9
 
 e <- new.env()
-load(file.path(ROOT2, "data", "pack_2016-12-01.Rdata"), envir=e)
+load(file.path(ROOT, "data", "pack_2016-12-01.Rdata"), envir=e)
 
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
@@ -57,7 +56,7 @@ Y <- yy[,spp]
 Y1 <- ifelse(yy[,spp]>0, 1, 0)
 off1 <- off[,spp]
 
-fn <- file.path(ROOT2, "results", "cawa",
+fn <- file.path(ROOT, "results", "cawa",
     paste0(PROJECT, "_", spp, "_", Date, ".Rdata"))
 load(fn)
 #100 * sum(getOK(res)) / length(res)
@@ -187,6 +186,7 @@ auc <- sapply(rocAll1, function(z) as.numeric(z$auc))
 
 barplot(auc, ylim=c(0,1), space=0, ylab="AUC", xlab="Stages")
 lines(0:length(mods)+0.5, auc, col=4, lwd=2)
+text(0:length(mods)+0.5, auc, round(auc, 3), col=2)
 ```
 
 ```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4,results='hide'}
