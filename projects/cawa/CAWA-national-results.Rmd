@@ -22,11 +22,11 @@ ROOT2 <- "e:/peter/bam/Apr2016/out"
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 
 PROJECT <- "bam"
-Date <- "2016-08-16"
+Date <- "2016-12-01"
 level <- 0.9
 
 e <- new.env()
-load(file.path(ROOT2, "data", "pack_2016-08-16.Rdata"), envir=e)
+load(file.path(ROOT2, "data", "pack_2016-12-01.Rdata"), envir=e)
 
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")

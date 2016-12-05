@@ -7,8 +7,8 @@ ROOT <- "e:/peter/bam/Apr2016"
 
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
-load(file.path(ROOT, "out", paste0("data_package_2016-04-18.Rdata")))
-load(file.path(ROOT, "out", "offsets-v3_2016-04-18.Rdata"))
+load(file.path(ROOT, "out", "data_package_2016-12-01.Rdata"))
+load(file.path(ROOT, "out", "offsets-v3_2016-12-01.Rdata"))
 
 TAX <- nonDuplicated(TAX, Species_ID, TRUE)
 TAX <- droplevels(TAX[SPP,])
@@ -304,7 +304,7 @@ nmin <- 100
 B <- 239
 Extra <- c("SS", "SITE_YR", "X", "Y", "Xcl", "Ycl", "Units", "xBCR", "JURS")
 Save <- c("DAT", "YY", "OFF", "TAX", "mods", "BB")
-Date <- "2016-08-16"
+Date <- "2016-12-01"
 
 pk <- intersect(rownames(DAT), rownames(YY))
 DAT <- DAT[pk,]
