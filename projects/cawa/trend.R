@@ -5,11 +5,11 @@ ROOT2 <- "e:/peter/bam/Apr2016/out"
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 
 PROJECT <- "bam"
-Date <- "2016-08-16"
+Date <- "2016-12-01"
 level <- 0.9
 
 e <- new.env()
-load(file.path(ROOT2, "data", "pack_2016-08-16.Rdata"), envir=e)
+load(file.path(ROOT2, "data", "pack_2016-12-01.Rdata"), envir=e)
 
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
@@ -52,7 +52,7 @@ SS01$COUNTRY <- as.factor(SS01$COUNTRY)
 SS01 <- droplevels(SS01[rownames(SS01) %in% as.character(xn$SS),])
 SS01$BCR[SS01$BCR==0] <- NA
 
-## fill-in BCR based on closes known value
+## fill-in BCR based on closest known value
 ii <- which(SS01$BCR == 0 | is.na(SS01$BCR))
 for (i in ii) {
     d <- sqrt((SS01$X_GEONAD83 - SS01$X_GEONAD83[i])^2 +
@@ -95,7 +95,7 @@ fstat <- function(x, level=0.95, digits=3) {
 hist(100 * (exp(est_yr[,"YR"]) - 1), col="grey",
      main="", xlab="% annual population change")
 round(c(fstat(100 * (exp(est_yr[,"YR"]) - 1)),
-    summary(100 * (exp(est_yr[,"YR"]) - 1)))[-3], 3)
+    summary(100 * (exp(est_yr[,"YR"]) - 1))), 3)
 
 ## Residual trend estimates
 
@@ -258,6 +258,6 @@ tmp$bbs <- data.frame(Country="", BCR="",
     PROV="", BCRPROV=rownames(tmp$bbs), Data="bbs", tmp$bbs)
 tab <- rbind(tab, tmp$all, tmp$bam, tmp$bbs)
 
-write.csv(tab, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-trend-2016-10-07.csv")
-write.csv(d, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-det-2016-10-07.csv")
+write.csv(tab, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-trend-2016-12-01.csv")
+write.csv(d, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-det-2016-12-01.csv")
 

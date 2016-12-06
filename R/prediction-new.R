@@ -7,7 +7,7 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
-Date <- "2016-08-16"
+Date <- "2016-12-01"
 #level <- 0.9
 #spp <- "CAWA"
 
@@ -18,7 +18,7 @@ B_use <- 240#100#240
 bfill <- FALSE
 
 e <- new.env()
-load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-08-16.Rdata"), envir=e)
+load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-12-01.Rdata"), envir=e)
 mods <- e$mods
 
 #mods$Hgt <- NULL
