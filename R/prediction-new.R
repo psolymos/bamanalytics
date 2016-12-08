@@ -65,7 +65,7 @@ B_use <- min(B_use, nrow(est))
 #regi <- "10.1.1"
 for (regi in regs) {
 
-cat(spp, regi, "\n");flush.console()
+cat(spp, regi, BASE_YEAR, ifelse(bfill, "bfill", "no-bfill"), "\n");flush.console()
 
 load(file.path(ROOT3, "chunks", paste0("pgdat-", regi, ".Rdata")))
 gc()
@@ -121,7 +121,10 @@ if (bfill) {
     dat$LIN <- 0
 }
 
-#(aa <- data.frame(na=sort(colSums(is.na(dat)))))
+## these are not considered in the models, thus NAs not tracked down !!!
+dat$LIN <- dat$POL <- NULL
+
+(aa <- data.frame(na=sort(colSums(is.na(dat)))))
 dat0 <- dat[rowSums(is.na(dat)) == 0,]
 #stopifnot((nrow(dat)-nrow(dat0))/nrow(dat) < 0.05)
 Xn0 <- model.matrix(getTerms(mods[1:Stage], "formula"), dat0)
@@ -173,6 +176,7 @@ ROOT <- "e:/peter/bam/Apr2016"
 ROOT2 <- "e:/peter/bam/pred-2015"
 ROOT3 <- "e:/peter/bam/pred-2016"
 
+## Brandt is not right!
 load(file.path("e:/peter/bam/pred-2015", "pg-main-NALConly.Rdata"))
 ## pointid is rownames
 XY <- x[,c("POINT_X","POINT_Y","BCR","JURS","LEVEL3","Brandt")]
@@ -199,7 +203,7 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #load(file.path(ROOT2, "XYfull.Rdata"))
 
 PROJECT <- "bam"
-Date <- "2016-08-16"
+Date <- "2016-12-01"
 #level <- 0.9
 #spp <- "CAWA"
 #SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
@@ -216,7 +220,7 @@ brr <- list()
 
 e <- new.env()
 #load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
-load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-08-16.Rdata"), envir=e)
+load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-12-01.Rdata"), envir=e)
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
@@ -240,12 +244,12 @@ SS2 <- nonDuplicated(SS, SS, TRUE)[,c("PCODE","SS","X_CLCC","Y_CLCC","X_GEONAD83
 yyss <- groupSums(yy, 1, SS$SS)
 yyss[yyss>0] <- 1
 mmss <- Mefa(yyss, SS2)
-mmss <- mmss[samp(mmss)$studyarea,]
+#mmss <- mmss[samp(mmss)$studyarea,]
 summary(samp(mmss[samp(mmss)$studyarea,]))
-yyl3 <- groupSums(xtab(mmss), 1, samp(mmss)$LEVEL3)
+yyl3 <- groupSums(xtab(mmss), 1, samp(mmss)$subreg)
 #yyl3 <- yyl3[match(samp(mmss)$LEVEL3, rownames(yyl3)),]
-
-allSSbyL3 <- table(rep(1, nrow(mmss)), samp(mmss)$LEVEL3)
+#allSSbyL3 <- table(rep(1, nrow(mmss)), samp(mmss)$LEVEL3)
+allSSbySubreg <- table(rep(1, nrow(mmss)), samp(mmss)$subreg)
 
 rm(e)
 
@@ -355,7 +359,7 @@ if (FALSE) {
 
 pp <- data.frame(plam[,c("Mean","SD")])
 pp$pointid <- rownames(plam)
-write.csv(pp, row.names=FALSE, file=file.path(ROOT3, "CAWA-data-forSam-2016-10-19.csv"))
+write.csv(pp, row.names=FALSE, file=file.path(ROOT3, "CAWA-data-forSam-2016-12-01.csv"))
 
 #e <- new.env()
 #load("e:/peter/bam/Apr2016/out/data/pack_2016-04-18.Rdata", envir=e)
@@ -391,7 +395,7 @@ zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "tan", pch=".")
+points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
 #for (i in levels(XY2all$LEVEL3)) {
 #    gc()
 #    n3 <- if (i %in% rownames(yyl3))
@@ -421,7 +425,7 @@ CoV <- plam[,"SD"] / plam[,"Mean"]
 zval <- cut(CoV, breaks=br)
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "tan", pch=".")
+points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
@@ -441,7 +445,7 @@ TEXT <- paste0(br[-length(br)], "-", br[-1], "%")
 TEXT[length(TEXT)] <- paste0(">", br[length(br)-1], "%")
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "tan", pch=".")
+points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
@@ -453,14 +457,14 @@ dev.off()
 
 XY3s <- droplevels(XY3[rownames(tlam),])
 colnames(tlam) <- paste0(spp, "_run", 1:ncol(tlam))
-XY3s$nSSinL3 <- NA
-for (i in colnames(allSSbyL3))
-    if (i %in% levels(XY3s$LEVEL3))
-        XY3s$nSSinL3[XY3s$LEVEL3 == i] <- allSSbyL3[1,i]
-XY3s$nDETinL3 <- 0
-for (i in colnames(allSSbyL3))
+XY3s$nSSinSubreg <- 0
+for (i in colnames(allSSbySubreg))
+    if (i %in% levels(XY3s$subreg))
+        XY3s$nSSinSubreg[XY3s$subreg == i] <- allSSbySubreg[1,i]
+XY3s$nDETinSubreg <- 0
+for (i in colnames(allSSbySubreg))
     if (i %in% rownames(yyl3))
-        XY3s$nDETinL3[XY3s$LEVEL3 == i] <- yyl3[i,spp]
+        XY3s$nDETinSubreg[XY3s$subreg == i] <- yyl3[i,spp]
 ddd <- data.frame(XY3s, tlam)
 
 write.csv(ddd, row.names=FALSE, file=file.path(ROOT3, "maps",
@@ -504,13 +508,13 @@ chfun(5.729, 5.704, 2002, 2012)
 ## difference maps
 
 e <- new.env()
-load("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-08-16-2012-bf-median-pred.Rdata", envir=e)
+load("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-2012-bf-median-pred.Rdata", envir=e)
 x0 <- e$x
 e <- new.env()
-load("e:/peter/bam/pred-2016/maps/CAWA-6-2002-2016-08-16-2002-median-pred.Rdata", envir=e)
+load("e:/peter/bam/pred-2016/maps/CAWA-6-2002-2016-12-01-2002-median-pred.Rdata", envir=e)
 x1 <- e$x
 e <- new.env()
-load("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-08-16-2012-median-pred.Rdata", envir=e)
+load("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-2012-median-pred.Rdata", envir=e)
 x2 <- e$x
 x1 <- x1[names(x2)]
 x0 <- x0[names(x2)]
@@ -555,6 +559,12 @@ legend("topright", bty = "n", legend=rev(TEXT),
     title=paste(spp, "diff bfill-2012"))
 par(op)
 dev.off()
+
+## todo
+
+## - look up nearest pixel for NA values
+## - rerun maps
+## - Brandt is not right!
 
 ## --
 

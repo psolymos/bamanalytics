@@ -150,7 +150,7 @@ getMid <- function(res, mods, use_rmax=FALSE) {
     rownames(mid) <- sapply(res[OK], "[[", "iteration")
     colnames(mid) <- names(mods)
     mid0 <- do.call(cbind,
-        lapply(1:ncol(mid), function(i) 
+        lapply(1:ncol(mid), function(i)
             apply(mid[,1:i,drop=FALSE], 1, paste, collapse=" ")))
     if (use_rmax)
         require(ade4)
@@ -191,7 +191,7 @@ getFancyMidTab <- function(res, mods, truncate=50, ...) {
     x <- getFancyMid(res, mods, ...)
     for (i in 1:length(x)) {
         x[[i]] <- data.frame(Stage=rep(names(x)[i], nrow(x[[i]])),
-            Model_ID=rownames(x[[i]]), 
+            Model_ID=rownames(x[[i]]),
             Full_ID=paste(i, rownames(x[[i]]), sep="."),
             x[[i]])
     }
@@ -201,20 +201,20 @@ getFancyMidTab <- function(res, mods, truncate=50, ...) {
     levels(out$Terms) <- substr(levels(out$Terms), 1, truncate)
     out
 }
-getFancyModsTab <- function(mods, chmax=60) {
+getFancyModsTab <- function(mods, truncate=50, ...) {
     out <- mods
     for (i in 1:length(out)) {
         Terms <- c("NULL", sapply(mods[[i]], function(z) as.character(z)[3]))
-#        if (any(nchar(as.character(Terms)) > chmax))
-#            Terms <- compress(Terms)
         tmp <- data.frame(Stage=rep(names(mods)[i], length(Terms)),
-            Model_ID=0:(length(Terms) - 1), 
+            Model_ID=0:(length(Terms) - 1),
             Full_ID=paste(i, 0:(length(Terms) - 1), sep="."),
             Terms=Terms)
         out[[i]] <- tmp
     }
     out <- do.call(rbind, out)
     rownames(out) <- NULL
+    out$Terms <- as.factor(out$Terms)
+    levels(out$Terms) <- substr(levels(out$Terms), 1, truncate)
     out
 }
 
@@ -262,17 +262,17 @@ midfig <- function(mid, m=apply(mid, 2, max), ...) {
     COL <- grey(ifelse(is.na(wl), 0, wl/max(wl,na.rm=TRUE)))
     plot(xlim, ylim, type="n", xlab="", ylab="", axes=FALSE, ...)
     segments(-m/2, 1:k, m/2, 1:k)
-    segments(xl[,1], yl[,1],xl[,2], yl[,2], 
+    segments(xl[,1], yl[,1],xl[,2], yl[,2],
         col=ifelse(is.na(wl), NA, 1), lwd=LWD)
-    segments(xl[,1], yl[,1],xl[,2], yl[,2], 
+    segments(xl[,1], yl[,1],xl[,2], yl[,2],
         col=ifelse(is.na(wl), NA, COL), lwd=LWD-3)
-    points(unlist(xt), unlist(yt), 
+    points(unlist(xt), unlist(yt),
         cex=CEX,
         pch=19, col=grey(unlist(pt)/max(unlist(pt))))
-    points(unlist(xt), unlist(yt), 
+    points(unlist(xt), unlist(yt),
         cex=CEX,
         pch=21)
-    text(unlist(xt), unlist(yt), 
+    text(unlist(xt), unlist(yt),
         unlist(lapply(m, function(z) 0:z)))
     invisible(NULL)
 }
@@ -295,7 +295,7 @@ plotMid <- function(res, mods, web=TRUE, ...) {
             #main=paste(taxa(mm)[res[[1]]$species,"CommonName"], " (", res[[1]]$species, ")", sep="")
             #main=as.character(taxa(mm)[res[[1]]$species,"English_Name"])
             #, ...)
-        text(rep(-0.5-0.5*max(sapply(mods, length)), ncol(mid)), 
+        text(rep(-0.5-0.5*max(sapply(mods, length)), ncol(mid)),
             seq_len(ncol(mid))+0.25, names(mods))
         par(opar)
     } else {

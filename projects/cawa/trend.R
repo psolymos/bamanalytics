@@ -99,7 +99,7 @@ round(c(fstat(100 * (exp(est_yr[,"YR"]) - 1)),
 
 ## Residual trend estimates
 
-yr_fun <- function(i, subset=NULL, part=c("all", "bbs","bam")) {
+yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam")) {
     part <- match.arg(part)
     if (is.null(subset))
         subset <- rep(TRUE, nrow(DAT))
@@ -117,7 +117,7 @@ yr_fun <- function(i, subset=NULL, part=c("all", "bbs","bam")) {
     mod <- glm(Y ~ YR, data=dat, offset=dat$logDoff, family=poisson)
     100 * (exp(coef(mod)[2]) - 1)
 }
-yr_res <- pbsapply(1:240, yr_fun)
+#yr_res <- pbsapply(1:240, yr_fun)
 
 ## need to find BCR/JURS/Ecoreg/Brandt values
 ## add subset uption into yr_fun
@@ -142,7 +142,7 @@ levels(DAT$JURS2)[levels(DAT$JURS2) %in% c("NS","PEI")] <- "NS+PEI"
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 DAT$BCRPROV2 <- interaction(DAT$BCR, DAT$JURS2, drop=TRUE, sep="_")
 
-PART <- "all"
+PART <- "bam" # "all", "bbs","bam"
 
 tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN", part=PART)
 

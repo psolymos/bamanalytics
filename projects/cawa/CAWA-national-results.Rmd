@@ -68,12 +68,27 @@ est <- getEst(res, stage = length(mods)-1, X=Xn)
 est_yr <- getEst(res, stage = length(mods), X=Xn)
 ```
 
+# Data summary
+
+Count distribution in the data:
+
+```{r echo=FALSE,message=FALSE}
+kable(data.frame(table(Y)))
+```
+
 # Model summaries
+
+## List of stages and model terms
+
+```{r echo=FALSE,message=FALSE}
+(allt <- getFancyModsTab(mods, truncate=50))
+#write()
+```
 
 ## Model selection
 
 ```{r echo=FALSE,message=FALSE}
-(mt <- getFancyMidTab(res, mods))
+kable(mt <- getFancyMidTab(res, mods, truncate=50))
 plotMid(res, mods, web=TRUE)
 ```
 
@@ -253,50 +268,50 @@ par(op)
 
 ## BAM data points and CAWA detections
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-08-16-det.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-det.png)
 
 ## 2012 landscape conditions
 
 ### Median density
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2016-08-16-mean-2012.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-mean-2012.png)
 
 ### Coefficient of variation
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-08-16-cov.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-cov.png)
 
 ### Standard deviation
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-08-16-sd.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-sd.png)
 
 ## 2002 landscape conditions
 
 ### Median density
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2016-08-16-mean-2002.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2002-2016-12-01-mean-2002.png)
 
 ### Ratio of median density: 2012 / 2002
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2002-2016-08-16-diff-2002-2012.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-diff-2002-2012.png)
 
 ## Backfilled landscape conditions
 
 ### Median density
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2016-08-16-mean-2012bf.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-mean-2012bf.png)
 
 ### Ratio of median density: 2012 / backfilled
 
-![](e:/peter/bam/pred-2016/maps/CAWA-6-2002-2016-08-16-diff-bfill-2012.png)
+![](e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-diff-bfill-2012.png)
 
 # Population size estimates
 
 All numbers are given in million males.
 
 ```{r echo=FALSE}
-x0 <- read.csv("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-08-16-2012-bf-totals.csv")
-x1 <- read.csv("e:/peter/bam/pred-2016/maps/CAWA-6-2002-2016-08-16-2002-totals.csv")
-x2 <- read.csv("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-08-16-2012-totals.csv")
+x0 <- read.csv("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-2012-bf-totals.csv")
+x1 <- read.csv("e:/peter/bam/pred-2016/maps/CAWA-6-2002-2016-12-01-2002-totals.csv")
+x2 <- read.csv("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-2012-totals.csv")
 rownames(x0) <- x0$subreg
 rownames(x1) <- x1$subreg
 rownames(x2) <- x2$subreg
