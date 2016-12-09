@@ -316,11 +316,13 @@ all(rownames(x) == as.character(x$pointid))
 ## Brandt boreal
 #br <- read.csv(file.path(ROOT, "brandt", "Pred_BrandtBoreal.csv"))
 br <- fread(file.path(ROOT, "brandt", "Pred_BrandtBoreal.csv"))
-levels(br$pointid) <- gsub(",", "", levels(br$pointid))
+br$pointid <- as.character(br$pointid)
+br$pointid <- gsub(",", "", br$pointid)
 br <- br[!duplicated(br$pointid),]
 rownames(br) <- br$pointid
 table(br$TYPE)
 x$Brandt <- br$TYPE[match(rownames(x), br$pointid)]
+table(x$Brandt, useNA="a")
 
 xN <- read.csv("e:/peter/bam/Apr2016/north/MissingPredValuesJune8.csv")
 
@@ -426,6 +428,8 @@ x$BCR[x$BCR < 1 | x$BCR >= 100] <- NA
 levels(x$JURS) <- toupper(levels(x$JURS))
 x$JURS[x$JURS == ""] <- NA
 x$JURS <- droplevels(x$JURS)
+
+table(x$Brandt, useNA="a")
 
 save(x, file=file.path(ROOT, "pg-main-NALConly.Rdata"))
 rm(cec)
@@ -649,6 +653,45 @@ for (i in reg) {
     dat <- x[ii,]
     save(dat, file=file.path("e:/peter/bam/pred-2016", "chunks", paste0("pgdat-", i, ".Rdata")))
     gc()
+}
+
+## fill-in NAs
+st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
+reg <- levels(droplevels(st$LEVEL3))
+for (i in reg) {
+    load(file.path("e:/peter/bam/pred-2016", "chunks", paste0("pgdat-", i, ".Rdata")))
+    cat(i, sum(is.na(dat)));flush.console()
+    dat$LIN <- NULL
+    dat$POL <- NULL
+    datCheck <- dat
+    datCheck$Brandt <- NULL
+    datCheck$YearFire <- NULL
+    datCheck$YearLoss <- NULL
+    jj <- which(rowSums(is.na(datCheck)) > 0)
+    for (j in jj) {
+        d <- sqrt((dat$POINT_X - dat$POINT_X[j])^2 + (dat$POINT_Y - dat$POINT_Y[j])^2)
+        d[jj] <- Inf
+        jfill <- which.min(d)
+        wc <- is.na(dat[j,,drop=TRUE])
+        wc[c("Brandt","YearFire","YearLoss")] <- FALSE
+        dat[j, wc] <- dat[jfill, wc]
+    }
+    cat(" -->", sum(is.na(dat)), "\n");flush.console()
+    save(dat, file=file.path("e:/peter/bam/pred-2016", "chunks", paste0("pgdat-", i, ".Rdata")))
+    gc()
+}
+
+## check NAs
+st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
+reg <- levels(droplevels(st$LEVEL3))
+for (i in reg) {
+    load(file.path("e:/peter/bam/pred-2016", "chunks", paste0("pgdat-", i, ".Rdata")))
+    datCheck <- dat
+    datCheck$Brandt <- NULL
+    datCheck$YearFire <- NULL
+    datCheck$YearLoss <- NULL
+    jj <- which(rowSums(is.na(datCheck)) > 0)
+    cat(i, " -->", sum(is.na(datCheck)), "\n");flush.console()
 }
 
 
