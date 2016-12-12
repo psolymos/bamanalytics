@@ -170,54 +170,52 @@ save(lam, lam_total, file=fout)
 
 ## mapping starts here -----------------------------
 
+
 library(RColorBrewer)
 library(mefa4)
 ROOT <- "e:/peter/bam/Apr2016"
 ROOT2 <- "e:/peter/bam/pred-2015"
 ROOT3 <- "e:/peter/bam/pred-2016"
 
-## Brandt is not right!
-load(file.path("e:/peter/bam/pred-2015", "pg-main-NALConly.Rdata"))
-## pointid is rownames
-XY <- x[,c("POINT_X","POINT_Y","BCR","JURS","LEVEL3","Brandt")]
+if (FALSE) {
+## need to loop over chunks and save a proper XY where rownames match etc
+## current load has BCR as NA etc
+st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
+regs <- levels(st$LEVEL3)
+
+load(file.path(ROOT3, "chunks", paste0("pgdat-", regs[1], ".Rdata")))
+XY <- dat[,c("POINT_X","POINT_Y","BCR","JURS","LEVEL3","Brandt")]
+for (regi in regs[-1]) {
+    load(file.path(ROOT3, "chunks", paste0("pgdat-", regi, ".Rdata")))
+    tmp <- dat[,c("POINT_X","POINT_Y","BCR","JURS","LEVEL3","Brandt")]
+    XY <- rbind(XY, tmp)
+    cat(dim(XY), "\n");flush.console()
+}
+XY$Brandt <- as.factor(XY$Brandt)
 levels(XY$Brandt) <- c(levels(XY$Brandt), "OUT")
 XY$Brandt[is.na(XY$Brandt)] <- "OUT"
-XY <- XY[rowSums(is.na(XY)) == 0,]
+save(XY, file=file.path(ROOT3, "allXY.Rdata"))
+}
+
+## pred grid
+## pointid is rownames
+load(file.path(ROOT3, "allXY.Rdata"))
 XY$subreg <- as.factor(paste(XY$LEVEL3, XY$BCR, XY$JURS, XY$Brandt, sep=" + "))
 st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
 regs <- levels(st$LEVEL3)
 XY$studyarea <- XY$LEVEL3 %in% regs
-summary(XY)
-rm(x)
+#summary(XY)
 gc()
 
+## Subregions
 XY3 <- nonDuplicated(XY, subreg, TRUE)
 XY3$POINT_X <- NULL
 XY3$POINT_Y <- NULL
 rownames(XY3) <- XY3$subreg
 
 source("~/repos/bamanalytics/R/makingsense_functions.R")
-#source("~/repos/bamanalytics/R/analysis_mods.R")
-#load(file.path(ROOT, "out", "analysis_package_YYSS.Rdata"))
-#load(file.path(ROOT2, "XYeosd.Rdata"))
-#load(file.path(ROOT2, "XYfull.Rdata"))
 
-PROJECT <- "bam"
-Date <- "2016-12-01"
-#level <- 0.9
-#spp <- "CAWA"
-#SPP <- c("CAWA","CCSP","CONW","MOWA","OSFL","OVEN","RUBL","VATH","WETA","WEWP","WTSP","YEWA")
-
-Stage <- 6 # which(names(mods) == "Clim")
-# 2001, 2005, 2009, 2013
-BASE_YEAR <- 2012
-bfill <- FALSE
-
-#xy1 <- XYSS[YYSS[,spp] > 0, c("Xcl","Ycl")]
-
-ttt <- list()
-brr <- list()
-
+## observations
 e <- new.env()
 #load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
 load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-12-01.Rdata"), envir=e)
@@ -250,18 +248,37 @@ yyl3 <- groupSums(xtab(mmss), 1, samp(mmss)$subreg)
 #yyl3 <- yyl3[match(samp(mmss)$LEVEL3, rownames(yyl3)),]
 #allSSbyL3 <- table(rep(1, nrow(mmss)), samp(mmss)$LEVEL3)
 allSSbySubreg <- table(rep(1, nrow(mmss)), samp(mmss)$subreg)
-
 rm(e)
+
+## detection map
+if (FALSE) {
+png(file.path(ROOT3, "maps", paste0(fo, "-det.png")),
+    width = 2000, height = 1000)
+op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
+    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
+points(XY[XY$studyarea,1:2], col = "tan", pch=".")
+points(xy_p[yy[,spp] == 0,c("Xcl","Ycl")], pch=19, cex=0.2, col=1)
+points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.5, col=2)
+par(op)
+dev.off()
+}
+
+PROJECT <- "bam"
+Date <- "2016-12-01"
+
+Stage <- 6 # which(names(mods) == "Clim")
+BASE_YEAR <- 2012
+bfill <- FALSE
+
+ttt <- list()
+brr <- list()
 
 spp <- "CAWA"
 
 gc()
 fo <- paste0(spp, "-", Stage, "-", BASE_YEAR, "-", Date)
 cat(fo, "\n");flush.console()
-
-#load(file.path(ROOT, "out", "results", paste0(PROJECT, "_", spp, "_", Date, ".Rdata")))
-#cat(100 * sum(getOK(res)) / length(res), "% OK\n", sep="")
-#est <- getEst(res, stage = Stage, X=Xn)
 
 fl <- paste0(spp, "-", Stage, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), regs, "-", Date, ".Rdata")
 
@@ -284,7 +301,6 @@ for (fn in fl[-1]) {
         tlam <- rbind(tlam, lam_total)
     }
 }
-#rownames(tlam) <- regs[is_null==0]
 dim(plam)
 sum(duplicated(rownames(plam)))
 
@@ -297,11 +313,15 @@ if (TRUE) {
     plam[plam[,"Median"] > q,"Median"] <- q
 }
 
-XY2 <- XY[rownames(plam),c("POINT_X","POINT_Y")]
-XY2all <- XY[rownames(plam),]
-XY2all <- droplevels(XY2all)
-XY2miss <- XY[rownames(XY) %notin% rownames(plam),]
-XY2miss <- XY2miss[XY2miss$studyarea,]
+stopifnot(all(rownames(plam) == rownames(XY)))
+gc()
+#compare_sets(rownames(plam), rownames(XY2))
+
+XY2all <- as.matrix(XY[,c("POINT_X","POINT_Y")])
+## ideally, this is empty
+#XY2miss <- XY[rownames(XY) %notin% rownames(plam),]
+#XY2miss <- XY2miss[XY2miss$studyarea,]
+#dim(XY2miss)
 
 x <- plam[,"Median"]
 save(x, file=file.path(ROOT3, "maps",
@@ -332,79 +352,34 @@ fstat(colSums(tlam0/10^6), 0.9)
 100*sum(plam[,"Mean"])/10^6
 100*sum(plam[,"Median"])/10^6
 
-col <- rev(brewer.pal(6, "RdYlBu"))
-col2grey <- function(col, method="luminosity") {
-    method <- match.arg(method, c("lightness", "average", "luminosity"))
-    col <- col2rgb(col) / 255
-    if (method == "lightness")
-        out <- (apply(col, 2, max) + apply(col, 2, min)) / 2
-    if (method == "average")
-        out <- colMeans(col)
-    if (method == "luminosity")
-        out <- 0.21 * col["red",] + 0.72 * col["green",] + 0.07 * col["blue",]
-    grey(out)
-}
-if (FALSE) {
-x <- c("#4575B4", "#91BFDB", "#E0F3F8", "#FEE090", "#FC8D59", "#D73027")
-g1 <- col2grey(x, "lightness")
-g2 <- col2grey(x, "average")
-g3 <- col2grey(x, "luminosity")
-plot(1:6, rep(1,6), pch=19, cex=2, ylim=c(1,4), col=x)
-points(1:6, rep(2,6), pch=19, cex=2, col=g1)
-points(1:6, rep(3,6), pch=19, cex=2, col=g2)
-points(1:6, rep(4,6), pch=19, cex=2, col=g3)
-}
 
-if (FALSE) {
+XY3s <- droplevels(XY3[rownames(tlam),])
+colnames(tlam) <- paste0(spp, "_run", 1:ncol(tlam))
+XY3s$nSSinSubreg <- 0
+for (i in colnames(allSSbySubreg))
+    if (i %in% levels(XY3s$subreg))
+        XY3s$nSSinSubreg[XY3s$subreg == i] <- allSSbySubreg[1,i]
+XY3s$nDETinSubreg <- 0
+for (i in colnames(allSSbySubreg))
+    if (i %in% rownames(yyl3))
+        XY3s$nDETinSubreg[XY3s$subreg == i] <- yyl3[i,spp]
+ddd <- data.frame(XY3s, tlam)
+rownames(ddd) <- rownames(tlam)
 
-pp <- data.frame(plam[,c("Mean","SD")])
-pp$pointid <- rownames(plam)
-write.csv(pp, row.names=FALSE, file=file.path(ROOT3, "CAWA-data-forSam-2016-12-01.csv"))
+write.csv(ddd, row.names=FALSE, file=file.path(ROOT3, "maps",
+    paste0(fo, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), "totals.csv")))
+save(XY3s, tlam, file=file.path(ROOT3, "maps",
+    paste0(fo, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), "totals.Rdata")))
 
-#e <- new.env()
-#load("e:/peter/bam/Apr2016/out/data/pack_2016-04-18.Rdata", envir=e)
-#with(e$DAT, table(JURS, xBCR))
-#with(e$DAT, plot(X, Y, pch=".", col=as.integer(JURS)))
-
-png(file.path(ROOT3, "maps", spp, paste0("x2.png")), width = 2000, height = 1000)
-op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-plot(XY, col = "lightgrey", pch=".", ann=FALSE, axes=FALSE)
-points(XY2, col = 4, pch=".")
-par(op)
-dev.off()
-}
-
-
-png(file.path(ROOT3, "maps", paste0(fo, "-det.png")),
-    width = 2000, height = 1000)
-op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
-    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY[XY$studyarea,1:2], col = "tan", pch=".")
-points(xy_p[yy[,spp] == 0,c("Xcl","Ycl")], pch=19, cex=0.2, col=1)
-points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.5, col=2)
-par(op)
-dev.off()
 
 png(file.path(ROOT3, "maps", paste0(fo, "-mean-", BASE_YEAR, ifelse(bfill, "bf", ""), ".png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
 Col <- rev(brewer.pal(6, "RdYlBu"))
-Colg <- col2grey(Col)
 zval <- if (length(unique(round(br,10))) < 5)
     rep(1, length(x)) else as.integer(cut(x, breaks=br))
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
-#for (i in levels(XY2all$LEVEL3)) {
-#    gc()
-#    n3 <- if (i %in% rownames(yyl3))
-#        yyl3[i,spp] else -1
-#    Colx <- if (n3 < 2) ## need at least 2 detections in ecoregion
-#        Colg else Col
-#    show <- XY2all$LEVEL3 == i
-#    points(XY2all[show, c("POINT_X","POINT_Y")], col = Colx[zval[show]], pch=".")
-#}
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
 points(xy_p[yy[,spp] > 0,c("Xcl","Ycl")], pch=19, cex=0.1, col=1)
 legend("topright", bty = "n", legend=rev(TEXT),
@@ -425,7 +400,7 @@ CoV <- plam[,"SD"] / plam[,"Mean"]
 zval <- cut(CoV, breaks=br)
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
+#points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
@@ -445,7 +420,7 @@ TEXT <- paste0(br[-length(br)], "-", br[-1], "%")
 TEXT[length(TEXT)] <- paste0(">", br[length(br)-1], "%")
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
+#points(XY2miss[,c("POINT_X","POINT_Y")], col = "darkgrey", pch=".")
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
 legend("topright", bty = "n", legend=rev(TEXT),
     fill=rev(Col), border=1, cex=3,
@@ -453,24 +428,8 @@ legend("topright", bty = "n", legend=rev(TEXT),
 par(op)
 dev.off()
 
-}
 
-XY3s <- droplevels(XY3[rownames(tlam),])
-colnames(tlam) <- paste0(spp, "_run", 1:ncol(tlam))
-XY3s$nSSinSubreg <- 0
-for (i in colnames(allSSbySubreg))
-    if (i %in% levels(XY3s$subreg))
-        XY3s$nSSinSubreg[XY3s$subreg == i] <- allSSbySubreg[1,i]
-XY3s$nDETinSubreg <- 0
-for (i in colnames(allSSbySubreg))
-    if (i %in% rownames(yyl3))
-        XY3s$nDETinSubreg[XY3s$subreg == i] <- yyl3[i,spp]
-ddd <- data.frame(XY3s, tlam)
 
-write.csv(ddd, row.names=FALSE, file=file.path(ROOT3, "maps",
-    paste0(fo, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), "totals.csv")))
-save(XY3s, tlam, file=file.path(ROOT3, "maps",
-    paste0(fo, "-", BASE_YEAR, ifelse(bfill, "-bf-", "-"), "totals.Rdata")))
 
 CAN <- c("ALBERTA", "BRITISH COLUMBIA", "MANITOBA",
     "NEW BRUNSWICK", "NEWFOUNDLAND",
@@ -518,7 +477,6 @@ load("e:/peter/bam/pred-2016/maps/CAWA-6-2012-2016-12-01-2012-median-pred.Rdata"
 x2 <- e$x
 x1 <- x1[names(x2)]
 x0 <- x0[names(x2)]
-XY2all <- XY2all[names(x2),]
 
 br <- c(0.05, 0.25, 0.5, 0.95, 1/rev(c(0.05, 0.25, 0.5, 0.95)))
 d21 <- x2/x1
@@ -533,7 +491,7 @@ Col <- brewer.pal(9, "RdYlGn")
 zval <- as.integer(c21)
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "tan", pch=".")
+#points(XY2miss[,c("POINT_X","POINT_Y")], col = "tan", pch=".")
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
 TEXT <- paste0(round(br[-length(br)],2), "-", round(br[-1],2), "x")
 TEXT <- c(paste0("0-", br[1], "x"), TEXT, paste0(">", br[length(br)], "x"))
@@ -550,7 +508,7 @@ Col <- brewer.pal(9, "RdYlGn")
 zval <- as.integer(c20)
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
-points(XY2miss[,c("POINT_X","POINT_Y")], col = "tan", pch=".")
+#points(XY2miss[,c("POINT_X","POINT_Y")], col = "tan", pch=".")
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
 TEXT <- paste0(round(br[-length(br)],2), "-", round(br[-1],2), "x")
 TEXT <- c(paste0("0-", br[1], "x"), TEXT, paste0(">", br[length(br)], "x"))
@@ -560,11 +518,6 @@ legend("topright", bty = "n", legend=rev(TEXT),
 par(op)
 dev.off()
 
-## todo
-
-## - look up nearest pixel for NA values
-## - rerun maps
-## - Brandt is not right!
 
 ## --
 
