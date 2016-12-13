@@ -100,6 +100,13 @@ outside of Canada and we wanted to have consistent land cover classification
 across Canada and the US Boreal/Hemiboreal
 (including Alaska, Minnesota, for example).
 
+The following reclassification was used to create for `LCC2` and `LCC4` variables from NALCMS:
+
+```{r echo=FALSE}
+lt <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv")
+knitr::kable(lt[,-3], row.names = FALSE)
+```
+
 The following model formulae were used as part of the right-hand side of the
 formula interface in the `cmulti` function (using `type = "dis"`):
 

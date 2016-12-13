@@ -210,9 +210,25 @@ fstat <- function(x, level=0.95, digits=3) {
 tr <- list(all=as.list(eall), bam=as.list(ebam), bbs=as.list(ebbs))
 
 ## Canada
-d <- aggregate(DAT$Y01, list(Country=DAT$COUNTRY, BCR=DAT$BCR, PROV=DAT$JURS2, BCRPROV=DAT$BCRPROV), sum)
-d$ndet <- d$x
-d$prop <- aggregate(DAT$Y01, list(Country=DAT$COUNTRY, BCR=DAT$BCR, PROV=DAT$JURS2, BCRPROV=DAT$BCRPROV), mean)$x
+dall <- with(DAT, aggregate(Y01, list(Country=COUNTRY, BCR=BCR, JURS=JURS2,
+    BCRJURS=BCRPROV), sum))
+dbbs <- with(DAT[DAT$isBBS,], aggregate(Y01, list(Country=COUNTRY, BCR=BCR, JURS=JURS2,
+    BCRJURS=BCRPROV), sum))
+dbam <- with(DAT[!DAT$isBBS,], aggregate(Y01, list(Country=COUNTRY, BCR=BCR, JURS=JURS2,
+    BCRJURS=BCRPROV), sum))
+d <- dall
+d$x <- NULL
+d$ndet_all <- dall$x[match(d$BCRJURS, dall$BCRJURS)]
+d$ndet_bam <- dbam$x[match(d$BCRJURS, dbam$BCRJURS)]
+d$ndet_bam[is.na(d$ndet_bam)] <- 0
+d$ndet_bbs <- dbbs$x[match(d$BCRJURS, dbbs$BCRJURS)]
+d$ndet_bbs[is.na(d$ndet_bbs)] <- 0
+
+#d <- aggregate(DAT$Y01, list(Country=DAT$COUNTRY, BCR=DAT$BCR, PROV=DAT$JURS2,
+#    BCRPROV=DAT$BCRPROV), sum)
+#d$ndet <- d$x
+#d$prop <- aggregate(DAT$Y01, list(Country=DAT$COUNTRY, BCR=DAT$BCR,
+#    PROV=DAT$JURS2, BCRPROV=DAT$BCRPROV), mean)$x
 
 tmpd <- with(DAT[DAT$Y01>0,], table(COUNTRY, isBBS))
 tmpn <- with(DAT, table(COUNTRY, isBBS))

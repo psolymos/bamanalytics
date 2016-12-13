@@ -24,6 +24,15 @@ PROJECT <- "bam"
 Date <- "2016-12-01"
 level <- 0.9
 
+fstat <- function(x, level=0.95) {
+    out <- quantile(x, c(0.5, (1-level)/2, 1 - (1-level)/2))
+    names(out) <- c("Median", "LCL", "UCL")
+    out
+}
+chfun <- function(Na, Nb, ta, tb) {
+    100 * ((Nb/Na)^(1/(tb-ta)) - 1)
+}
+
 e <- new.env()
 load(file.path(ROOT, "data", "pack_2016-12-01.Rdata"), envir=e)
 
@@ -82,13 +91,15 @@ kable(data.frame(table(Y)))
 
 ```{r echo=FALSE,message=FALSE}
 (allt <- getFancyModsTab(mods, truncate=50))
-#write()
+tmpx <- getFancyModsTab(mods, truncate=1000)
+#write.csv(tmpx, row.names=FALSE, file="e:/peter/bam/pred-2016/maps/terms-all.csv")
 ```
 
 ## Model selection
 
 ```{r echo=FALSE,message=FALSE}
 kable(mt <- getFancyMidTab(res, mods, truncate=50))
+#write.csv(mt, row.names=FALSE, file="e:/peter/bam/pred-2016/maps/terms-freq.csv")
 plotMid(res, mods, web=TRUE)
 ```
 
@@ -96,6 +107,7 @@ plotMid(res, mods, web=TRUE)
 
 ```{r echo=FALSE,message=FALSE}
 printCoefmat(su <- getSummary(res), digits=2)
+#write.csv(su, row.names=FALSE, file="e:/peter/bam/pred-2016/maps/terms-summary.csv")
 ```
 
 # Habitat associations
@@ -198,16 +210,16 @@ rocAll1 <- lapply(1:ncol(mn), function(i) {
   })
 names(rocAll1) <- c("NULL", names(mods))
 auc <- sapply(rocAll1, function(z) as.numeric(z$auc))
-
-barplot(auc, ylim=c(0,1), space=0, ylab="AUC", xlab="Stages")
-lines(0:length(mods)+0.5, auc, col=4, lwd=2)
-text(0:length(mods)+0.5, auc, round(auc, 3), col=2)
 ```
 
 ```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4,results='hide'}
 op <- par(mfrow=c(1,2))
-plot(rocAll1[["NULL"]], col=4)
-plot(rocAll1[["Clim"]], col=4)
+tmp <- barplot(auc, ylim=c(0,1), space=0.2, ylab="AUC", xlab="Stages", 
+    col="lightgrey", border=NA, width=1)
+text(tmp, auc, round(auc, 3), col=4, cex=0.75)
+plot(rocAll1[["NULL"]], col=4, lty=2)
+lines(rocAll1[["Clim"]], col=4)
+legend("bottomright", col=4, lty=c(2,1), legend=c("NULL", "Clim"), bty="n")
 par(op)
 ```
 
@@ -241,10 +253,10 @@ for (i in 1:ncol(mn)) {
 
 p_min <- min(cbind(pobs,pexp))
 op <- par(mfrow=c(1,2))
-plot(pobs, pexp[,"NULL"], type="b", pch=rownames(pexp),
+plot(pobs, pexp[,"NULL"], type="b", pch=rownames(pexp), main="NULL",
     xlab="Observed", ylab="Expected", xlim=c(p_min, 1), ylim=c(p_min, 1), col=4)
 abline(0, 1, col="grey")
-plot(pobs, pexp[,"Clim"], type="b", pch=rownames(pexp),
+plot(pobs, pexp[,"Clim"], type="b", pch=rownames(pexp), main="Clim",
     xlab="Observed", ylab="Expected", xlim=c(p_min, 1), ylim=c(p_min, 1), col=4)
 abline(0, 1, col="grey")
 par(op)
@@ -255,7 +267,7 @@ par(op)
 ```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4}
 pro <- table(Y[ss1])/length(ss1)
 par(mfrow=c(1,2))
-boxplot(mn[,"NULL"] * exp(off1[ss1]) ~ Y[ss1], range=0,
+tmp <- boxplot(mn[,"NULL"] * exp(off1[ss1]) ~ Y[ss1], range=0,
     at=cumsum(2*pro^0.2), width=2*pro^0.2, main="NULL",
     xlab="Observed count", ylab="Corrected density", col="grey")
 boxplot(mn[,"Clim"] * exp(off1[ss1]) ~ Y[ss1], range=0,
@@ -318,13 +330,6 @@ rownames(x2) <- x2$subreg
 x1 <- x1[rownames(x2),]
 x0 <- x0[rownames(x2),]
 
-fstat <- function(x, level=0.95) {
-    c(Median=median(x), quantile(x, c((1-level)/2, 1 - (1-level)/2)))
-}
-chfun <- function(Na, Nb, ta, tb) {
-    100 * ((Nb/Na)^(1/(tb-ta)) - 1)
-}
-lev <- 0.9
 ci <- grepl("CAWA", colnames(x0))
 CAN <- c("ALBERTA", "BRITISH COLUMBIA", "MANITOBA",
     "NEW BRUNSWICK", "NEWFOUNDLAND",
@@ -336,11 +341,12 @@ CAN <- c("ALBERTA", "BRITISH COLUMBIA", "MANITOBA",
 
 ```{r echo=FALSE}
 ## pop size in full study area
-p0 <- fstat(colSums(x0[,ci])/10^6, lev)
-p1 <- fstat(colSums(x1[,ci])/10^6, lev)
-p2 <- fstat(colSums(x2[,ci])/10^6, lev)
+p0 <- fstat(colSums(x0[,ci])/10^6, level)
+p1 <- fstat(colSums(x1[,ci])/10^6, level)
+p2 <- fstat(colSums(x2[,ci])/10^6, level)
 
-kable(rbind("Backfilled"=p0, "2002"=p1, "2012"=p2), digits=3)
+kable(cbind("nss"=sum(x2[,"nSSinSubreg"]), "ndet"=sum(x2[,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), digits=3)
 ```
 
 ## Canada
@@ -348,11 +354,12 @@ kable(rbind("Backfilled"=p0, "2002"=p1, "2012"=p2), digits=3)
 ```{r echo=FALSE}
 ss <- x2$JURS %in% CAN
 
-p0 <- fstat(colSums(x0[ss,ci])/10^6, lev)
-p1 <- fstat(colSums(x1[ss,ci])/10^6, lev)
-p2 <- fstat(colSums(x2[ss,ci])/10^6, lev)
+p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
+p1 <- fstat(colSums(x1[ss,ci])/10^6, level)
+p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
 
-kable(rbind("Backfilled"=p0, "2002"=p1, "2012"=p2), digits=3)
+kable(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), digits=3)
 ```
 
 ## Boreal
@@ -360,17 +367,23 @@ kable(rbind("Backfilled"=p0, "2002"=p1, "2012"=p2), digits=3)
 ```{r echo=FALSE}
 ss <- x2$Brandt != "OUT"
 
-p0 <- fstat(colSums(x0[ss,ci])/10^6, lev)
-p1 <- fstat(colSums(x1[ss,ci])/10^6, lev)
-p2 <- fstat(colSums(x2[ss,ci])/10^6, lev)
+p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
+p1 <- fstat(colSums(x1[ss,ci])/10^6, level)
+p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
 
-kable(rbind("Backfilled"=p0, "2002"=p1, "2012"=p2), digits=3)
+kable(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), digits=3)
 ```
 
 ## By jurisdiction (2012 conditions, within study area)
 
 ```{r echo=FALSE}
-by_jurs <- data.frame(t(apply(groupSums(as.matrix(x2[,ci])/10^6, 1, x2$JURS), 1, fstat)))
+tmp <- as.matrix(x2[,c("nSSinSubreg","nDETinSubreg")])
+colnames(tmp) <- c("nss","ndet")
+by_jurs <- data.frame(
+    groupSums(tmp, 1, x2$JURS),
+    t(apply(groupSums(as.matrix(x2[,ci])/10^6, 1, x2$JURS), 1, fstat)))
+by_jurs$Proportion <- by_jurs$Median / sum(by_jurs$Median)
 kable(by_jurs[order(rownames(by_jurs)),], digits=4)
 ```
 
@@ -378,6 +391,100 @@ kable(by_jurs[order(rownames(by_jurs)),], digits=4)
 
 ```{r echo=FALSE}
 x2$bcr <- paste0("BCR:", as.character(x2$BCR))
-by_bcr <- data.frame(t(apply(groupSums(as.matrix(x2[,ci])/10^6, 1, x2$bcr), 1, fstat)))
+
+by_bcr <- data.frame(
+    groupSums(tmp, 1, x2$bcr),
+    t(apply(groupSums(as.matrix(x2[,ci])/10^6, 1, x2$bcr), 1, fstat)))
+by_bcr$Proportion <- by_bcr$Median / sum(by_bcr$Median)
 kable(by_bcr, digits=4)
 ```
+
+## By BCR/jurisdiction (2012 conditions, within study area)
+
+```{r echo=FALSE}
+x2$bcrjurs <- paste0(as.character(x2$JURS), "-BCR:", as.character(x2$BCR))
+
+by_bcrjurs <- data.frame(
+    groupSums(tmp, 1, x2$bcrjurs),
+    t(apply(groupSums(as.matrix(x2[,ci])/10^6, 1, x2$bcrjurs), 1, fstat)))
+by_bcrjurs$Proportion <- by_bcrjurs$Median / sum(by_bcrjurs$Median)
+kable(by_bcrjurs, digits=4)
+```
+
+# Trend estimates
+
+## Year effect based population trend
+
+This estimate is based on joing model where land cover and disturbances are also accounted for. Thus it represents a sort of 'residual' trend over the entire study area.
+
+```{r echo=FALSE}
+tr <- 100 * (exp(0.1*est_yr[,"YR"]) - 1)
+c(Mean=mean(tr), fstat(tr, level))
+hist(tr, col="gold", main="", xlab="% annual change")
+abline(v=fstat(tr, level), col=2, lwd=2, lty=2)
+rug(tr)
+```
+
+## Residual trend estimates
+
+### Canada
+
+```{r echo=FALSE}
+trall <- read.csv("e:/peter/bam/Apr2016/out/cawa/cawa-trend-2016-12-01.csv")
+tdall <- read.csv("e:/peter/bam/Apr2016/out/cawa/cawa-det-2016-12-01.csv")
+tr1 <- trall[trall$Country != "",]
+tr1 <- tr1[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")]
+colnames(tr1) <- c("Data", "Mean", "Median", "LCL", "UCL")
+tr1$ndet <- colSums(tdall[tdall$Country=="CAN", c("ndet_all", "ndet_bam", "ndet_bbs")])
+kable(tr1)
+```
+
+### BCR
+
+```{r echo=FALSE}
+tr2 <- trall[!is.na(trall$BCR),]
+tr2 <- data.frame(BCR=tr2$BCR, tr2[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")])
+colnames(tr2) <- c("BCR", "Data", "Mean", "Median", "LCL", "UCL")
+nn <- groupSums(as.matrix(tdall[, c("ndet_all", "ndet_bam", "ndet_bbs")]),
+    1, tdall$BCR)
+colnames(nn) <- c("all", "bam", "bbs")
+nn <- Melt(nn)
+tr2$ndet <- nn$value[match(paste(tr2$Data, tr2$BCR), paste(nn$cols, nn$rows))]
+tr2$ndet[is.na(tr2$ndet)] <- 0
+tr2 <- tr2[tr2$ndet > 0,]
+kable(tr2[order(tr2$BCR, tr2$Data),], row.names=FALSE)
+```
+
+### Jurisdiction
+
+```{r echo=FALSE}
+tr3 <- trall[trall$PROV != "",]
+tr3 <- data.frame(Jurisdiction=tr3$PROV, tr3[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")])
+colnames(tr3) <- c("Jurisdiction", "Data", "Mean", "Median", "LCL", "UCL")
+nn <- groupSums(as.matrix(tdall[, c("ndet_all", "ndet_bam", "ndet_bbs")]),
+    1, tdall$JURS)
+colnames(nn) <- c("all", "bam", "bbs")
+nn <- Melt(nn)
+tr3$ndet <- nn$value[match(paste(tr3$Data, tr3$Jurisdiction), paste(nn$cols, nn$rows))]
+tr3$ndet[is.na(tr3$ndet)] <- 0
+tr3 <- tr3[tr3$ndet > 0,]
+kable(tr3[order(tr3$Jurisdiction, tr3$Data),], row.names=FALSE)
+```
+
+
+### BCR & Jurisdiction
+
+```{r echo=FALSE}
+tr4 <- trall[trall$BCRPROV != "",]
+tr4 <- data.frame(BCRJurs=tr4$BCRPROV, tr4[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")])
+colnames(tr4) <- c("BCRJurs", "Data", "Mean", "Median", "LCL", "UCL")
+nn <- groupSums(as.matrix(tdall[, c("ndet_all", "ndet_bam", "ndet_bbs")]),
+    1, tdall$BCRJURS)
+colnames(nn) <- c("all", "bam", "bbs")
+nn <- Melt(nn)
+tr4$ndet <- nn$value[match(paste(tr4$Data, tr4$BCRJurs), paste(nn$cols, nn$rows))]
+tr4$ndet[is.na(tr4$ndet)] <- 0
+tr4 <- tr4[tr4$ndet > 0,]
+kable(tr4[order(tr4$BCRJurs, tr4$Data),], row.names=FALSE)
+```
+
