@@ -47,6 +47,7 @@ xn <- xn[rownames(Xn),]
 off <- e$OFF[rownames(xn),]
 bbb <- unique(e$BB)
 bb <- e$BB
+
 rm(e)
 ss1 <- which(!(1:nrow(xn) %in% bbb)) # test portion
 ss2 <- which((1:nrow(xn) %in% bbb)) # non-test portion
@@ -75,6 +76,10 @@ est_dtb <- getEst(res, stage = 4, X=Xn)
 est_wet <- getEst(res, stage = 5, X=Xn)
 est <- getEst(res, stage = length(mods)-1, X=Xn)
 est_yr <- getEst(res, stage = length(mods), X=Xn)
+#dcawa <- data.frame(PKEY=rownames(xn), cawa=Y)
+#dcawa$validation <- 0
+#dcawa$validation[ss1] <- 1
+#write.csv(dcawa, row.names=FALSE, file="w:/bam-cawa/cawa-pkeys-2016-12-13.csv")
 ```
 
 # Data summary
@@ -214,7 +219,7 @@ auc <- sapply(rocAll1, function(z) as.numeric(z$auc))
 
 ```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4,results='hide'}
 op <- par(mfrow=c(1,2))
-tmp <- barplot(auc, ylim=c(0,1), space=0.2, ylab="AUC", xlab="Stages", 
+tmp <- barplot(auc, ylim=c(0,1), space=0.2, ylab="AUC", xlab="Stages",
     col="lightgrey", border=NA, width=1)
 text(tmp, auc, round(auc, 3), col=4, cex=0.75)
 plot(rocAll1[["NULL"]], col=4, lty=2)

@@ -478,6 +478,9 @@ x2 <- e$x
 x1 <- x1[names(x2)]
 x0 <- x0[names(x2)]
 
+#pcawa <- data.frame(pointid=names(x2), median_2012=x2, median_2002=x1, median_backfilled=x0)
+#write.csv(pcawa, row.names=FALSE, file="w:/bam-cawa/cawa-pred-med-2016-12-13.csv")
+
 br <- c(0.05, 0.25, 0.5, 0.95, 1/rev(c(0.05, 0.25, 0.5, 0.95)))
 d21 <- x2/x1
 d20 <- x2/x0
