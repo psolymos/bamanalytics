@@ -478,6 +478,24 @@ x2 <- e$x
 x1 <- x1[names(x2)]
 x0 <- x0[names(x2)]
 
+## thresholds for TF maps
+probs <- c(0, 0.05, 0.1, 0.25, 0.5, 0.75, 1)
+TEXT <- paste0(100*probs[-length(probs)], "-", 100*probs[-1], "%")
+
+br0 <- Lc_quantile(x0, probs=probs, type="L")
+if (!is.finite(br0[length(br0)]))
+    br0[length(br0)] <- 1.01* max(x0, na.rm=TRUE)
+br1 <- Lc_quantile(x1, probs=probs, type="L")
+if (!is.finite(br1[length(br1)]))
+    br1[length(br1)] <- 1.01* max(x1, na.rm=TRUE)
+br2 <- Lc_quantile(x2, probs=probs, type="L")
+if (!is.finite(br2[length(br2)]))
+    br2[length(br2)] <- 1.01* max(x2, na.rm=TRUE)
+
+dd <- data.frame(UpperCutpoint=probs, bf2012=br0, nobf2002=br1, nobf2012=br2)
+dd[1,] <- 0
+write.csv(dd, row.names=FALSE, file="CAWA-density-breaks.csv")
+
 #pcawa <- data.frame(pointid=names(x2), median_2012=x2, median_2002=x1, median_backfilled=x0)
 #write.csv(pcawa, row.names=FALSE, file="w:/bam-cawa/cawa-pred-med-2016-12-13.csv")
 
