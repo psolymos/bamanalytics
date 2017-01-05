@@ -637,486 +637,106 @@ load(file.path("e:/peter/bam/May2015", "out", "TOTA_BAMCOEFS_QPAD_v3.rda"))
 .BAMCOEFS$version # should be 3_tota
 plot_BAM_QPAD("TOTA")
 
-ROOT <- "c:/bam/May2015"
 
-R <- 200
-#spp <- "OVEN"
-level <- 0.9
-version <- 3
-prob <- c(0, 1) + c(1, -1) * ((1-level)/2)
+## calculating offsets
 
-library(MASS)
+#### Calculate the offsets (optional) -----------------------------------------
+## QPADv3
+
+## Define root folder where data are stored
+ROOT <- "e:/peter/bam/Apr2016"
+## Load required packages
+library(mefa4)
 library(QPAD)
-load(file.path(ROOT, "out", "TOTA_BAMCOEFS_QPAD_v3.rda"))
-.BAMCOEFS$version # should be 3_tota
+## Load functions kept in separate file
+source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
-jd <- seq(0.35, 0.55, 0.01) # TSSR
-ts <- seq(-0.25, 0.5, 0.01) # JDAY
-ls <- seq(0, 0.25, len=length(jd)) # DSLS
+load(file.path(ROOT, "out", paste0("data_package_2016-12-01.Rdata")))
 
-xp1 <- expand.grid(JDAY=jd, # ---------- CHECK !!!
-    TSSR=ts)
-xp1$JDAY2 <- xp1$JDAY^2
-xp1$TSSR2 <- xp1$TSSR^2
-xp1$Jday <- xp1$JDAY * 365
-xp1$Tssr <- xp1$TSSR * 24
+library(QPAD)
+#load_BAM_QPAD(3)
+load(file.path("e:/peter/bam/May2015", "out", "TOTA_BAMCOEFS_QPAD_v3.rda"))
+getBAMversion()
+sppp <- getBAMspecieslist()
 
-xp2 <- expand.grid(DSLS=ls, # ---------- CHECK !!!
-    TSSR=ts)
-xp2$DSLS2 <- xp2$DSLS^2
-xp2$TSSR2 <- xp2$TSSR^2
-xp2$Dsls <- xp2$DSLS * 365
-xp2$Tssr <- xp2$TSSR * 24
+offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","JULIAN")],
+    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","HAB_NALC1","HAB_NALC2", "SPRNG")])
+offdat$srise <- PKEY$srise + PKEY$MDT_offset
+offdat$DSLS <- (offdat$JULIAN - offdat$SPRNG) / 365
+summary(offdat)
 
-Xp1 <- model.matrix(~., xp1)
-#colnames(Xp1)[1] <- "INTERCEPT"
-Xp2 <- model.matrix(~., xp2)
-#colnames(Xp2)[1] <- "INTERCEPT"
-
-if (getBAMversion() < 3) {
-    lc <- seq(1, 5, 1)
-    tr <- seq(0, 1, 0.01)
-    xq <- expand.grid(LCC=as.factor(lc),
-        TREE=tr)
-} else {
-#    lc2 <- factor(c("Forest", "OpenWet"), c("Forest", "OpenWet"))
-    lc <- factor(c("DecidMixed", "Conif", "Open", "Wet"),
+offdat$JDAY2 <- offdat$JDAY^2
+offdat$TSSR2 <- offdat$TSSR^2
+offdat$DSLS2 <- offdat$DSLS^2
+offdat$LCC4 <- as.character(offdat$HAB_NALC2)
+offdat$LCC4[offdat$LCC4 %in% c("Decid", "Mixed")] <- "DecidMixed"
+offdat$LCC4[offdat$LCC4 %in% c("Agr","Barren","Devel","Grass", "Shrub")] <- "Open"
+offdat$LCC4 <- factor(offdat$LCC4,
         c("DecidMixed", "Conif", "Open", "Wet"))
-    tr <- seq(0, 1, 0.1)
-    xq <- expand.grid(LCC4=lc, TREE=tr)
-    xq$LCC2 <- as.character(xq$LCC4)
-    xq$LCC2[xq$LCC2 %in% c("DecidMixed", "Conif")] <- "Forest"
-    xq$LCC2[xq$LCC2 %in% c("Open", "Wet")] <- "OpenWet"
-    xq$LCC2 <- factor(xq$LCC2, c("Forest", "OpenWet"))
-}
-Xq0 <- model.matrix(~., xq)
-#colnames(Xq)[1] <- "INTERCEPT"
+offdat$LCC2 <- as.character(offdat$LCC4)
+offdat$LCC2[offdat$LCC2 %in% c("DecidMixed", "Conif")] <- "Forest"
+offdat$LCC2[offdat$LCC2 %in% c("Open", "Wet")] <- "OpenWet"
+offdat$LCC2 <- factor(offdat$LCC2, c("Forest", "OpenWet"))
+table(offdat$LCC4, offdat$LCC2)
+offdat$MAXDIS <- offdat$MAXDIS / 100
 
-SPP <- getBAMspecieslist()
-cfall <- exp(t(sapply(SPP, function(spp)
-    unlist(coefBAMspecies(spp, 0, 0)))))
-t <- seq(0, 10, 0.1)
-r <- seq(0, 4, 0.05)
-pp <- sapply(SPP, function(spp) sra_fun(t, cfall[spp,1]))
-qq <- sapply(SPP, function(spp) edr_fun(r, cfall[spp,2]))
+Xp <- cbind("(Intercept)"=1, as.matrix(offdat[,c("TSSR","JDAY","DSLS","TSSR2","JDAY2","DSLS2")]))
+Xq <- cbind("(Intercept)"=1, TREE=offdat$TREE,
+    LCC2OpenWet=ifelse(offdat$LCC2=="OpenWet", 1, 0),
+    LCC4Conif=ifelse(offdat$LCC4=="Conif", 1, 0),
+    LCC4Open=ifelse(offdat$LCC4=="Open", 1, 0),
+    LCC4Wet=ifelse(offdat$LCC4=="Wet", 1, 0))
+#offdat$OKp <- rowSums(is.na(offdat[,c("TSSR","JDAY","DSLS")])) == 0
+#offdat$OKq <- rowSums(is.na(offdat[,c("TREE","LCC4")])) == 0
+#Xp <- model.matrix(~TSSR+TSSR2+JDAY+JDAY2+DSLS+DSLS2, offdat[offdat$OKp,])
+#Xq <- model.matrix(~LCC2+LCC4+TREE, offdat[offdat$OKq,])
 
-pdf(paste0("~/Dropbox/bam/qpad_v3/QPAD_res_v",
-    getBAMversion(),".pdf"), onefile=TRUE, width=9, height=12)
-for (spp in SPP) {
+OFF <- matrix(NA, nrow(offdat), length(sppp))
+rownames(OFF) <- offdat$PKEY
+colnames(OFF) <- sppp
 
+#spp <- "OVEN"
+for (spp in sppp) {
 cat(spp, "\n");flush.console()
+p <- rep(NA, nrow(offdat))
+A <- q <- p
 
-## model weights
-wp <- selectmodelBAMspecies(spp)$sra$wBIC
-wq <- selectmodelBAMspecies(spp)$edr$wBIC
-names(wp) <- rownames(selectmodelBAMspecies(spp)$sra)
-names(wq) <- rownames(selectmodelBAMspecies(spp)$edr)
-nsra <- selectmodelBAMspecies(spp)$sra$nobs[1]
-nedr <- selectmodelBAMspecies(spp)$edr$nobs[1]
-
-## constant model
-#lphi0 <- coefBAMspecies(spp, 0, 0)$sra
-#lphise0 <- sqrt(vcovBAMspecies(spp, 0, 0)$sra[1])
-#lphipi0 <- quantile(rnorm(R, lphi0, lphise0), prob)
-#p <- cbind(est=sra_fun(t, exp(lphi0)))#,
-#           pi1=sra_fun(t, exp(lphipi0[1])),
-#           pi2=sra_fun(t, exp(lphipi0[2])))
-#ltau0 <- coefBAMspecies(spp, 0, 0)$edr
-#ltause0 <- sqrt(vcovBAMspecies(spp, 0, 0)$edr[1])
-#ltaupi0 <- quantile(rnorm(R, ltau0, ltause0), prob)
-#q <- cbind(est=edr_fun(r, exp(ltau0)))#,
-#           pi1=edr_fun(r, exp(ltaupi0[1])),
-#           pi2=edr_fun(r, exp(ltaupi0[2])))
-
-## covariate effects
+## constant for NA cases
+cf0 <- exp(unlist(coefBAMspecies(spp, 0, 0)))
+## best model
 mi <- bestmodelBAMspecies(spp, type="BIC")
 cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
-vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
+#vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
 
-Xp <- if (mi$sra %in% c("9","10","11","12","13","14"))
-    Xp2 else Xp1
-Xp <- Xp[,names(cfi$sra),drop=FALSE]
-lphi1 <- drop(Xp %*% cfi$sra)
-#pcf1 <- mvrnorm(R, cfi$sra, vci$sra)
-#lphipi1 <- t(apply(apply(pcf1, 1, function(z) drop(Xp %*% z)),
-#    1, quantile, prob))
-#px <- cbind(est=exp(lphi1), exp(lphipi1))
-pmat <- matrix(exp(lphi1), length(jd), length(ts))
-pmax <- sra_fun(10, max(exp(lphi1)))
-pmat <- sra_fun(3, pmat)
-pmax <- 1
+Xp2 <- Xp[,names(cfi$sra),drop=FALSE]
+OKp <- rowSums(is.na(Xp2)) == 0
+Xq2 <- Xq[,names(cfi$edr),drop=FALSE]
+OKq <- rowSums(is.na(Xq2)) == 0
 
-Xq <- Xq0[,names(cfi$edr),drop=FALSE]
-ltau1 <- drop(Xq %*% cfi$edr)
-#pcf1 <- mvrnorm(R, cfi$edr, vci$edr)
-#ltaupi1 <- t(apply(apply(pcf1, 1, function(z) drop(Xq %*% z)),
-#    1, quantile, prob))
-#qx <- cbind(est=exp(ltau1), exp(ltaupi1))
-qmat <- matrix(exp(ltau1), length(lc), length(tr))
-qmax <- edr_fun(0.5, max(exp(ltau1)))
-qmat <- edr_fun(1, qmat)
-qmax <- 1
+p[!OKp] <- sra_fun(offdat$MAXDUR[!OKp], cf0[1])
+unlim <- ifelse(offdat$MAXDIS[!OKq] == Inf, TRUE, FALSE)
+A[!OKq] <- ifelse(unlim, pi * cf0[2]^2, pi * offdat$MAXDIS[!OKq]^2)
+q[!OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[!OKq], cf0[2]))
 
-#library(lattice)
-#levelplot(px[,1] ~ Jday * Tssr, xp)
+phi1 <- exp(drop(Xp2[OKp,,drop=FALSE] %*% cfi$sra))
+tau1 <- exp(drop(Xq2[OKq,,drop=FALSE] %*% cfi$edr))
+p[OKp] <- sra_fun(offdat$MAXDUR[OKp], phi1)
+unlim <- ifelse(offdat$MAXDIS[OKq] == Inf, TRUE, FALSE)
+A[OKq] <- ifelse(unlim, pi * tau1^2, pi * offdat$MAXDIS[OKq]^2)
+q[OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[OKq], tau1))
 
-op <- par(las=1, mfrow=c(3,2))
+ii <- which(p == 0)
+p[ii] <- sra_fun(offdat$MAXDUR[ii], cf0[1])
 
-barplot(wp, space=0, col=grey(1-wp), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", nsra, ") v", getBAMversion()),
-    ylab="Model weight", xlab="Model ID")
-barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", nedr, ") v", getBAMversion()),
-    ylab="Model weight", xlab="Model ID")
+OFF[,spp] <- log(p) + log(A) + log(q)
 
-plot(t, pp[,spp], type="n", ylim=c(0,1),
-     xlab="Point count duration (min)",
-     ylab="Probability of singing")
-#polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
-#        col="grey", border="grey")
-matlines(t, pp, col="grey", lwd=1, lty=1)
-lines(t, pp[,spp], col=1, lwd=2)
-
-plot(r*100, qq[,spp], type="n", ylim=c(0,1),
-     xlab="Point count radius (m)",
-     ylab="Probability of detection")
-#polygon(100*c(r, rev(r)), c(q[,2], rev(q[,3])),
-#        col="grey", border="grey")
-matlines(r*100, qq, col="grey", lwd=1, lty=1)
-lines(r*100, qq[,spp], col=1, lwd=2)
-abline(v=cfall[spp,2]*100, lty=2)
-rug(cfall[,2]*100, side=1, col="grey")
-box()
-
-xval <- if (mi$sra %in% c("9","10","11","12","13","14"))
-    ls*365 else jd*365
-image(xval, ts*24, pmat,
-    col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"),
-        "Days since local springs", "Julian days"),
-    ylab="Hours since sunrise",
-    main=paste("Best model:", mi$sra))
-box()
-image(1:nlevels(xq$LCC4), tr*100, qmat,
-      col = rev(grey(seq(0, qmax, len=12))), axes=FALSE,
-      xlab="Land cover types", ylab="Percent tree cover",
-      main=paste("Best model:", mi$edr))
-if (version < 3)
-    axis(1, 1:5, c("DConif","DDecid","SConif","SDecid","Open"))
-if (version > 2)
-    axis(1, 1:nlevels(xq$LCC4), levels(xq$LCC4))
-axis(2)
-box()
-
-par(op)
 }
-dev.off()
 
-## comparing v2 and v3 results
+(Ra <- apply(OFF, 2, range))
+summary(t(Ra))
+which(!is.finite(Ra[1,])) # BARS GCSP
+which(!is.finite(Ra[2,]))
 
-library(QPAD)
+save(OFF,
+    file=file.path(ROOT, "out", "TOTA_offsets-v3_2016-12-01.Rdata"))
 
-load_BAM_QPAD(2)
-getBAMversion()
-spp2 <- getBAMspecieslist()
-n2 <- cbind(sra.n=.BAMCOEFS$sra_n, edr.n=.BAMCOEFS$edr_n)
-est2 <- exp(t(sapply(spp2, function(i) unlist(coefBAMspecies(i)))))
-
-load_BAM_QPAD(3)
-getBAMversion()
-spp3 <- getBAMspecieslist()
-n3 <- cbind(sra.n=.BAMCOEFS$sra_n, edr.n=.BAMCOEFS$edr_n)
-est3 <- exp(t(sapply(spp3, function(i) unlist(coefBAMspecies(i)))))
-
-## "YWAR" is "YEWA"
-setdiff(spp2,spp3)
-setdiff(spp3,spp2)
-
-spp2[spp2=="YWAR"] <- "YEWA"
-rownames(n2)[rownames(n2)=="YWAR"] <- "YEWA"
-rownames(est2)[rownames(est2)=="YWAR"] <- "YEWA"
-
-setdiff(spp2,spp3)
-
-n2 <- n2[spp2,]
-est2 <- est2[spp2,]
-n3v <- n3[spp2,]
-est3v <- est3[spp2,]
-
-par(mfrow=c(2,2))
-plot(n2[,1], n3v[,1], main="n sra", xlab="v2", ylab="v3");abline(0,1)
-abline(0,2,lty=2)
-abline(0,4,lty=2)
-abline(0,8,lty=2)
-plot(n2[,2], n3v[,2], main="n edr", xlab="v2", ylab="v3");abline(0,1)
-abline(0,2,lty=2)
-abline(0,4,lty=2)
-abline(0,8,lty=2)
-plot(est2[,1], est3v[,1], main="srate", xlab="v2", ylab="v3",
-    cex=sqrt((n3v[,1]-n2[,1])/n2[,1]))
-abline(0,1)
-plot(est2[,2], est3v[,2], main="EDR", xlab="v2", ylab="v3",
-    cex=sqrt((n3v[,2]-n2[,2])/n2[,2]))
-abline(0,1)
-
-e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2015-05-14.Rdata"), envir=e)
-TAX <- e$TAX
-rownames(TAX) <- TAX$Species_ID
-TAX <- droplevels(TAX[spp3,])
-rm(e)
-
-tab <- data.frame(getBAMspeciestable(),
-    v2=n2[match(spp3,spp2),], v2=est2[match(spp3,spp2),],
-    v3=n3, v3=est3,
-    Order=TAX$Order, Family=TAX$Family_Sci)
-write.csv(tab, file=file.path(ROOT, "out", "offsets-spp-list.csv"), row.names=FALSE)
-
-data.frame(Order=sort(table(tab$Order)))
-data.frame(Family=sort(table(tab$Family)))
-
-cbind(table(tab$Order, tab$v3.sra.n > 74), table(tab$Order))
-
-
-## exploration
-
-wp <- t(sapply(SPP, function(spp) selectmodelBAMspecies(spp)$sra$weights))
-colnames(wp) <- 0:14
-wq <- t(sapply(SPP, function(spp) selectmodelBAMspecies(spp)$edr$weights))
-colnames(wq) <- 0:5
-np <- sapply(SPP, function(spp) selectmodelBAMspecies(spp)$sra$nobs[1])
-nq <- sapply(SPP, function(spp) selectmodelBAMspecies(spp)$edr$nobs[1])
-Hp <- apply(wp, 1, function(z) sum(z^2))
-Hq <- apply(wq, 1, function(z) sum(z^2))
-
-par(mfrow=c(1,2))
-plot(np, wp[,"0"], pch=21, cex=0.5+Hp, log="x")
-summary(np[wp[,"0"] > 0.95])
-summary(np[wp[,"0"] <= 0.95])
-
-plot(nq, wq[,"0"], pch=21, cex=0.5+Hq, log="x")
-summary(nq[wq[,"0"] > 0.95])
-summary(nq[wq[,"0"] <= 0.95])
-
-
-## sra 0 vs b models
-
-e <- new.env()
-load(file.path(ROOT, "out", "BAMCOEFS_QPAD_v3_mix.rda"), envir=e)
-.BAMCOEFSmix <- e$.BAMCOEFS
-.BAMCOEFSmix$version
-
-aic0 <- .BAMCOEFS$sra_aic
-aicb <- .BAMCOEFSmix$sra_aic
-colnames(aic0) <- paste0("m0_", colnames(aic0))
-colnames(aicb) <- paste0("mb_", colnames(aicb))
-SPP <- sort(intersect(rownames(aic0), rownames(aicb)))
-aic <- cbind(aic0[SPP,], aicb[SPP,])
-np <- sapply(SPP, function(z) selectmodelBAMspecies(z)$sra$nobs[1])
-
-waic0 <- t(apply(aic0, 1, function(z) {
-    dAIC <- z - min(z)
-    w <- exp(-dAIC/2)
-    w/sum(w)
-}))
-waicb <- t(apply(aicb, 1, function(z) {
-    dAIC <- z - min(z)
-    w <- exp(-dAIC/2)
-    w/sum(w)
-}))
-waic <- t(apply(aic, 1, function(z) {
-    dAIC <- z - min(z)
-    w <- exp(-dAIC/2)
-    w/sum(w)
-}))
-
-best <- colnames(aic)[apply(aic, 1, which.min)]
-data.frame(table(best))
-by(np, best %in% c("m0_0", "mb_0"), summary)
-
-
-cfall0 <- sapply(SPP, function(spp) exp(coefBAMspecies(spp, 0, 0)$sra))
-dim(cfall0) <- c(length(SPP), 1)
-dimnames(cfall0) <- list(SPP, "phi_0")
-cfallb <- t(sapply(SPP, function(spp) {
-    tmp <- unname(.BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients)
-    c(phi_b=exp(tmp[1]), c=plogis(tmp[2]))
-    }))
-
-t <- seq(0, 10, 0.1)
-pp0 <- sapply(SPP, function(spp) 1-exp(-t*cfall0[spp,"phi_0"]))
-ppb <- sapply(SPP, function(spp) 1-cfallb[spp,"c"]*exp(-t*cfallb[spp,"phi_b"]))
-
-f <- function(spp) {
-    cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
-    vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
-    !inherits(try(mvrnorm(R, cfi0b, vci0b)), "try-error")
-}
-OK <- sapply(SPP, f)
-table(OK)
-SPP <- SPP[OK]
-
-w00 <- waic0[SPP,"m0_0"]
-w0b <- waicb[SPP,"mb_0"]
-w0 <- pmax(w00, w0b)
-H0 <- apply(waic0[SPP,], 1, function(z) sum(z^2))
-Hb <- apply(waicb[SPP,], 1, function(z) sum(z^2))
-H <- apply(waic[SPP,], 1, function(z) sum(z^2))
-n <- np[SPP]
-
-par(mfrow=c(1,3))
-plot(n, w00, pch=21, cex=1+2*H0, log="x")
-lines(n[order(n)], fitted(glm(w00 ~ n, family=binomial, weights=H0))[order(n)], col=2)
-plot(n, w0b, pch=21, cex=1+2*Hb, log="x")
-lines(n[order(n)], fitted(glm(w0b ~ n, family=binomial, weights=Hb))[order(n)], col=2)
-plot(n, w0, pch=21, cex=1+2*H, log="x")
-lines(n[order(n)], fitted(glm(w0 ~ n, family=binomial, weights=H))[order(n)], col=2)
-
-## best model is 0
-table((1:ncol(waic))[apply(waic[SPP,], 1, which.max)] <= 15)
-
-
-pdf(paste0("~/Dropbox/bam/qpad_v3/QPAD_res_v",
-    getBAMversion(),"_mix.pdf"), onefile=TRUE, width=10, height=12)
-for (spp in SPP) {
-
-cat(spp, "\n");flush.console()
-
-## model weights
-wp <- waic0[spp,]
-wq <- waicb[spp,]
-names(wp) <- colnames(waic0)
-names(wq) <- colnames(waicb)
-wph <- waic[spp,names(wp)]
-wqh <- waic[spp,names(wq)]
-names(wp) <- 0:14
-names(wq) <- 0:14
-
-
-## covariate effects
-mi <- bestmodelBAMspecies(spp, type="AIC")
-cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
-vci <- vcovBAMspecies(spp, mi$sra, mi$edr)
-
-mib <- as.character(0:14)[which.min(aicb[spp,])]
-cfib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$coefficients
-vcib <- .BAMCOEFSmix$sra_estimates[[spp]][[mib]]$vcov
-
-#     TSSR             JDAY            TSLS
-# Min.   :-0.315   Min.   :0.351   Min.   :-0.101
-# 1st Qu.: 0.063   1st Qu.:0.433   1st Qu.: 0.103
-# Median : 0.149   Median :0.455   Median : 0.131
-# Mean   : 0.141   Mean   :0.455   Mean   : 0.133
-# 3rd Qu.: 0.234   3rd Qu.:0.479   3rd Qu.: 0.164
-# Max.   : 0.520   Max.   :0.641   Max.   : 0.442
-# NA's   :8455     NA's   :5804    NA's   :17255
-jd <- seq(0.35, 0.55, 0.01)
-ts <- seq(-0.3, 0.5, 0.01)
-ls <- seq(-0.1, 0.4, len=length(jd))
-
-xp1 <- expand.grid(JDAY=jd, # ---------- CHECK !!!
-    TSSR=ts)
-xp1$JDAY2 <- xp1$JDAY^2
-xp1$TSSR2 <- xp1$TSSR^2
-xp1$Jday <- xp1$JDAY * 365
-xp1$Tssr <- xp1$TSSR * 24
-
-xp2 <- expand.grid(TSLS=ls, # ---------- CHECK !!!
-    TSSR=ts)
-xp2$TSLS2 <- xp2$TSLS^2
-xp2$TSSR2 <- xp2$TSSR^2
-xp2$Tsls <- xp2$TSLS * 365
-xp2$Tssr <- xp2$TSSR * 24
-
-Xp1 <- model.matrix(~., xp1)
-colnames(Xp1)[1] <- "INTERCEPT"
-Xp2 <- model.matrix(~., xp2)
-colnames(Xp2)[1] <- "INTERCEPT"
-
-Xp <- if (mi$sra %in% c("9","10","11","12","13","14"))
-    Xp2 else Xp1
-Xp <- Xp[,names(cfi$sra),drop=FALSE]
-lphi1 <- drop(Xp %*% cfi$sra)
-pmat <- matrix(exp(lphi1), length(jd), length(ts))
-pmax <- sra_fun(10, max(exp(lphi1)))
-pmat <- sra_fun(3, pmat)
-pmax <- 1
-
-Xpb <- if (mib %in% c("9","10","11","12","13","14"))
-    Xp2 else Xp1
-cfib1 <- exp(cfib[1])
-cfib2 <- cfib[-1]
-names(cfib2) <- sapply(strsplit(names(cfib2), "_"), "[[", 2)
-names(cfib2)[1] <- "INTERCEPT"
-names(cfib2)[names(cfib2) == "I(TSSR^2)"] <- "TSSR2"
-names(cfib2)[names(cfib2) == "I(TSLS^2)"] <- "TSLS2"
-names(cfib2)[names(cfib2) == "I(JDAY^2)"] <- "JDAY2"
-
-Xpb <- Xpb[,names(cfib2),drop=FALSE]
-lphi1b <- 1-plogis(drop(Xpb %*% cfib2))*exp(-3*cfib1)
-pmatb <- matrix(lphi1b, length(jd), length(ts))
-
-## CI for m0, m0
-cfi00 <- coefBAMspecies(spp, "0", mi$edr)$sra
-vci00 <- drop(vcovBAMspecies(spp, "0", mi$edr)$sra)
-phi00 <- exp(rnorm(R, cfi00, sqrt(vci00)))
-ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
-
-cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
-vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
-pcf1b <- mvrnorm(R, cfi0b, vci0b)
-ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
-
-
-op <- par(las=1, mfrow=c(3,2))
-
-barplot(wp, space=0, col=grey(1-wp), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", np[spp], ") v", getBAMversion(),
-    " wb=", round(sum(wph),2)),
-    ylab="Model weight", xlab="Model ID")
-barplot(wq, space=0, col=grey(1-wq), border="grey", ylim=c(0,1),
-    main=paste0(spp, " (n=", np[spp], ") v", getBAMversion(),
-    " wb=", round(sum(wqh),2)),
-    ylab="Model weight", xlab="Model ID")
-
-plot(t, pp0[,spp], type="n", ylim=c(0,1),
-     xlab="Point count duration (min)",
-     ylab="Probability of singing")
-#polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
-#        col="grey", border="grey")
-#matlines(t, pp0, col="grey", lwd=1, lty=1)
-matlines(t, ci00, col="grey", lwd=1, lty=1)
-lines(t, pp0[,spp], col=1, lwd=2)
-
-plot(t, ppb[,spp], type="n", ylim=c(0,1),
-     xlab="Point count duration (min)",
-     ylab="Probability of singing")
-#polygon(c(t, rev(t)), c(p[,2], rev(p[,3])),
-#        col="grey", border="grey")
-#matlines(t, ppb, col="grey", lwd=1, lty=1)
-matlines(t, ci0b, col="grey", lwd=1, lty=1)
-lines(t, ppb[,spp], col=1, lwd=2)
-
-xval <- if (mi$sra %in% c("9","10","11","12","13","14"))
-    ls*365 else jd*365
-image(xval, ts*24, pmat,
-    col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mi$sra %in% c("9","10","11","12","13","14"),
-        "Days since local springs", "Julian days"),
-    ylab="Hours since sunrise",
-    main=paste("Best model:", mi$sra))
-box()
-
-xval <- if (mib %in% c("9","10","11","12","13","14"))
-    ls*365 else jd*365
-image(xval, ts*24, pmatb,
-    col = rev(grey(seq(0, pmax, len=12))),
-    xlab=ifelse(mib %in% c("9","10","11","12","13","14"),
-        "Days since local springs", "Julian days"),
-    ylab="Hours since sunrise",
-    main=paste("Best model:", mib))
-box()
-
-par(op)
-}
-dev.off()
