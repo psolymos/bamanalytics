@@ -505,6 +505,19 @@ d20 <- x2/x0
 c21 <- cut(d21, c(-1, br, Inf))
 c20 <- cut(d20, c(-1, br, Inf))
 
+if (FALSE) {
+
+all(names(d21)==names(d20))
+tow <- data.frame(pointid=names(d21),
+    diff_2012div2002=d21,
+    diff_2012div2012bf=d20,
+    index_2012div2002=c21,
+    index_2012div2012bf=c20)
+tow$index_2012div2002 <- as.integer(tow$index_2012div2002)
+tow$index_2012div2012bf <- as.integer(tow$index_2012div2012bf)
+write.csv(tow, row.names=FALSE, file="w:/bam-cawa/difference-maps-20170106.csv")
+}
+
 png(file.path(ROOT3, "maps", paste0(fo, "-diff-2002-2012.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
