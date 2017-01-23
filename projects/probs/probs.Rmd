@@ -1,0 +1,89 @@
+---
+title: "Probabilities with offsets"
+author: "Peter Solymos (solymos@ualberta.ca)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    toc: no
+    toc_depth: 2
+    fig_caption: no
+  html_document:
+    toc: no
+---
+
+We want to estimate the probability that a given species occupied a 
+site at the time of a survey ($N>0$) given that we observed none ($Y=0$).
+
+If we know the probability of occurrence ($\varphi$) and the probability of
+detection ($\delta$), we can calculate the probability $P[N>0|Y=0]$ as:
+
+$$ P[N>0|Y=0] = \frac{P[N>0,Y=0]}{P[W=0]} = \frac{\varphi (1-\delta)}{(1-\varphi) + \varphi (1-\delta)} $$
+
+We can now substitute the probabilities from QPAD: $\varphi=1-e^{-\lambda}=1-e^{DA}$ and 
+$\delta=pq$ (I am now ignoring what quantities are known or estimated).
+
+The problem is that the scaling for probability makes EDR based calculations biased
+
+```{r}
+D = 0.6
+p = 0.75
+EDRunlim = 0.9
+r = 0.5
+
+(q <- EDRunlim^2 * (1-exp(-r^2/EDRunlim^2))/r^2)
+(EDRtrunc <- EDRunlim * sqrt(1-exp(-r^2/EDRunlim^2)))
+
+## A known
+D * r^2*pi * p * q
+## A unknown
+D * EDRtrunc^2*pi * p * 1
+
+## A known
+phi <- 1-exp(-D*r^2*pi)
+delta <- p*q
+(P = (phi * (1-delta)) / ((1-phi) + (phi * (1-delta))))
+
+## A unknown
+phi <- 1-exp(-D*EDRtrunc^2*pi)
+delta <- p*1
+(P = (phi * (1-delta)) / ((1-phi) + (phi * (1-delta))))
+```
+
+```{r}
+f1 <- function(r, D=1, p=1, EDRunlim=1) {
+
+    q <- EDRunlim^2 * (1-exp(-r^2/EDRunlim^2))/r^2
+    EDRtrunc <- EDRunlim * sqrt(1-exp(-r^2/EDRunlim^2))
+    
+
+    ## A known
+    phi <- 1-exp(-D*r^2*pi)
+    delta <- p*q
+    P1 = (phi * (1-delta)) / ((1-phi) + (phi * (1-delta)))
+    
+    ## A unknown
+    phi <- 1-exp(-D*EDRtrunc^2*pi)
+    delta <- p*1
+    P2 = (phi * (1-delta)) / ((1-phi) + (phi * (1-delta)))
+
+    c(Aknown=P1, Aunknown=P2)
+}
+
+f2 <- function(..., Max=5, By=0.1) {
+    Val <- seq(0, Max, by=By)
+    Val[1] <- 0.0001
+    x <- t(sapply(Val, f1, ...))
+    data.frame(r=Val, x)
+}
+f3 <- function(...) {
+    x <- f2(...)
+    op <- par(mfrow=c(1,2))
+    plot(Aknown ~ Aunknown, x, type="l")
+    abline(0,1,lty=2)
+    plot(Aknown/Aunknown ~ r, x, type="l")
+    par(op)
+    invisible(x)
+}
+f3(0.6, 0.75, 0.9)
+```
+
