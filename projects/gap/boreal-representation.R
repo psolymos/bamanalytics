@@ -58,6 +58,7 @@ cat(regi, " (", i, "/", length(regs), ")\n", sep="");flush.console()
 load(file.path(ROOT3, "chunks", paste0("pgdat-", regi, ".Rdata")))
 gc()
 seq_id <- 1 + (seq_len(nrow(dat)) - 1) %% 100
+seq_id <- sample(seq_id)
 subset_id <- seq_id <= Percent
 
 dat$HAB <- dat$HAB_NALC2
@@ -122,6 +123,8 @@ DAT$BCR <- factor(as.character(DAT$BCR), levels(df_sub$BCR))
 
 stacked_data <- rbind(DAT[,colnames(df_sub)], df_sub)
 stacked_data$sampled <- c(rep(1, nrow(DAT)), rep(0, nrow(df_sub)))
+
+save(stacked_data, file="BAM_stacked_gap_data.Rdata")
 
 cn <- c("sampled", "HABTR", "HGT", "DTB",
     "BRN", "LSS", "YSD", "YSF", "YSL", "CTI", "SLP",
