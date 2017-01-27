@@ -740,3 +740,32 @@ which(!is.finite(Ra[2,]))
 save(OFF,
     file=file.path(ROOT, "out", "TOTA_offsets-v3_2016-12-01.Rdata"))
 
+## compare average vs total offsets
+
+ROOT <- "e:/peter/bam/Apr2016"
+load(file.path(ROOT, "out", "TOTA_offsets-v3_2016-12-01.Rdata"))
+OFFtot <- OFF
+load(file.path(ROOT, "out", "offsets-v3_2016-12-01.Rdata"))
+ls()
+
+Ot <- drop(OFFtot)
+Om <- rowMeans(OFF)
+Ct <- drop(exp(OFFtot))
+Cm <- rowMeans(exp(OFF))
+stopifnot(all(names(Ot) == names(Om)))
+summary(Ot)
+summary(Om)
+summary(Ct)
+summary(Cm)
+Mo <- max(Ot, Om)
+Mc <- max(Ct, Cm)
+
+par(mfrow=c(1,2))
+plot(Om, Ot, pch=".", ylim=c(0, Mo), xlim=c(0, Mo), col=rgb(0, 0, 0.1, 0.1),
+    main="Offsets", xlab="Average", ylab="Total")
+abline(0,1, col=2)
+plot(Cm, Ct, pch=".", ylim=c(0, Mc), xlim=c(0, Mc), col=rgb(0, 0, 0.1, 0.1),
+    main="Corrections", xlab="Average", ylab="Total")
+abline(0,1, col=2)
+
+
