@@ -54,7 +54,7 @@ hab_col <- c("HABAgr", "HABBarren", "HABDecid", "HABDevel",
 
 spp <- "CAWA"
 
-fn <- file.path("e:/peter/bam/Apr2016/out", "results", "cawa",
+fn <- file.path("e:/peter/bam/Apr2016/out", "results", tolower(spp),
     paste0(PROJECT, "_", spp, "_", Date, ".Rdata"))
 load(fn)
 100 * sum(getOK(res)) / length(res)
