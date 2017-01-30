@@ -142,3 +142,18 @@ summary(mod)
 library(lattice)
 histogram(~ TD | factor(sampled), stacked_data)
 
+ii <- c("HGT", "CTI", "SLP",
+    "CMIJJA", "DD0", "DD5", "EMT", "MSP",
+    "CMI", "TD", "POINT_X", "POINT_Y")
+for (i in ii) {
+cat(i, "\n");flush.console()
+z <- stacked_data[[i]]
+q <- unique(quantile(z, seq(0, 1, by=0.05)))
+zc <- cut(z, breaks=q, include.lowest=TRUE)
+col <- topo.colors(nlevels(zc))
+png(paste0("e:/peter/bam/Apr2016/out/thumbs/", i, ".png"), width=2000, height=1200)
+plot(stacked_data$POINT_X, stacked_data$POINT_Y,
+    axes=FALSE, ann=FALSE, col=col[zc], pch=".")
+title(main=i)
+dev.off()
+}

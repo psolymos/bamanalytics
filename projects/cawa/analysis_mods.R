@@ -57,6 +57,15 @@ mod_Climate_2 <- list(
         CMI:DD0 + CMIJJA:DD0 + MSP:TD + MSP:EMT,
     . ~ . + CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52 + CMI2 + CMIJJA2 +
         CMI:DD5 + CMIJJA:DD5 + MSP:TD + MSP:EMT)
+mod_Climate_3 <- list(
+    . ~ . + CMI + CMIJJA + DD0 + DD5 + EMT + MSP + TD +
+        CMI2 + CMIJJA2 + DD02 + DD52 + EMT2 + MSP2 + TD2 +
+        CMI:CMIJJA + CMI:DD0 + CMI:DD5 + CMI:EMT + CMI:MSP + CMI:TD +
+        CMIJJA:DD0 + CMIJJA:DD5 + CMIJJA:EMT + CMIJJA:MSP + CMIJJA:TD +
+        DD0:DD5 + DD0:EMT + DD0:MSP + DD0:TD +
+        DD5:EMT + DD5:MSP + DD5:TD +
+        EMT:MSP + EMT:TD,
+        MSP:TD)
 mod_Year <- list(
     . ~ . + YR)
 

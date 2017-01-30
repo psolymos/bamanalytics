@@ -57,6 +57,20 @@ mods$Clim <- list(
         CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52 + CMI2 + CMIJJA2 +
         CMI:DD5 + CMIJJA:DD5 + MSP:TD + MSP:EMT)
 
+DAT$EMT2 <- DAT$EMT^2
+DAT$MSP2 <- DAT$MSP^2
+DAT$TD2 <- DAT$TD^2
+
+mods$Clim <- list(
+    . ~ . + CMI + CMIJJA + DD0 + DD5 + EMT + MSP + TD +
+        CMI2 + CMIJJA2 + DD02 + DD52 + EMT2 + MSP2 + TD2 +
+        CMI:CMIJJA + CMI:DD0 + CMI:DD5 + CMI:EMT + CMI:MSP + CMI:TD +
+        CMIJJA:DD0 + CMIJJA:DD5 + CMIJJA:EMT + CMIJJA:MSP + CMIJJA:TD +
+        DD0:DD5 + DD0:EMT + DD0:MSP + DD0:TD +
+        DD5:EMT + DD5:MSP + DD5:TD +
+        EMT:MSP + EMT:TD +
+        MSP:TD)
+
 save(list=c("DAT","YY","mods","TAX","OFF","BB"),
     file=file.path("e:/peter/bam/Apr2016/out", "data", "pack_2017-01-27.Rdata"))
 }
@@ -260,10 +274,15 @@ rownames(XY3) <- XY3$subreg
 
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 
+PROJECT <- "bam"
+#Date <- "2016-12-01"
+Date <- "2017-01-27"
+
 ## observations
 e <- new.env()
 #load(file.path(ROOT, "out", "data", "pack_2016-04-18.Rdata"), envir=e)
-load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-12-01.Rdata"), envir=e)
+load(file.path("e:/peter/bam/Apr2016/out", "data",
+    paste0("pack_", Date, ".Rdata")), envir=e)
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
@@ -309,8 +328,6 @@ par(op)
 dev.off()
 }
 
-PROJECT <- "bam"
-Date <- "2016-12-01"
 
 Stage <- 6 # which(names(mods) == "Clim")
 BASE_YEAR <- 2012
