@@ -7,7 +7,8 @@ source("~/repos/bamanalytics/R/makingsense_functions.R")
 #source("~/repos/bamanalytics/R/analysis_mods.R")
 
 PROJECT <- "bam"
-Date <- "2016-12-01"
+#Date <- "2016-12-01"
+Date <- "2017-01-27"
 #level <- 0.9
 #spp <- "CAWA"
 
@@ -18,8 +19,47 @@ B_use <- 240#100#240
 bfill <- FALSE
 
 e <- new.env()
-load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-12-01.Rdata"), envir=e)
+load(file.path("e:/peter/bam/Apr2016/out", "data",
+    paste0("pack_", Date, ".Rdata")), envir=e)
 mods <- e$mods
+
+if (FALSE) {
+load(file.path("e:/peter/bam/Apr2016/out", "data", "pack_2016-12-01.Rdata"))
+
+DAT$xX <- (DAT$Xcl - 399300) / 1419050
+DAT$xY <- (DAT$Ycl - 1367000) / 693666
+DAT$xX2 <- DAT$xX^2
+DAT$xY2 <- DAT$xY^2
+
+mods$Clim <- list(
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMIJJA + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + EMT:MSP,
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMI + DD0 + DD5 + EMT + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + EMT:MSP,
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMI + CMIJJA + DD0 + MSP + TD + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD,
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMI + CMIJJA + DD5 + MSP + TD + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD,
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMIJJA + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMIJJA2 +
+        CMIJJA:DD0 + CMIJJA:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMI + DD0 + DD5 + EMT + TD + MSP + DD02 + DD52 + CMI2 +
+        CMI:DD0 + CMI:DD5 + MSP:TD + MSP:EMT,
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMI + CMIJJA + DD0 + MSP + TD + EMT + DD02 + CMI2 + CMIJJA2 +
+        CMI:DD0 + CMIJJA:DD0 + MSP:TD + MSP:EMT,
+    . ~ . + xX + xY + xX2 + xY2 + xX:xY +
+        CMI + CMIJJA + DD5 + MSP + TD + EMT + DD52 + CMI2 + CMIJJA2 +
+        CMI:DD5 + CMIJJA:DD5 + MSP:TD + MSP:EMT)
+
+save(list=c("DAT","YY","mods","TAX","OFF","BB"),
+    file=file.path("e:/peter/bam/Apr2016/out", "data", "pack_2017-01-27.Rdata"))
+}
 
 #mods$Hgt <- NULL
 
@@ -69,6 +109,11 @@ cat(spp, regi, BASE_YEAR, ifelse(bfill, "bfill", "no-bfill"), "\n");flush.consol
 
 load(file.path(ROOT3, "chunks", paste0("pgdat-", regi, ".Rdata")))
 gc()
+
+dat$xX <- (dat$POINT_X - 399300) / 1419050
+dat$xY <- (dat$POINT_Y - 1367000) / 693666
+dat$xX2 <- dat$xX^2
+dat$xY2 <- dat$xY^2
 
 dat$HAB <- dat$HAB_NALC2
 dat$HABTR <- dat$HAB_NALC1
