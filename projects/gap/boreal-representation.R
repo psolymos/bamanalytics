@@ -57,6 +57,10 @@ cat(regi, " (", i, "/", length(regs), ")\n", sep="");flush.console()
 
 load(file.path(ROOT3, "chunks", paste0("pgdat-", regi, ".Rdata")))
 gc()
+
+#xy <- rbind(df_sub, dat[,c("pointid", "POINT_X", "POINT_Y")])
+#save(xy, file="BAM_pred_grid_xy.Rdata")
+
 seq_id <- 1 + (seq_len(nrow(dat)) - 1) %% 100
 seq_id <- sample(seq_id)
 subset_id <- seq_id <= Percent
