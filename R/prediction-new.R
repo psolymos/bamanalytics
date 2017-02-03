@@ -129,6 +129,10 @@ dat$xY <- (dat$POINT_Y - 1367000) / 693666
 dat$xX2 <- dat$xX^2
 dat$xY2 <- dat$xY^2
 
+dat$EMT2 <- dat$EMT^2
+dat$MSP2 <- dat$MSP^2
+dat$TD2 <- dat$TD^2
+
 dat$HAB <- dat$HAB_NALC2
 dat$HABTR <- dat$HAB_NALC1
 dat$HGT[dat$HAB %in% c("Agr","Barren","Devel","Grass", "Shrub")] <- 0
@@ -396,6 +400,10 @@ if (!is.finite(br[length(br)]))
 brr[[fo]] <- br
 ttt[[fo]] <- tlam
 
+#l <- opticut::lorenz(x)
+#br <- opticut:::quantile.lorenz(l, probs)
+#br <- quantile(x, seq(0, 1, by=0.2))
+
 ## total million males
 tlam0 <- tlam
 tlam[!is.finite(tlam)] <- 0
@@ -437,9 +445,10 @@ save(XY3s, tlam, file=file.path(ROOT3, "maps",
 png(file.path(ROOT3, "maps", paste0(fo, "-mean-", BASE_YEAR, ifelse(bfill, "bf", ""), ".png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-Col <- rev(brewer.pal(6, "RdYlBu"))
+#Col <- rev(brewer.pal(6, "RdYlBu"))
 zval <- if (length(unique(round(br,10))) < 5)
-    rep(1, length(x)) else as.integer(cut(x, breaks=br))
+    as.factor(rep(1, length(x))) else cut(x, breaks=unique(br), include.lowest=TRUE)
+Col <- rev(brewer.pal(nlevels(zval), "RdYlBu"))
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
 points(XY2all[,c("POINT_X","POINT_Y")], col = Col[zval], pch=".")
