@@ -27,7 +27,9 @@ spp_singing <- sort(rownames(sppt)[sppt$Singing_birds])
 
 ## Load preprocesses data
 #load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
-load(file.path(ROOT, "out", "new_offset_data_package_2016-12-01.Rdata"))
+#load(file.path(ROOT, "out", "new_offset_data_package_2016-12-01.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2017-03-01.Rdata")) # this has ABMI interval fix
+#load(file.path(ROOT, "out", "new_offset_data_package_2017-02-13-all-species.Rdata")) # all spp
 
 ### Removal sampling
 
@@ -188,7 +190,8 @@ c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur
 resDur <- resDurOK
 
 save(resDur, resDurData,
-    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
+#    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
+    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016-ABMIfix.Rdata"))
 
 ### Distance sampling
 
@@ -356,6 +359,7 @@ save(resDis, resDisData,
 ## need to load/recreate pkDis!
 
 ROOT <- "c:/bam/May2015"
+#ROOT <- "e:/peter/bam/May2015"
 
 ## n.min is threshold above which all models are considered
 ## n.con is threshold above which the 0 constant model is considered
@@ -364,10 +368,31 @@ n.min <- 75#50
 n.min.class <- 5 # min number of detections within each class
 
 type <- "rem"
-load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
+
+## CONI
+#load("e:/peter/bam/May2015/out/estimates_SRAandEDR_QPAD_v2016-CONIonly.Rdata")
+#e <- new.env()
+#load(file.path(ROOT, "out", "new_offset_data_package_2017-02-13-all-species.Rdata"), envir=e)
+#resDisCONI <- resDis
+#resDurCONI <- resDur
+
+#load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016.Rdata"))
+load(file.path(ROOT, "out", "estimates_SRA_QPAD_v2016-ABMIfix.Rdata"))
 load(file.path(ROOT, "out", "estimates_EDR_QPAD_v2016.Rdata"))
 e <- new.env()
 load(file.path(ROOT, "out", "new_offset_data_package_2016-12-01.Rdata"), envir=e)
+
+if (FALSE) {
+resDis <- c(resDis, CONI=resDisCONI$CONI)
+resDur <- c(resDur, CONI=resDurCONI$CONI)
+
+sort(sapply(resDisCONI$CONI, "[[", "loglik"))
+sort(sapply(resDurCONI$CONI, "[[", "loglik"))
+
+exp(resDisCONI$CONI[['0']]$coef)
+exp(resDurCONI$CONI[['0']]$coef)
+
+}
 
 ## 0/1 table for successful model fit
 edr_mod <- t(sapply(resDis, function(z)
@@ -489,6 +514,8 @@ sra_n <- sra_n[spp]
 
 edr_df <- sapply(resDis[["OVEN"]][1:edr_nmod], "[[", "p")
 sra_df <- sapply(resDur[["OVEN"]][1:sra_nmod], "[[", "p")
+#edr_df <- sapply(resDis[["CONI"]][1:edr_nmod], "[[", "p")
+#sra_df <- sapply(resDur[["CONI"]][1:sra_nmod], "[[", "p")
 
 ## estimates
 edr_estimates <- resDis[spp]
@@ -616,9 +643,12 @@ bamcoefs <- list(spp=spp,
     version=version)
 .BAMCOEFS <- list2env(bamcoefs)
 
-save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+#save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.rda"))
+#toDump <- as.list(.BAMCOEFS)
+#dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.Rdump"))
+save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3-ABMIfix.rda"))
 toDump <- as.list(.BAMCOEFS)
-dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3.Rdump"))
+dump("toDump", file=file.path(ROOT, "out", "BAMCOEFS_QPAD_v3-ABMIfix.Rdump"))
 
 
 ### Plot species specific results

@@ -141,6 +141,13 @@ levels(PCTBL_abmi$SPECIES) <- c(levels(PCTBL_abmi$SPECIES), "NONE")
 PCTBL_abmi$SPECIES[PCTBL_abmi$SPECIES == "TERN_UNI"] <- "NONE"
 PCTBL_abmi$SPECIES <- droplevels(PCTBL_abmi$SPECIES)
 
+##  2003-2008 values range 0-600; 2009-2015 values range 0-10 (minutes)
+PCTBL_abmi$TBB_TIME_1ST_DETECTED <- as.character(PCTBL_abmi$TBB_TIME_1ST_DETECTED)
+table(PCTBL_abmi$TBB_TIME_1ST_DETECTED,PCTBL_abmi$YEAR)
+for (ii in 1:10) {
+    PCTBL_abmi$TBB_TIME_1ST_DETECTED[PCTBL_abmi$TBB_TIME_1ST_DETECTED == as.character(ii) &
+        PCTBL_abmi$YEAR >= 2009] <- as.character(ii * 60)
+}
 PCTBL_abmi$TBB_TIME_1ST_DETECTED[PCTBL_abmi$TBB_TIME_1ST_DETECTED %in%
     c("DNC", "NONE", "VNA")] <- NA
 PCTBL_abmi$TBB_TIME_1ST_DETECTED <- as.numeric(as.character(PCTBL_abmi$TBB_TIME_1ST_DETECTED))
@@ -268,10 +275,13 @@ pc2 <- with(PCTBL_abmi, data.frame(
     DURMETH="X"))
 levels(pc2$dur) <- c("0-3.33","3.33-6.66","6.66-10")
 
+## this includes all (not only singing) species
+#pc$SPECIES <- pc$SPECIES_ALL
 
 ## combine dat, dat2 and pc pc2
 dat <- rbind(dat, dat2[,colnames(dat)])
-pc <- rbind(pc, pc2[,colnames(pc)])
+cn <- intersect(colnames(pc), colnames(pc2))
+pc <- rbind(pc[,cn], pc2[,cn])
 
 durmat <- as.matrix(Xtab(~ DURMETH + dur, pc))
 durmat[durmat > 0] <- 1
@@ -300,6 +310,7 @@ save(dat2, pc2,
 
 save(dat, pc, ltdur, ltdis, TAX,
     file=file.path(ROOT, "out",
+#    paste0("new_offset_data_package_", Sys.Date(), "-all-species.Rdata")))
     paste0("new_offset_data_package_", Sys.Date(), ".Rdata")))
 
 save(SS, PKEY, PCTBL, TAX,
