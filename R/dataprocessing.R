@@ -8,7 +8,7 @@
 ##    toc_depth: 2
 ##---
 
-### Preliminaries
+### Preliminaries start here
 
 ## Define root folder where data are stored
 ROOT <- "c:/bam/May2015"
