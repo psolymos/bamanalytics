@@ -192,6 +192,53 @@ legend("topleft",
 par(op)
 ```
 
+## Response to disturbance
+
+```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=6}
+tmp_dt <- est_dtb[,c("DTB", "BRN", "LSS", "YSD", "YSF", "YSL")]
+summary(tmp_dt)
+
+ys <- 0:100
+ysx <- pmax(0, 1 - (ys / 50))
+ys0 <- ifelse(ys <= 10, 1, 0)
+#plot(ys, ysx, ylim=c(-1,1), type="n", xlab="years since last disturbance",
+#    ylab="variable in model")
+#abline(h=0,lty=2,col="grey")
+#lines(ys, ys0, col=4, lwd=2)
+#lines(ys, ysx, col=2, lwd=2)
+
+xys <- cbind(ys0, ys0, ys0, ysx, ysx, ysx)
+sys0 <- apply(exp(apply(tmp_dt, 1, function(z) xys %*% z)), 1, fstat)
+sys1 <- apply(exp(apply(tmp_dt, 1, function(z) xys[,c(1,4)] %*% z[c(1,4)])), 1, fstat)
+sys2 <- apply(exp(apply(tmp_dt, 1, function(z) xys[,c(2,5)] %*% z[c(2,5)])), 1, fstat)
+sys3 <- apply(exp(apply(tmp_dt, 1, function(z) xys[,c(3,6)] %*% z[c(3,6)])), 1, fstat)
+RN <- range(sys0, sys1, sys2, sys3)
+
+op <- par(mfrow=c(2,2))
+plot(ys, sys0[1,], ylim=RN, type="l", lwd=2, col=2,
+    main="All effects combined",
+    xlab="years since last disturbance", ylab="Relative abundance")
+lines(ys, sys0[2,], lty=2, lwd=2, col=2)
+lines(ys, sys0[3,], lty=2, lwd=2, col=2)
+plot(ys, sys1[1,], type="l", lwd=2, col=2, ylim=RN,
+    main="Fire and Other combined",
+    xlab="years since last disturbance", ylab="Relative abundance")
+lines(ys, sys1[2,], lty=2, lwd=2, col=2)
+lines(ys, sys1[3,], lty=2, lwd=2, col=2)
+
+plot(ys, sys2[1,], type="l", lwd=2, col=2, ylim=RN,
+    main="Fire only",
+    xlab="years since last disturbance", ylab="Relative abundance")
+lines(ys, sys2[2,], lty=2, lwd=2, col=2)
+lines(ys, sys2[3,], lty=2, lwd=2, col=2)
+plot(ys, sys3[1,], type="l", lwd=2, col=2, ylim=RN,
+    main="Other only",
+    xlab="years since last disturbance", ylab="Relative abundance")
+lines(ys, sys3[2,], lty=2, lwd=2, col=2)
+lines(ys, sys3[3,], lty=2, lwd=2, col=2)
+par(op)
+```
+
 # Model validation
 
 ## ROC curves and AUC
@@ -271,14 +318,25 @@ par(op)
 
 ```{r echo=FALSE,message=FALSE,fig.width=7,fig.height=4}
 pro <- table(Y[ss1])/length(ss1)
-par(mfrow=c(1,2))
+op <- par(mfrow=c(1,2))
 tmp <- boxplot(mn[,"NULL"] * exp(off1[ss1]) ~ Y[ss1], range=0,
     at=cumsum(2*pro^0.2), width=2*pro^0.2, main="NULL",
-    xlab="Observed count", ylab="Corrected density", col="grey")
+    xlab="Observed count", ylab="Corrected density", col="grey",
+    ylim=c(0, max(mn)))
 boxplot(mn[,"Clim"] * exp(off1[ss1]) ~ Y[ss1], range=0,
     at=cumsum(2*pro^0.2), width=2*pro^0.2, main="Clim",
-    xlab="Observed count", ylab="Corrected density", col="grey")
+    xlab="Observed count", ylab="Corrected density", col="grey",
+    ylim=c(0, max(mn)))
 par(op)
+
+#op <- par(mfrow=c(1,2))
+#ResourceSelection:::.mep(Y[ss1], mn[,"NULL"] * exp(off1[ss1]),
+#    level = 0.9, link = "log", type = "unique",
+#    main="NULL", xlim=c(0,4), ylim=c(0, max(mn)))
+#ResourceSelection:::.mep(Y[ss1], mn[,"Clim"] * exp(off1[ss1]),
+#    level = 0.9, link = "log", type = "unique",
+#    main="Clim", xlim=c(0,4), ylim=c(0, max(mn)))
+#par(op)
 ```
 
 # Predictive maps

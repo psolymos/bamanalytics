@@ -84,6 +84,7 @@ DAT$D <- rowMeans(pr)
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 BBS_PCODE <- levels(DAT$PCODE)[substr(levels(DAT$PCODE), 1, 3) == "BBS"]
 DAT$isBBS <- DAT$PCODE %in% BBS_PCODE
+DAT$ROAD <- xn$ROAD[match(rownames(DAT), rownames(xn))]
 
 ## Boreal year effect estimates
 
@@ -107,15 +108,20 @@ yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam")) {
     dat$SUBSET <- subset
     dat <- dat[bb[,i],]
     dat <- dat[dat$SUBSET,,drop=FALSE]
-    if (part=="bbs")
+    if (part=="bbs") # BBS only
         dat <- dat[dat$isBBS,,drop=FALSE]
-    if (part=="bam")
-        dat <- dat[!dat$isBBS,,drop=FALSE]
+    if (part=="bam") # non-BBS excluding roadside surveys
+        dat <- dat[!dat$isBBS & dat$ROAD==0,,drop=FALSE]
+#    if (part=="all") # non-BBS excluding roadside surveys
+#        dat <- dat[dat$isBBS | (!dat$isBBS && dat$ROAD==0),,drop=FALSE]
     if (nrow(dat) < 1)
         return(NA)
     dat$logDoff <- log(dat$D) + dat$off
     mod <- glm(Y ~ YR, data=dat, offset=dat$logDoff, family=poisson)
-    100 * (exp(coef(mod)[2]) - 1)
+    out <- 100 * (exp(coef(mod)[2]) - 1)
+    #attr(out, "nobs") <- nrow(dat)
+    #attr(out, "part") <- part
+    out
 }
 #yr_res <- pbsapply(1:240, yr_fun)
 

@@ -570,7 +570,8 @@ write.csv(dd, row.names=FALSE, file="CAWA-density-breaks.csv")
 #pcawa <- data.frame(pointid=names(x2), median_2012=x2, median_2002=x1, median_backfilled=x0)
 #write.csv(pcawa, row.names=FALSE, file="w:/bam-cawa/cawa-pred-med-2016-12-13.csv")
 
-br <- c(0.05, 0.25, 0.5, 0.95, 1/rev(c(0.05, 0.25, 0.5, 0.95)))
+#br <- c(0.05, 0.25, 0.5, 0.95, 1/rev(c(0.05, 0.25, 0.5, 0.95)))
+br <- c(0.5, 0.95, 1/rev(c(0.5, 0.95)))
 d21 <- x2/x1
 d20 <- x2/x0
 c21 <- cut(d21, c(-1, br, Inf))
@@ -589,10 +590,14 @@ tow$index_2012div2012bf <- as.integer(tow$index_2012div2012bf)
 write.csv(tow, row.names=FALSE, file="w:/bam-cawa/difference-maps-20170106.csv")
 }
 
-png(file.path(ROOT3, "maps", paste0(fo, "-diff-2002-2012.png")),
+hist(d21,freq=F,col="gold",xlab="100 * D_2012 / D_2002",main="")
+hist(d20[d20<10],freq=F,col="gold",xlab="100 * D_2012 / D_ref",main="")
+
+Col <- brewer.pal(nlevels(c21), "RdYlGn")
+
+png(file.path(ROOT3, "maps", paste0(fo, "-diff-2002-2012_5bin.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-Col <- brewer.pal(9, "RdYlGn")
 zval <- as.integer(c21)
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
@@ -606,10 +611,10 @@ legend("topright", bty = "n", legend=rev(TEXT),
 par(op)
 dev.off()
 
-png(file.path(ROOT3, "maps", paste0(fo, "-diff-bfill-2012.png")),
+
+png(file.path(ROOT3, "maps", paste0(fo, "-diff-bfill-2012_5bin.png")),
     width = 2000, height = 1000)
 op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
-Col <- brewer.pal(9, "RdYlGn")
 zval <- as.integer(c20)
 plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",
     ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
