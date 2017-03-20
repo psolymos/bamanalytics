@@ -1,6 +1,8 @@
 ## Define root folder where data are stored
-ROOT <- "c:/bam/May2015"
-ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2016"
+#ROOT <- "c:/bam/May2015"
+#ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2016"
+ROOT <- "e:/peter/bam/May2015"
+ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
 
 ## Load required packages
 library(MASS)
@@ -11,7 +13,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2017-03-01.Rdata"))
 
 ## non NA subset for duration related estimates
 pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE","X","Y","SS")]
@@ -111,7 +113,9 @@ load(file.path(ROOT2, "BAMCOEFS_duration_mix.rda"), envir=e)
 
 ## species where rem model sample size is at least 25
 
-sb <- read.csv(file.path(ROOT2, "duration-ms-species_3Mar2016.csv"))
+## check here !!!
+sb <- read.csv("~/repos/bamanalytics/lookup/singing-species.csv")
+
 rownames(sb) <- sb$Species_ID
 
 compare_sets(names(.BAMCOEFSrem$sra_n), names(.BAMCOEFSmix$sra_n))

@@ -4,8 +4,10 @@
 ### Preliminaries
 
 ## Define root folder where data are stored
-ROOT <- "c:/bam/May2015"
-ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2016"
+#ROOT <- "c:/bam/May2015"
+ROOT <- "e:/peter/bam/May2015"
+#ROOT <- "~/Dropbox/Public"
+ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
 
 ## Load required packages
 library(MASS)
@@ -16,7 +18,7 @@ library(detect)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2017-03-01.Rdata"))
 
 ## =============================================================================
 ## BAM-wise estimation -------------------------------------------
@@ -163,8 +165,8 @@ resDur <- vector("list", length(SPP))
 for (i in 1:length(SPP)) {
     cat("Singing rate estimation for", SPP[i], date(), "\n")
     flush.console()
-    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
-    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
+    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
+    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
 }
 names(resDur) <- SPP
 resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
@@ -172,8 +174,8 @@ c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur
 resDur <- resDurOK
 
 save(resDur, resDurData,
-    file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_rem.Rdata"))
-    #file=file.path(ROOT, "out", "estimates_SRA_QPAD_v2016_mix.Rdata"))
+    #file=file.path(ROOT2, "out", "estimates_SRA_QPAD_v2016abmifix_rem.Rdata"))
+    file=file.path(ROOT2, "out", "estimates_SRA_QPAD_v2016abmifix_mix.Rdata"))
 
 ## =============================================================================
 ## summarize results a la QPAD (no distance sampling this time) --------------
@@ -189,9 +191,9 @@ n.min <- 25 # (max df = 5, 5*5=25)
 
 cat(type, "\n")
 if (type == "rem")
-    load(file.path(ROOT2, "estimates_SRA_QPAD_v2016_rem.Rdata"))
+    load(file.path(ROOT2, "estimates_SRA_QPAD_v2016abmifix_rem.Rdata"))
 if (type == "mix")
-    load(file.path(ROOT2, "estimates_SRA_QPAD_v2016_mix.Rdata"))
+    load(file.path(ROOT2, "estimates_SRA_QPAD_v2016abmifix_mix.Rdata"))
 
 ## 0/1 table for successful model fit
 sra_mod <- t(sapply(resDur, function(z)
@@ -272,7 +274,8 @@ TAX2$Singing_birds[TAX2$Family_Sci %in% rownames(aa[aa[,1]>0,])] <- FALSE
 tax <- rbind(spplist[,colnames(TAX2)], TAX2)
 write.csv(tax, file="c:/Users/Peter/Dropbox/bam/duration_ms/revisionMarch2016/duration-ms-species_3Mar2016.csv")
 }
-tax <- read.csv("c:/Users/Peter/Dropbox/bam/duration_ms/revisionMarch2016/duration-ms-species_3Mar2016.csv")
+## check here !!!
+tax <- read.csv("~/repos/bamanalytics/lookup/singing-species.csv")
 rownames(tax) <- tax$Species_ID
 compare_sets(spp, rownames(tax))
 spp <- sort(intersect(spp, rownames(tax[tax$Singing_birds,])))
@@ -351,10 +354,10 @@ bamcoefs <- list(spp=spp,
 .BAMCOEFS <- list2env(bamcoefs)
 
 if (type == "rem") {
-    save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_duration_rem.rda"))
+    save(.BAMCOEFS, file=file.path(ROOT2, "out", "BAMCOEFS_duration_rem.rda"))
 }
 if (type == "mix") {
-    save(.BAMCOEFS, file=file.path(ROOT, "out", "BAMCOEFS_duration_mix.rda"))
+    save(.BAMCOEFS, file=file.path(ROOT2, "out", "BAMCOEFS_duration_mix.rda"))
 }
 
 
@@ -438,8 +441,8 @@ for (i in 1:length(SPP)) {
             pcode=Pcodes[j], excl=FALSE))
     }
 }
-save(resDurPcode1, #resDurBAMless1, 
-    file="~/Dropbox/bam/duration_ms/revisionMarch2016/xval-Pcode1-rem.Rdata")
+save(resDurPcode1, #resDurBAMless1,
+    file="~/Dropbox/bam/duration_ms/revisionMarch2017/xval-Pcode1-rem.Rdata")
 
 #resDurBAMless1_mix <- list()
 resDurPcode1_mix <- list()
@@ -455,8 +458,8 @@ for (i in 1:length(SPP)) {
             pcode=Pcodes[j], excl=FALSE))
     }
 }
-save(resDurPcode1_mix, #resDurBAMless1_mix, 
-    file="~/Dropbox/bam/duration_ms/revisionMarch2016/xval-Pcode1-mix.Rdata")
+save(resDurPcode1_mix, #resDurBAMless1_mix,
+    file="~/Dropbox/bam/duration_ms/revisionMarch2017/xval-Pcode1-mix.Rdata")
 
 
 ## =============================================================================
@@ -644,8 +647,8 @@ save(res, nob, file=file.path(ROOT2, "var-bias-res.Rdata"))
 ## =============================================================================
 ## when does model fail?
 
-load("~/Dropbox/bam/duration_ms/revisionMarch2016/xval-Pcode1-rem.Rdata")
-load("~/Dropbox/bam/duration_ms/revisionMarch2016/xval-Pcode1-mix.Rdata")
+load("~/Dropbox/bam/duration_ms/revisionMarch2017/xval-Pcode1-rem.Rdata")
+load("~/Dropbox/bam/duration_ms/revisionMarch2017/xval-Pcode1-mix.Rdata")
 
 SPP <- names(resDurPcode1)
 problem <- list()
@@ -659,11 +662,11 @@ for (spp in SPP) {
         ii <- intersect(rownames(xtDur[[spp]]), ii)
         yy <- rowSums(xtDur[[spp]][ii, ,drop=FALSE])
         if (inherits(tmp2, "try-error")) {
-            out <- data.frame(spp=spp, pc=PCi, 
+            out <- data.frame(spp=spp, pc=PCi,
                 ntot=length(yy),
-                ndet=sum(yy > 0), 
-                n1=sum(yy > 1), 
-                n2=sum(yy > 2), 
+                ndet=sum(yy > 0),
+                n1=sum(yy > 1),
+                n2=sum(yy > 2),
                 ymean=mean(yy[yy>0]),
                 ymedian=unname(median(yy[yy>0])),
                 logphi=NA, se_logphi=NA,
@@ -672,25 +675,25 @@ for (spp in SPP) {
         } else {
             tmp3 <- tmp2[["0"]]
             if (inherits(tmp3, "try-error") || is.character(tmp3)) {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
                     ymean=mean(yy[yy>0]),
                     ymedian=unname(median(yy[yy>0])),
                     logphi=NA, se_logphi=NA,
                     nobs=NA,
                     msg=as.character(tmp3))
             } else {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
                     ymean=mean(yy[yy>0]),
                     ymedian=unname(median(yy[yy>0])),
-                    logphi=unname(tmp3$coefficients), 
+                    logphi=unname(tmp3$coefficients),
                     se_logphi=sqrt(tmp3$vcov[1,1]),
                     nobs=tmp3$nobs,
                     msg="")
@@ -712,15 +715,15 @@ for (spp in names(resDurPcode1_mix)) {
         ii <- intersect(rownames(xtDur[[spp]]), ii)
         yy <- rowSums(xtDur[[spp]][ii, ,drop=FALSE])
         if (inherits(tmp2, "try-error")) {
-            out <- data.frame(spp=spp, pc=PCi, 
+            out <- data.frame(spp=spp, pc=PCi,
                 ntot=length(yy),
-                ndet=sum(yy > 0), 
-                n1=sum(yy > 1), 
-                n2=sum(yy > 2), 
+                ndet=sum(yy > 0),
+                n1=sum(yy > 1),
+                n2=sum(yy > 2),
                 ymean=mean(yy[yy>0]),
                 ymedian=unname(median(yy[yy>0])),
-                logphi=NA, 
-                logitc=NA, 
+                logphi=NA,
+                logitc=NA,
                 se_logphi=NA,
                 se_logitc=NA,
                 cor=NA,
@@ -729,30 +732,30 @@ for (spp in names(resDurPcode1_mix)) {
         } else {
             tmp3 <- tmp2[["0"]]
             if (inherits(tmp3, "try-error") || is.character(tmp3)) {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
                     ymean=mean(yy[yy>0]),
                     ymedian=unname(median(yy[yy>0])),
-                    logphi=NA, 
-                    logitc=NA, 
+                    logphi=NA,
+                    logitc=NA,
                     se_logphi=NA,
                     se_logitc=NA,
                     cor=NA,
                     nobs=NA,
                     msg=as.character(tmp3))
             } else {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
                     ymean=mean(yy[yy>0]),
                     ymedian=unname(median(yy[yy>0])),
-                    logphi=unname(tmp3$coefficients)[1], 
-                    logitc=unname(tmp3$coefficients)[2], 
+                    logphi=unname(tmp3$coefficients)[1],
+                    logitc=unname(tmp3$coefficients)[2],
                     se_logphi=sqrt(tmp3$vcov[1,1]),
                     se_logitc=sqrt(tmp3$vcov[2,2]),
                     cor=cov2cor(tmp3$vcov)[1,2],
@@ -964,7 +967,7 @@ vcov_fun <- function(x, id) {
 }
 waic_fun <- function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }
 
@@ -982,32 +985,32 @@ for (spp in names(resDurPcode1)) {
         ii <- rownames(pkDur)[pkDur$PCODE==PCi]
         yy <- rowSums(xtDur[[spp]][ii, ])
         if (inherits(tmp2, "try-error")) {
-            out <- data.frame(spp=spp, pc=PCi, 
+            out <- data.frame(spp=spp, pc=PCi,
                 ntot=length(yy),
-                ndet=sum(yy > 0), 
-                n1=sum(yy > 1), 
-                n2=sum(yy > 2), 
+                ndet=sum(yy > 0),
+                n1=sum(yy > 1),
+                n2=sum(yy > 2),
                 logphi=NA, se_logphi=NA,
                     nobs=NA,
                 msg=as.character(tmp2))
         } else {
             tmp3 <- tmp2[["0"]]
             if (inherits(tmp3, "try-error") || is.character(tmp3)) {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
                     logphi=NA, se_logphi=NA,
                     nobs=NA,
                     msg=as.character(tmp3))
             } else {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
-                    logphi=unname(tmp3$coefficients), 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
+                    logphi=unname(tmp3$coefficients),
                     se_logphi=sqrt(tmp3$vcov[1,1]),
                     nobs=tmp3$nobs,
                     msg="")
@@ -1028,13 +1031,13 @@ for (spp in names(resDurPcode1_mix)) {
         ii <- rownames(pkDur)[pkDur$PCODE==PCi]
         yy <- rowSums(xtDur[[spp]][ii, ])
         if (inherits(tmp2, "try-error")) {
-            out <- data.frame(spp=spp, pc=PCi, 
+            out <- data.frame(spp=spp, pc=PCi,
                 ntot=length(yy),
-                ndet=sum(yy > 0), 
-                n1=sum(yy > 1), 
-                n2=sum(yy > 2), 
-                logphi=NA, 
-                logitc=NA, 
+                ndet=sum(yy > 0),
+                n1=sum(yy > 1),
+                n2=sum(yy > 2),
+                logphi=NA,
+                logitc=NA,
                 se_logphi=NA,
                 se_logitc=NA,
                 cor=NA,
@@ -1043,26 +1046,26 @@ for (spp in names(resDurPcode1_mix)) {
         } else {
             tmp3 <- tmp2[["0"]]
             if (inherits(tmp3, "try-error") || is.character(tmp3)) {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
-                    logphi=NA, 
-                    logitc=NA, 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
+                    logphi=NA,
+                    logitc=NA,
                     se_logphi=NA,
                     se_logitc=NA,
                     cor=NA,
                     nobs=NA,
                     msg=as.character(tmp3))
             } else {
-                out <- data.frame(spp=spp, pc=PCi, 
+                out <- data.frame(spp=spp, pc=PCi,
                     ntot=length(yy),
-                    ndet=sum(yy > 0), 
-                    n1=sum(yy > 1), 
-                    n2=sum(yy > 2), 
-                    logphi=unname(tmp3$coefficients)[1], 
-                    logitc=unname(tmp3$coefficients)[2], 
+                    ndet=sum(yy > 0),
+                    n1=sum(yy > 1),
+                    n2=sum(yy > 2),
+                    logphi=unname(tmp3$coefficients)[1],
+                    logitc=unname(tmp3$coefficients)[2],
                     se_logphi=sqrt(tmp3$vcov[1,1]),
                     se_logitc=sqrt(tmp3$vcov[2,2]),
                     cor=cov2cor(tmp3$vcov)[1,2],
