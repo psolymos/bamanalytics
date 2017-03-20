@@ -5,8 +5,8 @@
 
 ## Define root folder where data are stored
 #ROOT <- "c:/bam/May2015"
-ROOT <- "e:/peter/bam/May2015"
-#ROOT <- "~/Dropbox/Public"
+#ROOT <- "e:/peter/bam/May2015"
+ROOT <- "~/Dropbox/Public"
 ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
 
 ## Load required packages
@@ -159,23 +159,32 @@ c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur
 t(sapply(resDurOK, "[[", "n"))
 resDurData <- resDurOK
 
+type <- "rem"
+
 ## estimate species with data
 SPP <- names(resDurOK)
 resDur <- vector("list", length(SPP))
 for (i in 1:length(SPP)) {
-    cat("Singing rate estimation for", SPP[i], date(), "\n")
+    cat("Singing rate estimation for", SPP[i], date(), type, "\n")
     flush.console()
-    #resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
-    resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
+    if (type == "rem")
+        resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
+    if (type == "mix")
+        resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
 }
 names(resDur) <- SPP
 resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
 c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur))
 resDur <- resDurOK
 
-save(resDur, resDurData,
-    #file=file.path(ROOT2, "out", "estimates_SRA_QPAD_v2016abmifix_rem.Rdata"))
-    file=file.path(ROOT2, "out", "estimates_SRA_QPAD_v2016abmifix_mix.Rdata"))
+if (type == "rem")
+    save(resDur, resDurData,
+        file=file.path(ROOT2, "out",
+        "estimates_SRA_QPAD_v2016abmifix_rem.Rdata"))
+if (type == "mix")
+    save(resDur, resDurData,
+        file=file.path(ROOT2, "out",
+        "estimates_SRA_QPAD_v2016abmifix_mix.Rdata"))
 
 ## =============================================================================
 ## summarize results a la QPAD (no distance sampling this time) --------------
