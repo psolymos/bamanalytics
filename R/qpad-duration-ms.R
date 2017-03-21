@@ -179,11 +179,11 @@ resDur <- resDurOK
 
 if (type == "rem")
     save(resDur, resDurData,
-        file=file.path(ROOT2, "out",
+        file=file.path(ROOT2,
         "estimates_SRA_QPAD_v2016abmifix_rem.Rdata"))
 if (type == "mix")
     save(resDur, resDurData,
-        file=file.path(ROOT2, "out",
+        file=file.path(ROOT2,
         "estimates_SRA_QPAD_v2016abmifix_mix.Rdata"))
 
 ## =============================================================================
