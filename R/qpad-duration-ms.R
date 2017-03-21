@@ -287,6 +287,7 @@ write.csv(tax, file="c:/Users/Peter/Dropbox/bam/duration_ms/revisionMarch2016/du
 tax <- read.csv("~/repos/bamanalytics/lookup/singing-species.csv")
 rownames(tax) <- tax$Species_ID
 compare_sets(spp, rownames(tax))
+compare_sets(spp, rownames(tax[tax$Singing_birds,]))
 spp <- sort(intersect(spp, rownames(tax[tax$Singing_birds,])))
 
 sra_models <- sra_models[spp,]
@@ -301,7 +302,7 @@ sra_estimates <- resDur[spp]
 
 ## species table
 e <- new.env()
-load(file.path(ROOT, "out", "new_offset_data_package_2016-03-21.Rdata"), envir=e)
+load(file.path(ROOT, "out", "new_offset_data_package_2017-03-01.Rdata"), envir=e)
 tax2 <- e$TAX
 #rownames(tax2) <- tax2$Species_ID
 tax2 <- nonDuplicated(tax2, Species_ID, TRUE)
@@ -363,10 +364,10 @@ bamcoefs <- list(spp=spp,
 .BAMCOEFS <- list2env(bamcoefs)
 
 if (type == "rem") {
-    save(.BAMCOEFS, file=file.path(ROOT2, "out", "BAMCOEFS_duration_rem.rda"))
+    save(.BAMCOEFS, file=file.path(ROOT2, "BAMCOEFS_duration_rem.rda"))
 }
 if (type == "mix") {
-    save(.BAMCOEFS, file=file.path(ROOT2, "out", "BAMCOEFS_duration_mix.rda"))
+    save(.BAMCOEFS, file=file.path(ROOT2, "BAMCOEFS_duration_mix.rda"))
 }
 
 
@@ -656,8 +657,8 @@ save(res, nob, file=file.path(ROOT2, "var-bias-res.Rdata"))
 ## =============================================================================
 ## when does model fail?
 
-load("~/Dropbox/bam/duration_ms/revisionMarch2017/xval-Pcode1-rem.Rdata")
-load("~/Dropbox/bam/duration_ms/revisionMarch2017/xval-Pcode1-mix.Rdata")
+load(file.path(ROOT2, "xval-Pcode1-rem.Rdata"))
+load(file.path(ROOT2, "xval-Pcode1-mix.Rdata"))
 
 SPP <- names(resDurPcode1)
 problem <- list()

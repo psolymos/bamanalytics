@@ -1,7 +1,9 @@
 ## Define root folder where data are stored
 #ROOT <- "c:/bam/May2015"
 #ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2016"
-ROOT <- "e:/peter/bam/May2015"
+#ROOT <- "e:/peter/bam/May2015"
+#ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
+ROOT <- "~/Dropbox/Public"
 ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
 
 ## Load required packages
@@ -120,22 +122,23 @@ rownames(sb) <- sb$Species_ID
 
 compare_sets(names(.BAMCOEFSrem$sra_n), names(.BAMCOEFSmix$sra_n))
 
-SPPfull <- sort(names(.BAMCOEFSrem$sra_n)[.BAMCOEFSrem$sra_n >= 25])
+NMIN <- 75
+
+SPPfull <- sort(names(.BAMCOEFSrem$sra_n)[.BAMCOEFSrem$sra_n >= NMIN])
 table(sb[SPPfull, "Singing_birds"])
 ## this comes from checking M0/Mb estimates (all BAM scale)
-#SPPfull <- SPPfull[!(SPPfull %in% c("CBCH", "CORE", "PAWR", "PSFL", "RBSA"))]
-SPPfull <- SPPfull[!(SPPfull %in% c("CORE"))]
+EXC1 <- c("CBCH", "CORE", "PAWR", "PSFL", "RBSA")
+SPPfull <- SPPfull[!(SPPfull %in% EXC1)]
 
-## it is already a subset
-#SPPfull <- SPPfull[!(SPPfull %in% c("CBCH","CORE","PSFL","RBSA"))]
 
 sptab <- .BAMCOEFSrem$spp_table[SPPfull,]
 sptab$nfull <- .BAMCOEFSrem$sra_n[SPPfull]
 
-SPPmix <- sort(names(.BAMCOEFSmix$sra_n)[.BAMCOEFSmix$sra_n >= 25])
-#SPPmix <- SPPmix[!(SPPmix %in% c("BEKI", "BWWA", "CERW", "CLSW", "DUFL", "MOBL",
-#    "PAWR", "WEME", "WILL"))]
-SPPmix <- SPPmix[!(SPPmix %in% c("BEKI", "BWWA", "CLSW", "COGR"))]
+SPPmix <- sort(names(.BAMCOEFSmix$sra_n)[.BAMCOEFSmix$sra_n >= NMIN])
+EXC2 <- c("BEKI", "BOBO",
+    "BRBL", "CLSW", "DUFL", "PAWR", "PIGR", "RBWO",
+    "RNPH", "ROPI", "SAPH", "STGR", "VGSW")
+SPPmix <- SPPmix[!(SPPmix %in% EXC2)]
 
 sptab$model <- factor("rem", c("rem","mix","both"))
 sptab[SPPmix, "model"] <- "both"
@@ -867,6 +870,9 @@ for (WHAT in c("TSSR","JDAY","TSLS")) {
 OUT[[WHAT]] <- list("0"=b0, "b"=bb)
 }
 
+sort(apply(sppPred0, 2, max))
+sort(apply(sppPredb, 2, max))
+
 col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
 nl <- 5
 
@@ -874,6 +880,7 @@ plf2 <- function(b, ...) {
 #    contour(b1, levels=levels, lty=1, ...)
 #    contour(b2, add=TRUE, levels=levels, lty=2)
     b1 <- b$std
+    #b1 <- b$kde
     b2 <- b$cumul
     image(b1, col=col, ...)
     contour(b2, add=TRUE, levels=seq(0.1, 0.9, by=0.1))
@@ -902,10 +909,10 @@ dev.off()
 
 ## compare PIF time adjustment
 
-sptab <- read.csv(file.path(ROOT2, "spptab.csv"))
+sptab <- read.csv(file.path(ROOT2, "tabfig", "spptab.csv"))
 rownames(sptab) <- sptab$spp
 
-pif <- read.csv(file.path(ROOT2, "acc", "popContinental_v2_22-May-2013.csv"))
+pif <- read.csv(file.path(ROOT2, "popContinental_v2_22-May-2013.csv"))
 pif <- pif[,c("Common.Name","Scientific.Name","Time.Adjust")]
 
 compare_sets(sptab$common_name, pif$Common.Name)
@@ -1045,7 +1052,7 @@ df <- expand.grid(JDAY=vjd, TSSR=vsr)
 X <- model.matrix(ff[["8"]], df)
 sppCor <- list()
 
-pdf(file.path(ROOT2, "spp-pred.pdf"), onefile=TRUE, width=10, height=5)
+pdf(file.path(ROOT2, "tabfig", "spp-pred.pdf"), onefile=TRUE, width=10, height=5)
 
 #spp <- "BBCU"
 #fff <- ff[["8"]]
