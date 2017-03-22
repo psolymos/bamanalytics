@@ -207,6 +207,11 @@ waic <- t(apply(aic, 1, function(z) {
 waic0b <- waic[,1:15] + waic[,16:30]
 colnames(waic0b) <- colnames(waic0)
 
+H <- apply(waic, 1, function(z) sum(z^2))
+H0 <- apply(waic0, 1, function(z) sum(z^2))
+Hb <- apply(waicb, 1, function(z) sum(z^2))
+H0b <- apply(waic0b, 1, function(z) sum(z^2))
+
 best0 <- as.character(0:14)[apply(aic0, 1, which.min)]
 bestb <- as.character(0:14)[apply(aicb, 1, which.min)]
 best <- colnames(aic)[apply(aic, 1, which.min)]
@@ -1308,5 +1313,177 @@ par(op)
 dev.off()
 
 
+## model averaged marginal responses
+
+#spp <- "BOCH"
+spt <- .BAMCOEFSrem$spp_table[SPPfull,]
+TT <- 3
+Nout <- 200
+Xpk3 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur)
+Ctrl <- loess.control(surface="interpolate", statistics="none", trace.hat="approximate")
+pdat <- data.frame(
+    JDAY = seq(quantile(pkDur$JDAY, 0.025), quantile(pkDur$JDAY, 0.975), length.out=Nout),
+    TSSR = seq(quantile(pkDur$TSSR, 0.025), quantile(pkDur$TSSR, 0.975), length.out=Nout),
+    TSLS = seq(quantile(pkDur$TSLS, 0.025), quantile(pkDur$TSLS, 0.975), length.out=Nout))
+
+pred_all <- list()
+for (spp in SPP) {
+    cat(spp, "\n");flush.console()
+    pr0 <- prb <- matrix(0, 15, nrow(Xpk3))
+    for (mid in 1:15) {
+        cf0 <- .BAMCOEFSrem$sra_estimates[[spp]][[mid]]$coefficients
+        pr0[mid,] <- 1 - exp(-TT*exp(drop(Xpk3[,gsub("log.phi_", "",
+            names(cf0)),drop=FALSE] %*% cf0)))
+        cfb <- .BAMCOEFSmix$sra_estimates[[spp]][[mid]]$coefficients
+        prb[mid,] <- 1 - plogis(drop(Xpk3[,gsub("logit.c_", "",
+            names(cfb)[-1]),drop=FALSE] %*% cfb[-1])) * exp(-TT*exp(cfb[1]))
+    }
+    w0 <- waic0[spp,]
+    wb <- waicb[spp,]
+    pr0 <- colSums(w0 * pr0)
+    prb <- colSums(wb * prb)
+
+    pred_all[[spp]] <- data.frame(
+        ls0_JDAY = predict(loess(pr0 ~ JDAY, pkDur, control=Ctrl), pdat),
+        ls0_TSSR = predict(loess(pr0 ~ TSSR, pkDur, control=Ctrl), pdat),
+        ls0_TSLS = predict(loess(pr0 ~ TSLS, pkDur, control=Ctrl), pdat),
+        lsb_JDAY = predict(loess(prb ~ JDAY, pkDur, control=Ctrl), pdat),
+        lsb_TSSR = predict(loess(prb ~ TSSR, pkDur, control=Ctrl), pdat),
+        lsb_TSLS = predict(loess(prb ~ TSLS, pkDur, control=Ctrl), pdat))
+}
+save(pred_all, pdat, file=file.path(ROOT2, "responses-averaged.Rdata"))
+
+col <- rgb(0.5,0.5,1,1) # "grey"
+pdf(file.path(ROOT2, "tabfig", "responses-averaged.pdf"), width=7, height=5, onefile=TRUE)
+for (spp in SPP) {
+op <- par(mfrow=c(2,3))
+plot(pdat$TSSR*24, pred_all[[spp]]$ls0_TSSR,
+    type="l", lty=1, col=col, ylim=c(0,1), lwd=3,
+    ylab="Probability (M0)", xlab="Time since sunrise (h)", main=spt[spp,"common_name"])
+plot(pdat$JDAY*365, pred_all[[spp]]$ls0_JDAY,
+    type="l", lty=1, col=col, ylim=c(0,1), lwd=3,
+    ylab="Probability (M0)", xlab="Julian day")
+plot(pdat$TSLS*365, pred_all[[spp]]$ls0_TSLS,
+    type="l", lty=1, col=col, ylim=c(0,1), lwd=3,
+    ylab="Probability (M0)", xlab="Days since spring", main=spp)
+plot(pdat$TSSR*24, pred_all[[spp]]$lsb_TSSR,
+    type="l", lty=1, col=col, ylim=c(0,1), lwd=3,
+    ylab="Probability (Mb)", xlab="Time since sunrise (h)")
+plot(pdat$JDAY*365, pred_all[[spp]]$lsb_JDAY,
+    type="l", lty=1, col=col, ylim=c(0,1), lwd=3,
+    ylab="Probability (Mb)", xlab="Julian day")
+plot(pdat$TSLS*365, pred_all[[spp]]$lsb_TSLS,
+    type="l", lty=1, col=col, ylim=c(0,1), lwd=3,
+    ylab="Probability (Mb)", xlab="Days since spring")
+par(op)
+}
+dev.off()
+
+pf <- function(var, mod, resol=0.02) {
+    if (mod == "0")
+        sppPred <- sapply(pred_all, function(z) {
+            switch(var,
+                "TSSR"=z$ls0_TSSR,
+                "JDAY"=z$ls0_JDAY,
+                "TSLS"=z$ls0_TSLS)
+        })
+    if (mod == "b")
+        sppPred <- sapply(pred_all, function(z) {
+            switch(var,
+                "TSSR"=z$lsb_TSSR,
+                "JDAY"=z$lsb_JDAY,
+                "TSLS"=z$lsb_TSLS)
+        })
+    var <- switch(var,
+        "TSSR"=pdat$TSSR*24,
+        "JDAY"=pdat$JDAY*365,
+        "TSLS"=pdat$TSLS*365)
+    ix <- rep(var, ncol(sppPred))
+    iy <- as.numeric(sppPred)
+    d <- kde2d(ix, iy, n=c(100, round(1/resol)))
+    d1 <- d2 <- d
+    d1$z <- d$z / rowSums(d$z)
+    for (i in 1:nrow(d$z))
+        d2$z[i,] <- cumsum(d1$z[i,])
+    list(kde=d, std=d1, cumul=d2)
+}
+pf1 <- function(var, mod) {
+    if (mod == "0")
+        sppPred <- sapply(pred_all, function(z) {
+            switch(var,
+                "TSSR"=z$ls0_TSSR,
+                "JDAY"=z$ls0_JDAY,
+                "TSLS"=z$ls0_TSLS)
+        })
+    if (mod == "b")
+        sppPred <- sapply(pred_all, function(z) {
+            switch(var,
+                "TSSR"=z$lsb_TSSR,
+                "JDAY"=z$lsb_JDAY,
+                "TSLS"=z$lsb_TSLS)
+        })
+    var <- switch(var,
+        "TSSR"=pdat$TSSR*24,
+        "JDAY"=pdat$JDAY*365,
+        "TSLS"=pdat$TSLS*365)
+    list(x=var, y=sppPred)
+}
+
+plf2 <- function(b, ...) {
+#    contour(b1, levels=levels, lty=1, ...)
+#    contour(b2, add=TRUE, levels=levels, lty=2)
+    #col <- colorRampPalette(c("white", "black"))(30)[c(rep(1, 9),1:20)]
+    col <- colorRampPalette(c("white", "black"))(30)[1:25]
+    #b1 <- b$std
+    b1 <- b$kde
+    b2 <- b$cumul
+    image(b1, col=col, ...)
+    contour(b2, add=TRUE, levels=seq(0.1, 0.9, by=0.1))
+    #contour(b$std, add=TRUE)
+    box()
+}
 
 
+png(file.path(ROOT2, "tabfig", paste0("Fig4_responses-avg-", TT, "min.png")),
+    height=1200, width=1600, res=150)
+op <- par(mfrow=c(2,3), las=1)
+plf2(pf("TSSR", "0"),
+    ylab="Probability (M0)", xlab="Time since sunrise (h)")
+plf2(pf("JDAY", "0"),
+    ylab="Probability (M0)", xlab="Julian day")
+plf2(pf("TSLS", "0"),
+    ylab="Probability (M0)", xlab="Days since spring")
+plf2(pf("TSSR", "b"),
+    ylab="Probability (Mb)", xlab="Time since sunrise (h)")
+plf2(pf("JDAY", "b"),
+    ylab="Probability (Mb)", xlab="Julian day")
+plf2(pf("TSLS", "b"),
+    ylab="Probability (Mb)", xlab="Days since spring")
+par(op)
+dev.off()
+
+col <- rgb(0,0,0,0.1) # "grey"
+wd <- 10
+png(file.path(ROOT2, "tabfig", paste0("Fig4_responses-spaghetti-", TT, "min.png")),
+    height=1200, width=1600, res=150)
+op <- par(mfrow=c(2,3), las=1)
+tmp <- pf1("TSSR", "0")
+matplot(tmp$x, tmp$y, lty=1, type="l", col=col, lwd=wd,
+    ylab="Probability (M0)", xlab="Time since sunrise (h)")
+tmp <- pf1("JDAY", "0")
+matplot(tmp$x, tmp$y, lty=1, type="l", col=col, lwd=wd,
+    ylab="Probability (M0)", xlab="Julian day")
+tmp <- pf1("TSLS", "0")
+matplot(tmp$x, tmp$y, lty=1, type="l", col=col, lwd=wd,
+    ylab="Probability (M0)", xlab="Days since spring")
+tmp <- pf1("TSSR", "b")
+matplot(tmp$x, tmp$y, lty=1, type="l", col=col, lwd=wd,
+    ylab="Probability (Mb)", xlab="Time since sunrise (h)")
+tmp <- pf1("JDAY", "b")
+matplot(tmp$x, tmp$y, lty=1, type="l", col=col, lwd=wd,
+    ylab="Probability (Mb)", xlab="Julian day")
+tmp <- pf1("TSLS", "b")
+matplot(tmp$x, tmp$y, lty=1, type="l", col=col, lwd=wd,
+    ylab="Probability (Mb)", xlab="Days since spring")
+par(op)
+dev.off()
