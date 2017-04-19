@@ -634,7 +634,7 @@ which(!is.finite(Ra[2,]))
 
 SPP <- sppp
 save(OFF, SPP,
-    file=file.path(ROOT, "out", "offsets-v3_2016-12-01.Rdata"))
+    file=file.path(ROOT, "out", "offsets-v3_2017-04-19.Rdata"))
 offdat <- offdat[,c("PKEY","TSSR","JDAY","DSLS","TREE","LCC4","MAXDUR","MAXDIS")]
 save(offdat,
     file=file.path(ROOT, "out", "offsets-v3data_2016-12-01.Rdata"))

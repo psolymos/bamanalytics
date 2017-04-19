@@ -381,3 +381,12 @@ stopifnot(all(rownames(DAT) == rownames(OFF)))
 
 save(list = Save,
     file=file.path(ROOT, "out", "data", paste0("pack_", Date, ".Rdata")))
+
+
+## updating offsets
+#load(file.path(ROOT, "data", "pack_2016-12-01.Rdata"))
+#ee <- new.env()
+#load(file.path(ROOT, "offsets-v3_2017-04-19.Rdata"), envir=ee)
+#OFF <- ee$OFF[rownames(OFF), colnames(OFF)]
+#save(DAT, YY, mods, TAX, OFF, BB,
+#    file=file.path(ROOT, "data", "pack_2017-04-19.Rdata"))
