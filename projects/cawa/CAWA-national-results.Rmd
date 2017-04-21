@@ -21,7 +21,8 @@ ROOT <- "e:/peter/bam/Apr2016/out"
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 
 PROJECT <- "bam"
-Date <- "2016-12-01"
+#Date <- "2016-12-01"
+Date <- "2017-04-19"
 level <- 0.9
 
 fstat <- function(x, level=0.95) {
@@ -34,13 +35,13 @@ chfun <- function(Na, Nb, ta, tb) {
 }
 
 e <- new.env()
-load(file.path(ROOT, "data", "pack_2016-12-01.Rdata"), envir=e)
+load(file.path(ROOT, "data", paste0("pack_", Date, ".Rdata")), envir=e)
 
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
 yy <- e$YY
-xn <- e$DAT[,Terms]
+xn <- e$DAT[,c(Terms, "Units")]
 Xn <- model.matrix(getTerms(mods, "formula"), xn)
 colnames(Xn) <- fixNames(colnames(Xn))
 xn <- xn[rownames(Xn),]
@@ -49,8 +50,9 @@ bbb <- unique(e$BB)
 bb <- e$BB
 
 rm(e)
-ss1 <- which(!(1:nrow(xn) %in% bbb)) # test portion
-ss2 <- which((1:nrow(xn) %in% bbb)) # non-test portion
+INTERNAL <- 1:nrow(xn) %in% bbb
+ss1 <- which(!INTERNAL) # test portion
+ss2 <- which(INTERNAL) # non-test portion
 
 modTab <- getFancyModsTab(mods)
 xnh <- nonDuplicated(xn, HABTR, TRUE)[,c("HAB","HABTR","isNF","isDev",
