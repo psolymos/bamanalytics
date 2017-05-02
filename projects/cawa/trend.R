@@ -100,7 +100,7 @@ round(c(fstat(100 * (exp(est_yr[,"YR"]) - 1)),
 
 ## Residual trend estimates
 
-yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam")) {
+yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam", "off")) {
     part <- match.arg(part)
     if (is.null(subset))
         subset <- rep(TRUE, nrow(DAT))
@@ -111,6 +111,8 @@ yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam")) {
     if (part=="bbs") # BBS only
         dat <- dat[dat$isBBS,,drop=FALSE]
     if (part=="bam") # non-BBS excluding roadside surveys
+        dat <- dat[!dat$isBBS,,drop=FALSE]
+    if (part=="off") # non-BBS excluding roadside surveys
         dat <- dat[!dat$isBBS & dat$ROAD==0,,drop=FALSE]
 #    if (part=="all") # non-BBS excluding roadside surveys
 #        dat <- dat[dat$isBBS | (!dat$isBBS && dat$ROAD==0),,drop=FALSE]
@@ -148,7 +150,7 @@ levels(DAT$JURS2)[levels(DAT$JURS2) %in% c("NS","PEI")] <- "NS+PEI"
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 DAT$BCRPROV2 <- interaction(DAT$BCR, DAT$JURS2, drop=TRUE, sep="_")
 
-PART <- "bam" # "all", "bbs","bam"
+PART <- "off" # "all","bbs","bam","off"
 
 tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN", part=PART)
 
