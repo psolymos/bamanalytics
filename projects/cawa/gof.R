@@ -167,6 +167,15 @@ rocReg <- lapply(c("W", "8E", "HW", "At"), function(REG) {
   })
 names(rocReg) <- c("W", "8E", "HW", "At")
 
+sapply(rocReg, function(z) as.numeric(z$auc))
+
+plot(rocAll1[["Clim"]])
+lines(rocReg[["W"]], col=2)
+lines(rocReg[["8E"]], col=3)
+lines(rocReg[["HW"]], col=4)
+lines(rocReg[["At"]], col=5)
+
+
 ## QQ plots
 vals <- seq(min(Y[ss1]), max(Y[ss1]), 1)
 pobs <- numeric(length(vals))
