@@ -175,6 +175,14 @@ lines(rocReg[["8E"]], col=3)
 lines(rocReg[["HW"]], col=4)
 lines(rocReg[["At"]], col=5)
 
+## OCCC
+library(epiR)
+
+rss <- sample.int(nrow(mn), 10^4)
+#oc <- epi.occc(mn[rss,])
+oc1 <- epi.occc(mn)
+oc2 <- epi.occc(mn_in)
+oc3 <- epi.occc(rbind(mn, mn_in))
 
 ## QQ plots
 vals <- seq(min(Y[ss1]), max(Y[ss1]), 1)
@@ -243,6 +251,4 @@ par(op)
 #    level = 0.9, link = "log", type = "unique",
 #    main="Clim", xlim=c(0,4), ylim=c(0, max(mn)))
 #par(op)
-
-## include OCCC
 
