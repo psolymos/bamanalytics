@@ -19,6 +19,11 @@ if (!require(maptools))
     install.packages("maptools")
 if (!require(RODBC))
     install.packages("RODBC")
+if (!require(mefa4)) {
+    if (!require(devtools))
+        install.packages("devtools")
+    devtools::install_github("psolymos/mefa4")
+}
 if (!require(QPAD)) {
     if (!require(devtools))
         install.packages("devtools")
@@ -27,6 +32,7 @@ if (!require(QPAD)) {
 library(RODBC) # MS Access link
 library(QPAD) # latest estimates
 library(maptools) # for sunrise calculations
+library(mefa4) # data manipulation
 ```
 
 Set the root folder, all paths are going to be relative to this.
@@ -37,16 +43,162 @@ on another local machine:
 ROOT <- "e:/peter/bam/BAMDB_2017_05"
 ```
 
-This is the folder where a Access database can be found
+# Fetching the data
+
+This is the folder where a Access database can be found.
+Now let us establish a connection called `con`
+and fetch the data tables that we need, then close the connection:
 
 ```{r}
 con <- odbcConnectAccess2007(file.path(ROOT, "May13_2017UPdate.accdb"))
-SS01 <- sqlFetch(con, "CovariatesforoffsetMay2017")
+ss <- sqlFetch(con, "CovariatesforoffsetMay2017") # SS table
+str(ss)
+ss$ID <- ss$OBJECTID <- NULL
+pk <- sqlFetch(con, "BC_WSI_KMART_PKEY") # PKEY table
+str(pk)
+pj <- sqlFetch(con, "National_Proj_Summary_V4_2015") # project summary table
+pj$SSMA_TimeStamp <- NULL
+str(pj)
+close(con)
 ```
 
+# Organizing the data
 
+Join the `ss` and `pk` tables by the `SS` field:
+
+```{r}
+dat <- data.frame(pk, ss[match(pk$SS, ss$SS), ])
+dat$SS.1 <- NULL
+```
+
+## Maximum distance and duration
+
+This is needed because we want to standardize for unequal sampling effort
+based on time and area where the counts were coming from.
+
+We find maximum duration (`MAXDUR`) and maximum distance (`MAXDIS`)
+from the project summary table based on a join on the `method` field:
+
+```{r}
+dat$MAXDUR <- pj$MaxDuration[match(dat$method, pj$Method)]
+table(dat$method, dat$MAXDUR, useNA="always")
+dat$MAXDIS <- droplevels(pj$Maxdist[match(dat$method, pj$Method)])
+levels(dat$MAXDIS) <- toupper(levels(dat$MAXDIS))
+levels(dat$MAXDIS)[levels(dat$MAXDIS) == "UNLIMITED"] <- "Inf"
+dat$MAXDIS <- as.numeric(as.character(dat$MAXDIS)) / 100
+table(dat$method, dat$MAXDIS, useNA="always")
+## QCATLAS:118 has distance method D (0-Inf) --> Unlimited
+dat$MAXDIS[dat$method == "QCATLAS:118"] <- Inf
+```
+
+## Date and time related variables
+
+Date and time, and location is used to find time since local sunrise
+(`TSSR`) and ordinal days (`JDAY`). These were used in the removal sampling
+to estimate singing rates.
+
+In this database date and time are provided in POSIXct format.
+Here is a code to make it from ingredients:
+
+```{r}
+## Date/time components
+dat$MINUTE[is.na(dat$MINUTE)] <- 0 # exact minute that critical, is not [Yoda]
+mm <- ifelse(dat$MINUTE < 10, paste0("0", dat$MINUTE), as.character(dat$MINUTE))
+HH <- ifelse(dat$HOUR < 10, paste0("0", dat$HOUR), as.character(dat$HOUR))
+dd <- ifelse(dat$DAY < 10, paste0("0", dat$DAY), as.character(dat$DAY))
+MM <- ifelse(dat$MONTH < 10, paste0("0", dat$MONTH), as.character(dat$MONTH))
+DD <- paste0(dat$YEAR, "-", MM, "-", dd, " ", HH, ":", mm, ":00")
+DD <- strptime(DD, "%Y-%m-%e %H:%M:%S")
+dat$DATE <- DD
+summary(dat$DATE)
+class(DD)
+class(dat$DATE)
+```
+
+Orinal days (days since January 1st):
+
+```{r}
+dat$JULIAN <- dat$DATE$yday
+dat$JDAY <- DD$yday / 365
+summary(dat$JDAY)
+## prevent too far extrapolation
+dat$JDAY[dat$JDAY < 0.35 | dat$JDAY > 0.55] <- NA
+hist(dat$JDAY)
+```
+Time since local sunrise: this can be tricky due to time zones.
+The sunrise time is calculated in machine time (time zone, daylight savings),
+and values need to be offset accordingly to reflect local time:
 
 ```{r eval=FALSE}
+## TSSR = time since sunrise
+Coor <- as.matrix(cbind(as.numeric(dat$POINT_X), as.numeric(dat$POINT_Y)))
+JL <- as.POSIXct(DD)
+subset <- rowSums(is.na(Coor))==0 & !is.na(JL)
+sr <- sunriset(Coor[subset,], JL[subset], direction="sunrise", POSIXct.out=FALSE) * 24
+dat$srise <- NA
+dat$srise[subset] <- sr
+dat$start_time <- dat$HOUR + dat$MINUTE/60
+
+TZ <- SS$TZONE[match(dat$SS, rownames(SS))]
+lttz <- read.csv("~/repos/bamanalytics/lookup/tzone.csv")
+lttz <- nonDuplicated(lttz, Timezone, TRUE)
+
+dat$MDT_offset <- lttz$MDT_offset[match(TZ, rownames(lttz))]
+table(TZ, dat$MDT_offset)
+dat$TSSR <- (dat$start_time - dat$srise + dat$MDT_offset) / 24
+dat$TSSR_orig <- dat$TSSR # keep a full copy
+dat$TSSR[dat$start_time > 12] <- NA ## after noon
+summary(dat$TSSR)
+summary(dat$start_time)
+
+```
+
+## Tree and land cover
+
+Tree cover (`TREE`) and land cover categories were used in distance sampling
+to estimate effective detection radii:
+
+Tree cover has sentinel values (`254`, `255`) that fall outside of the 0--100 percent values
+(the values `-9999` are likely points falling outside of the layer extent):
+```{r}
+dat$TREE <- dat$tree
+summary(dat$TREE)
+dat$TREE[dat$TREE > 100] <- NA
+dat$TREE[dat$TREE < 0] <- NA
+dat$TREE <- dat$TREE / 100
+summary(dat$TREE)
+hist(dat$TREE)
+```
+
+Here is how we reclass NALCMS based on a lookup table
+(change the path as needed, the project can be cloned downloaded
+from [https://github.com/psolymos/bamanalytics](https://github.com/psolymos/bamanalytics)).
+
+(The values `-9999` are likely points falling outside of the layer extent,
+`0` indicates no data due to e.g. clouds etc. Tropical cover types not considered.)
+```{r}
+(ltnalc <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv"))
+table(dat$NALCMS05, useNA="always")
+dat$NALCMS05[dat$NALCMS05 < 0] <- 0
+compare_sets(dat$NALCMS05, ltnalc$Value)
+dat$LCC2 <- reclass(dat$NALCMS05, ltnalc[,c("Value", "LCC2")], allow_NA=TRUE)
+table(dat$NALCMS05, dat$LCC2, useNA="always")
+dat$LCC4 <- reclass(dat$NALCMS05, ltnalc[,c("Value", "LCC4")], allow_NA=TRUE)
+table(dat$NALCMS05, dat$LCC4, useNA="always")
+```
+
+# Calculating offsets
+
+# Saving the results
+
+```{r eval=FALSE}
+## JDAY
+## TSSR
+## OK TREE
+## OK LCC
+## OK - MAXDUR
+## OK - MAXDIS
+
 ROOT <- "e:/peter/bam/Apr2016"
 
 
