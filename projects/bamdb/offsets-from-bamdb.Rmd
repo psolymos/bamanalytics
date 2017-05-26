@@ -131,8 +131,7 @@ Time since local sunrise: this can be tricky due to time zones.
 The sunrise time is calculated in machine time (time zone, daylight savings),
 and values need to be offset accordingly to reflect local time:
 
-```{r eval=FALSE}
-## TSSR = time since sunrise
+```{r}
 Coor <- as.matrix(cbind(as.numeric(dat$POINT_X), as.numeric(dat$POINT_Y)))
 JL <- as.POSIXct(DD)
 subset <- rowSums(is.na(Coor))==0 & !is.na(JL)
@@ -145,19 +144,16 @@ levels(dat$TZ)[levels(dat$TZ) == " "] <- NA
 tzdb <- read.csv(file.path(ROOT, "timezones.csv"))
 str(tzdb)
 setdiff(levels(dat$TZ), tzdb$TZ)
-tzdb <- tzdb[match(levels(dat$TZ), tzdb$TZ), c("TZ", "UTC_offset", "UTC_DST_offset")]
-# add here MDT offset as numeric
+tzdb <- tzdb[match(levels(dat$TZ), tzdb$TZ), c("TZ", "UTC_DST_offset")] # surveys are DST
+tzdb$MDT_offset <- as.integer(substr(as.character(tzdb$UTC_DST_offset), 1, 3)) + 6
 tzdb
-#lttz <- read.csv("~/repos/bamanalytics/lookup/tzone.csv")
-#lttz <- nonDuplicated(lttz, Timezone, TRUE)
-dat$MDT_offset <- tzdb$UTC_DST_offset[match(dat$TZ, tzdb$TZ)] + 6
-table(TZ, dat$MDT_offset)
+dat$MDT_offset <- tzdb$MDT_offset[match(dat$TZ, tzdb$TZ)]
 dat$TSSR <- (dat$start_time - dat$srise + dat$MDT_offset) / 24
 dat$TSSR_orig <- dat$TSSR # keep a full copy
-dat$TSSR[dat$start_time > 12] <- NA ## after noon
+dat$TSSR[dat$start_time > 12] <- NA # after noon
 summary(dat$TSSR)
 summary(dat$start_time)
-
+hist(dat$TSSR)
 ```
 
 ## Tree and land cover
@@ -167,6 +163,7 @@ to estimate effective detection radii:
 
 Tree cover has sentinel values (`254`, `255`) that fall outside of the 0--100 percent values
 (the values `-9999` are likely points falling outside of the layer extent):
+
 ```{r}
 dat$TREE <- dat$tree
 summary(dat$TREE)
@@ -183,6 +180,7 @@ from [https://github.com/psolymos/bamanalytics](https://github.com/psolymos/bama
 
 (The values `-9999` are likely points falling outside of the layer extent,
 `0` indicates no data due to e.g. clouds etc. Tropical cover types not considered.)
+
 ```{r}
 (ltnalc <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv"))
 table(dat$NALCMS05, useNA="always")
@@ -192,99 +190,120 @@ dat$LCC2 <- reclass(dat$NALCMS05, ltnalc[,c("Value", "LCC2")], allow_NA=TRUE)
 table(dat$NALCMS05, dat$LCC2, useNA="always")
 dat$LCC4 <- reclass(dat$NALCMS05, ltnalc[,c("Value", "LCC4")], allow_NA=TRUE)
 table(dat$NALCMS05, dat$LCC4, useNA="always")
+boxplot(TREE ~ LCC4, dat)
 ```
 
 # Calculating offsets
 
-# Saving the results
+Loa the estimates (a hidden environment called `.BAMCOEFS`), and store the species
+codes in object `SPP`. Also need squared terms.
 
-```{r eval=FALSE}
-## JDAY
-## TSSR
-## OK TREE
-## OK LCC
-## OK - MAXDUR
-## OK - MAXDIS
-
-ROOT <- "e:/peter/bam/Apr2016"
-
-
-library(mefa4)
-library(QPAD)
-source("~/repos/bamanalytics/R/dataprocessing_functions.R")
-
-load(file.path(ROOT, "out", paste0("data_package_2016-04-18.Rdata")))
-
+```{r}
 load_BAM_QPAD(3)
-getBAMversion()
-sppp <- getBAMspecieslist()
+SPP <- getBAMspecieslist()
+dat$JDAY2 <- dat$JDAY^2
+dat$TSSR2 <- dat$TSSR^2
+```
 
-offdat <- data.frame(PKEY[,c("PCODE","PKEY","SS","TSSR","JDAY","MAXDUR","MAXDIS","JULIAN")],
-    SS[match(PKEY$SS, rownames(SS)),c("TREE","TREE3","HAB_NALC1","HAB_NALC2", "SPRNG")])
-offdat$srise <- PKEY$srise + PKEY$MDT_offset
-offdat$DSLS <- (offdat$JULIAN - offdat$SPRNG) / 365
-summary(offdat)
+Creating the design matrices for availability (`p`) and detectability (`q`),
+setting up a big matrix `OFF` to store the results:
 
-offdat$JDAY2 <- offdat$JDAY^2
-offdat$TSSR2 <- offdat$TSSR^2
-offdat$DSLS2 <- offdat$DSLS^2
-offdat$LCC4 <- as.character(offdat$HAB_NALC2)
-offdat$LCC4[offdat$LCC4 %in% c("Decid", "Mixed")] <- "DecidMixed"
-offdat$LCC4[offdat$LCC4 %in% c("Agr","Barren","Devel","Grass", "Shrub")] <- "Open"
-offdat$LCC4 <- factor(offdat$LCC4,
-        c("DecidMixed", "Conif", "Open", "Wet"))
-offdat$LCC2 <- as.character(offdat$LCC4)
-offdat$LCC2[offdat$LCC2 %in% c("DecidMixed", "Conif")] <- "Forest"
-offdat$LCC2[offdat$LCC2 %in% c("Open", "Wet")] <- "OpenWet"
-offdat$LCC2 <- factor(offdat$LCC2, c("Forest", "OpenWet"))
-table(offdat$LCC4, offdat$LCC2)
-offdat$MAXDIS <- offdat$MAXDIS / 100
+```{r}
+Xp <- cbind("(Intercept)"=1, as.matrix(dat[,c("TSSR","JDAY","TSSR2","JDAY2")]))
+Xq <- cbind("(Intercept)"=1, TREE=dat$TREE,
+    LCC2OpenWet=ifelse(dat$LCC2=="OpenWet", 1, 0),
+    LCC4Conif=ifelse(dat$LCC4=="Conif", 1, 0),
+    LCC4Open=ifelse(dat$LCC4=="Open", 1, 0),
+    LCC4Wet=ifelse(dat$LCC4=="Wet", 1, 0))
+OFF <- matrix(NA, nrow(dat), length(SPP))
+rownames(OFF) <- dat$PKEY
+colnames(OFF) <- SPP
+```
 
-Xp <- cbind("(Intercept)"=1, as.matrix(offdat[,c("TSSR","JDAY","DSLS","TSSR2","JDAY2","DSLS2")]))
-Xq <- cbind("(Intercept)"=1, TREE=offdat$TREE,
-    LCC2OpenWet=ifelse(offdat$LCC2=="OpenWet", 1, 0),
-    LCC4Conif=ifelse(offdat$LCC4=="Conif", 1, 0),
-    LCC4Open=ifelse(offdat$LCC4=="Open", 1, 0),
-    LCC4Wet=ifelse(offdat$LCC4=="Wet", 1, 0))
+Need to subset the available models because we are not using the 
+day since local spring variable here:
 
-OFF <- matrix(NA, nrow(offdat), length(sppp))
-rownames(OFF) <- offdat$PKEY
-colnames(OFF) <- sppp
+```{r}
+(mods <- getBAMmodellist())
+(sra_mods <- names(mods$sra)[!grepl("DSLS", mods$sra)])
+```
 
-#spp <- "OVEN"
-for (spp in sppp) {
-cat(spp, "\n");flush.console()
-p <- rep(NA, nrow(offdat))
+Let's calculate offsets for single species:
+
+```{r}
+spp <- "OVEN"
+p <- rep(NA, nrow(dat))
 A <- q <- p
-
 ## constant for NA cases
-cf0 <- exp(unlist(coefBAMspecies(spp, 0, 0)))
+(cf0 <- exp(unlist(coefBAMspecies(spp, 0, 0))))
 ## best model
-mi <- bestmodelBAMspecies(spp, type="BIC")
-cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
+(mi <- bestmodelBAMspecies(spp, model.sra=sra_mods, type="BIC"))
+(cfi <- coefBAMspecies(spp, mi$sra, mi$edr))
 
 Xp2 <- Xp[,names(cfi$sra),drop=FALSE]
 OKp <- rowSums(is.na(Xp2)) == 0
 Xq2 <- Xq[,names(cfi$edr),drop=FALSE]
 OKq <- rowSums(is.na(Xq2)) == 0
 
-p[!OKp] <- sra_fun(offdat$MAXDUR[!OKp], cf0[1])
-unlim <- ifelse(offdat$MAXDIS[!OKq] == Inf, TRUE, FALSE)
-A[!OKq] <- ifelse(unlim, pi * cf0[2]^2, pi * offdat$MAXDIS[!OKq]^2)
-q[!OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[!OKq], cf0[2]))
+p[!OKp] <- sra_fun(dat$MAXDUR[!OKp], cf0[1])
+unlim <- ifelse(dat$MAXDIS[!OKq] == Inf, TRUE, FALSE)
+A[!OKq] <- ifelse(unlim, pi * cf0[2]^2, pi * dat$MAXDIS[!OKq]^2)
+q[!OKq] <- ifelse(unlim, 1, edr_fun(dat$MAXDIS[!OKq], cf0[2]))
 
 phi1 <- exp(drop(Xp2[OKp,,drop=FALSE] %*% cfi$sra))
 tau1 <- exp(drop(Xq2[OKq,,drop=FALSE] %*% cfi$edr))
-p[OKp] <- sra_fun(offdat$MAXDUR[OKp], phi1)
-unlim <- ifelse(offdat$MAXDIS[OKq] == Inf, TRUE, FALSE)
-A[OKq] <- ifelse(unlim, pi * tau1^2, pi * offdat$MAXDIS[OKq]^2)
-q[OKq] <- ifelse(unlim, 1, edr_fun(offdat$MAXDIS[OKq], tau1))
+p[OKp] <- sra_fun(dat$MAXDUR[OKp], phi1)
+unlim <- ifelse(dat$MAXDIS[OKq] == Inf, TRUE, FALSE)
+A[OKq] <- ifelse(unlim, pi * tau1^2, pi * dat$MAXDIS[OKq]^2)
+q[OKq] <- ifelse(unlim, 1, edr_fun(dat$MAXDIS[OKq], tau1))
 
 ii <- which(p == 0)
-p[ii] <- sra_fun(offdat$MAXDUR[ii], cf0[1])
+p[ii] <- sra_fun(dat$MAXDUR[ii], cf0[1])
 
-OFF[,spp] <- log(p) + log(A) + log(q)
+CORRECTION <- data.frame(p=p, A=A, q=q)
+summary(CORRECTION)
+OFFSET <- log(CORRECTION)
+summary(OFFSET)
+```
 
+Loop over all species, check if ranges are plaisoble, and save:
+
+```{r eval=FALSE}
+for (spp in SPP) {
+    if (is.null(getOption("knitr.in.progress"))) {
+        cat(spp, "\n")
+        flush.console()
+    }
+    p <- rep(NA, nrow(dat))
+    A <- q <- p
+    
+    ## constant for NA cases
+    cf0 <- exp(unlist(coefBAMspecies(spp, 0, 0)))
+    ## best model
+    (mi <- bestmodelBAMspecies(spp, model.sra=sra_mods, type="BIC"))
+    cfi <- coefBAMspecies(spp, mi$sra, mi$edr)
+    
+    Xp2 <- Xp[,names(cfi$sra),drop=FALSE]
+    OKp <- rowSums(is.na(Xp2)) == 0
+    Xq2 <- Xq[,names(cfi$edr),drop=FALSE]
+    OKq <- rowSums(is.na(Xq2)) == 0
+    
+    p[!OKp] <- sra_fun(dat$MAXDUR[!OKp], cf0[1])
+    unlim <- ifelse(dat$MAXDIS[!OKq] == Inf, TRUE, FALSE)
+    A[!OKq] <- ifelse(unlim, pi * cf0[2]^2, pi * dat$MAXDIS[!OKq]^2)
+    q[!OKq] <- ifelse(unlim, 1, edr_fun(dat$MAXDIS[!OKq], cf0[2]))
+    
+    phi1 <- exp(drop(Xp2[OKp,,drop=FALSE] %*% cfi$sra))
+    tau1 <- exp(drop(Xq2[OKq,,drop=FALSE] %*% cfi$edr))
+    p[OKp] <- sra_fun(dat$MAXDUR[OKp], phi1)
+    unlim <- ifelse(dat$MAXDIS[OKq] == Inf, TRUE, FALSE)
+    A[OKq] <- ifelse(unlim, pi * tau1^2, pi * dat$MAXDIS[OKq]^2)
+    q[OKq] <- ifelse(unlim, 1, edr_fun(dat$MAXDIS[OKq], tau1))
+    
+    ii <- which(p == 0)
+    p[ii] <- sra_fun(dat$MAXDUR[ii], cf0[1])
+    
+    OFF[,spp] <- log(p) + log(A) + log(q)
 }
 
 ## checks
@@ -294,10 +313,10 @@ which(!is.finite(Ra[1,]))
 which(!is.finite(Ra[2,]))
 
 ## save offsets table and covariates used
-SPP <- sppp
 save(OFF, SPP,
-    file=file.path(ROOT, "out", "offsets-v3_2016-04-18.Rdata"))
-offdat <- offdat[,c("PKEY","TSSR","JDAY","DSLS","TREE","LCC4","MAXDUR","MAXDIS")]
-save(offdat,
-    file=file.path(ROOT, "out", "offsets-v3data_2016-04-18.Rdata"))
+    file=file.path(ROOT, paste0("offsets-v3-new-chunk_", Sys.Date(), ".Rdata")))
+offdat <- dat[,c("PKEY","TSSR","JDAY","TREE","LCC4","MAXDUR","MAXDIS")]
+save(offdat, 
+    file=file.path(ROOT, paste0("offsets-v3-new-chunk-data_", Sys.Date(), ".Rdata")))
 ```
+
