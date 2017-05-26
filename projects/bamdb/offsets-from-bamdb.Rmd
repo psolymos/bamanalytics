@@ -60,6 +60,7 @@ pj <- sqlFetch(con, "National_Proj_Summary_V4_2015") # project summary table
 pj$SSMA_TimeStamp <- NULL
 str(pj)
 close(con)
+tz <- read.csv(file.path(ROOT, "covariatesforoffsetMay2017Timezone.csv"))
 ```
 
 # Organizing the data
@@ -69,6 +70,7 @@ Join the `ss` and `pk` tables by the `SS` field:
 ```{r}
 dat <- data.frame(pk, ss[match(pk$SS, ss$SS), ])
 dat$SS.1 <- NULL
+dat$TZ <- tz$TZID[match(dat$SS, tz$SS)]
 ```
 
 ## Maximum distance and duration
@@ -139,11 +141,16 @@ dat$srise <- NA
 dat$srise[subset] <- sr
 dat$start_time <- dat$HOUR + dat$MINUTE/60
 
-TZ <- SS$TZONE[match(dat$SS, rownames(SS))]
-lttz <- read.csv("~/repos/bamanalytics/lookup/tzone.csv")
-lttz <- nonDuplicated(lttz, Timezone, TRUE)
-
-dat$MDT_offset <- lttz$MDT_offset[match(TZ, rownames(lttz))]
+levels(dat$TZ)[levels(dat$TZ) == " "] <- NA
+tzdb <- read.csv(file.path(ROOT, "timezones.csv"))
+str(tzdb)
+setdiff(levels(dat$TZ), tzdb$TZ)
+tzdb <- tzdb[match(levels(dat$TZ), tzdb$TZ), c("TZ", "UTC_offset", "UTC_DST_offset")]
+# add here MDT offset as numeric
+tzdb
+#lttz <- read.csv("~/repos/bamanalytics/lookup/tzone.csv")
+#lttz <- nonDuplicated(lttz, Timezone, TRUE)
+dat$MDT_offset <- tzdb$UTC_DST_offset[match(dat$TZ, tzdb$TZ)] + 6
 table(TZ, dat$MDT_offset)
 dat$TSSR <- (dat$start_time - dat$srise + dat$MDT_offset) / 24
 dat$TSSR_orig <- dat$TSSR # keep a full copy
