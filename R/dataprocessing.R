@@ -548,7 +548,8 @@ library(QPAD)
 ## Load functions kept in separate file
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
-load(file.path(ROOT, "out", paste0("data_package_2016-12-01.Rdata")))
+load(file.path(ROOT, "out", "data_package_2016-12-01.Rdata"))
+load(file.path(ROOT, "out", "offsets-v3data_2016-12-01.Rdata"))
 
 load_BAM_QPAD(3)
 getBAMversion()
