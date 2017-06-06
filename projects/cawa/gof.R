@@ -158,7 +158,7 @@ ftable(INTERNAL, xn$Units, Y1)
 # HW: Hardwood, BCR 12+13+23
 # At: Atlantic, BCR 14
 
-i <- 6
+i <- 7
 rocReg <- lapply(c("W", "8E", "HW", "At"), function(REG) {
       ppp <- c(mn_in[,i] * exp(off1[ss2]), mn[,i] * exp(off1[ss1]))
       yyy <- c(Y1[ss2], Y1[ss1])
@@ -169,11 +169,76 @@ names(rocReg) <- c("W", "8E", "HW", "At")
 
 sapply(rocReg, function(z) as.numeric(z$auc))
 
+rocAll1 <- lapply(1:ncol(mn), function(i) {
+      pp <- mn[,i] * exp(off1[ss1])
+      roc(Y1[ss1], pp)
+  })
+names(rocAll1) <- c("NULL", names(mods))
+
+aucfun <- function(i, REG="All", mode=c("internal", "external", "both")) {
+    if (REG == "All")
+        REG <- levels(xn$Units)
+    if (mode == "internal") {
+        ppp <- mn_in[,i] * exp(off1[ss2])
+        yyy <- Y1[ss2]
+        sss <- xn$Units[ss2] %in% REG
+    }
+    if (mode == "external") {
+        ppp <- mn[,i] * exp(off1[ss1])
+        yyy <- Y1[ss1]
+        sss <- xn$Units[ss1] %in% REG
+    }
+    if (mode == "both") {
+        ppp <- c(mn_in[,i] * exp(off1[ss2]), mn[,i] * exp(off1[ss1]))
+        yyy <- c(Y1[ss2], Y1[ss1])
+        sss <- xn$Units[c(ss2, ss1)] %in% REG
+    }
+    roc(yyy[sss], ppp[sss])
+}
+
+#rocRegBo <- lapply(c("All", "W", "8E", "HW", "At"), function(reg)
+#    pblapply(1:ncol(mn), function(i) aucfun(i, reg, "both")))
+
+rocW <- pblapply(1:ncol(mn), function(i) aucfun(i, REG="W", "external"))
+rocHW <- pblapply(1:ncol(mn), function(i) aucfun(i, REG="HW", "external"))
+rocA <- pblapply(1:ncol(mn), function(i) aucfun(i, REG="All", "external"))
+aucW <- sapply(rocW, function(z) as.numeric(z$auc))
+aucHW <- sapply(rocHW, function(z) as.numeric(z$auc))
+aucA <- sapply(rocA, function(z) as.numeric(z$auc))
+
+par(las=1)
+plot(aucA, 0:7, type="n",
+    xlim=c(0.4, 1), ylim=c(0, 8), axes=FALSE,
+    pch=19, col=1, xlab="AUC", ylab="Model Stages")
+for (i in 0:7)
+    lines(c(0.4, 1), c(i,i), col="grey")
+lines(aucA,0:7,  col=1, pch=19, type="b", lty=1)
+lines(aucW,0:7,  col=1, pch=5, type="b", lty=2)
+lines(aucHW,0:7,  col=1, pch=6, type="b", lty=2)
+axis(1)
+axis(2, 0:7, c("Null", names(mods)), tick=FALSE, line=FALSE)
+text(aucA[8], 6.5, "All", pos=2)
+text(aucW[8], 6.5, "West", pos=2)
+text(aucHW[8], 7.5, "Hardwood")
+
+
 plot(rocAll1[["Clim"]])
 lines(rocReg[["W"]], col=2)
 lines(rocReg[["8E"]], col=3)
 lines(rocReg[["HW"]], col=4)
 lines(rocReg[["At"]], col=5)
+
+## all/reg roc calculation
+
+i <- 6
+rocReg <- lapply(c("All", "W", "8E", "HW", "At"), function(REG) {
+      ppp <- c(mn_in[,i] * exp(off1[ss2]), mn[,i] * exp(off1[ss1]))
+      yyy <- c(Y1[ss2], Y1[ss1])
+      sss <- xn$Units[c(ss2, ss1)] == REG
+      roc(yyy[sss], ppp[sss])
+  })
+names(rocReg) <- c("W", "8E", "HW", "At")
+
 
 ## OCCC
 library(epiR)
@@ -225,11 +290,11 @@ pro <- table(Y[ss1])/length(ss1)
 op <- par(mfrow=c(1,2))
 tmp <- boxplot(mn[,"NULL"] * exp(off1[ss1]) ~ Y[ss1], range=0,
     at=cumsum(2*pro^0.2), width=2*pro^0.2, main="NULL",
-    xlab="Observed count", ylab="Corrected density", col="grey",
+    xlab="Observed count", ylab="Density", col="grey",
     ylim=c(0, max(mn)))
 boxplot(mn[,"Clim"] * exp(off1[ss1]) ~ Y[ss1], range=0,
     at=cumsum(2*pro^0.2), width=2*pro^0.2, main="Clim",
-    xlab="Observed count", ylab="Corrected density", col="grey",
+    xlab="Observed count", ylab="Density", col="grey",
     ylim=c(0, max(mn)))
 par(op)
 
