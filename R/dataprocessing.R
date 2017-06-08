@@ -464,9 +464,9 @@ keeppkey[PCTBL$DURATION %in% c(11,8)] <- FALSE
 ## Excluding unknown distance bands
 keeppkey[PCTBL$DISTANCE %in% c(4,5,9)] <- FALSE
 ## Excluding unknown duration methodology
-keeppkey[PCTBL$DISMETH == "J"] <- FALSE
+keeppkey[PCTBL$DURMETH == "J"] <- FALSE
 ## Excluding unknown distance methodology
-keeppkey[PCTBL$DURMETH == "O"] <- FALSE
+keeppkey[PCTBL$DISMETH == "O"] <- FALSE
 ## Actual filtering -- but dropping PKEYs
 PCTBL <- droplevels(PCTBL[keeppkey,])
 
