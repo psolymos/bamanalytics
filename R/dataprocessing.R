@@ -312,7 +312,7 @@ PCODE$Maxdur <- pmin(PCODE$MaxDuration, 10)
 
 #### Survey level fields
 
-## Pull in point count tables
+## Pull in PKEY tables
 pkbam <- sqlFetch(con, "dbo_National_PKEY_V4_2015")
 pkbam$SSMA_TimeStamp <- NULL
 #pkbbs <- sqlFetch(con, "dbo_PKEY_BBS_V3_2015")
@@ -642,6 +642,13 @@ save(offdat,
 
 ######## These are the transformations #################
 
+write.csv(TAX, file="e:/peter/bam/BAMDB_2017_05/tables/TAX.csv")
+write.csv(SS, file="e:/peter/bam/BAMDB_2017_05/tables/SS.csv")
+write.csv(PKEY, file="e:/peter/bam/BAMDB_2017_05/tables/PKEY.csv")
+write.csv(PCTBL, file="e:/peter/bam/BAMDB_2017_05/tables/PCTBL.csv")
+write.csv(round(OFF, 6), file="e:/peter/bam/BAMDB_2017_05/tables/OFF.csv")
+save(TAX, SS, PKEY, PCTBL, OFF,
+    file="e:/peter/bam/BAMDB_2017_05/tables/BAM-BBS-tables_20170630.Rdata")
 
 ## Define root folder where data are stored
 ROOT <- "e:/peter/bam/Apr2016"
