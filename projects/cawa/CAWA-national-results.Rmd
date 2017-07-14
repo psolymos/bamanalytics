@@ -430,7 +430,20 @@ kable(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
 ## Boreal
 
 ```{r echo=FALSE}
-ss <- x2$Brandt != "OUT"
+ss <- x2$Brandt %in% c("B_ALPINE","BOREAL")
+
+p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
+p1 <- fstat(colSums(x1[ss,ci])/10^6, level)
+p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
+
+kable(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), digits=3)
+```
+
+## Hemiboreal
+
+```{r echo=FALSE}
+ss <- x2$Brandt %in% c("H_ALPINE","HEMIBOREAL")
 
 p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
 p1 <- fstat(colSums(x1[ss,ci])/10^6, level)

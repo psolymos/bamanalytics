@@ -112,6 +112,16 @@ R2Db <- 1-(lls-llf)/(lls-ll0)
 
 ## ROC curves and AUC
 
+simple_roc <- function(labels, scores){
+  labels <- labels[order(scores, decreasing=TRUE)]
+  data.frame(TPR=cumsum(labels)/sum(labels), FPR=cumsum(!labels)/sum(!labels), labels)
+}
+simple_auc <- function(ROC) {
+    ROC$inv_spec <- 1-ROC$FPR
+    dx <- diff(ROC$inv_spec)
+    sum(dx * ROC$TPR[-1]) / sum(dx)
+}
+
 ## predictions for external points
 mn <- matrix(0, length(ss1), length(mods)+1)
 colnames(mn) <- c("NULL", names(mods))
@@ -127,10 +137,10 @@ for (i in 0:length(mods)) {
 ## ROC/AUC
 rocAll1 <- lapply(1:ncol(mn), function(i) {
       pp <- mn[,i] * exp(off1[ss1])
-      roc(Y1[ss1], pp)
+      simple_roc(Y1[ss1], pp)
   })
 names(rocAll1) <- c("NULL", names(mods))
-auc <- sapply(rocAll1, function(z) as.numeric(z$auc))
+auc <- sapply(rocAll1, simple_auc)
 k <- (auc-auc[1])/(1-auc[1])
 
 op <- par(mfrow=c(1,2))
@@ -163,15 +173,15 @@ rocReg <- lapply(c("W", "8E", "HW", "At"), function(REG) {
       ppp <- c(mn_in[,i] * exp(off1[ss2]), mn[,i] * exp(off1[ss1]))
       yyy <- c(Y1[ss2], Y1[ss1])
       sss <- xn$Units[c(ss2, ss1)] == REG
-      roc(yyy[sss], ppp[sss])
+      simple_roc(yyy[sss], ppp[sss])
   })
 names(rocReg) <- c("W", "8E", "HW", "At")
 
-sapply(rocReg, function(z) as.numeric(z$auc))
+sapply(rocReg, simple_auc)
 
 rocAll1 <- lapply(1:ncol(mn), function(i) {
       pp <- mn[,i] * exp(off1[ss1])
-      roc(Y1[ss1], pp)
+      simple_roc(Y1[ss1], pp)
   })
 names(rocAll1) <- c("NULL", names(mods))
 
@@ -193,7 +203,7 @@ aucfun <- function(i, REG="All", mode=c("internal", "external", "both")) {
         yyy <- c(Y1[ss2], Y1[ss1])
         sss <- xn$Units[c(ss2, ss1)] %in% REG
     }
-    roc(yyy[sss], ppp[sss])
+    simple_roc(yyy[sss], ppp[sss])
 }
 
 #rocRegBo <- lapply(c("All", "W", "8E", "HW", "At"), function(reg)
@@ -202,24 +212,24 @@ aucfun <- function(i, REG="All", mode=c("internal", "external", "both")) {
 rocW <- pblapply(1:ncol(mn), function(i) aucfun(i, REG="W", "external"))
 rocHW <- pblapply(1:ncol(mn), function(i) aucfun(i, REG="HW", "external"))
 rocA <- pblapply(1:ncol(mn), function(i) aucfun(i, REG="All", "external"))
-aucW <- sapply(rocW, function(z) as.numeric(z$auc))
-aucHW <- sapply(rocHW, function(z) as.numeric(z$auc))
-aucA <- sapply(rocA, function(z) as.numeric(z$auc))
+aucW <- sapply(rocW, simple_auc)
+aucHW <- sapply(rocHW, simple_auc)
+aucA <- sapply(rocA, simple_auc)
 
 par(las=1)
-plot(aucA, 0:7, type="n",
-    xlim=c(0.4, 1), ylim=c(0, 8), axes=FALSE,
+plot(aucA[1:7], 0:6, type="n",
+    xlim=c(0.4, 1), ylim=c(0, 7), axes=FALSE,
     pch=19, col=1, xlab="AUC", ylab="Model Stages")
-for (i in 0:7)
+for (i in 0:6)
     lines(c(0.4, 1), c(i,i), col="grey")
-lines(aucA,0:7,  col=1, pch=19, type="b", lty=1)
-lines(aucW,0:7,  col=1, pch=5, type="b", lty=2)
-lines(aucHW,0:7,  col=1, pch=6, type="b", lty=2)
+lines(aucA[1:7],0:6,  col=1, pch=19, type="b", lty=1)
+lines(aucW[1:7],0:6,  col=1, pch=5, type="b", lty=2)
+lines(aucHW[1:7],0:6,  col=1, pch=6, type="b", lty=2)
 axis(1)
-axis(2, 0:7, c("Null", names(mods)), tick=FALSE, line=FALSE)
-text(aucA[8], 6.5, "All", pos=2)
-text(aucW[8], 6.5, "West", pos=2)
-text(aucHW[8], 7.5, "Hardwood")
+axis(2, 0:6, c("Null", names(mods)[1:6]), tick=FALSE, line=FALSE)
+text(aucA[7], 5.5, "All", pos=2)
+text(aucW[7], 5.5, "West", pos=2)
+text(aucHW[7], 6.5, "Hardwood")
 
 
 plot(rocAll1[["Clim"]])
@@ -317,3 +327,26 @@ par(op)
 #    main="Clim", xlim=c(0,4), ylim=c(0, max(mn)))
 #par(op)
 
+## MEP for terrain and climate variables
+
+col_keep <- c("CTI", "CTI2", "SLP", "SLP2")
+pr <- exp(pbsapply(1:nrow(est), function(j)
+    Xn[,colnames(est[,col_keep,drop=FALSE]),drop=FALSE] %*% est[j,col_keep]))
+
+col_keep <- c("CMIJJA", "DD0", "DD5", "EMT", "MSP", "DD02", "DD52",
+    "CMIJJA2", "CMI", "CMI2", "TD",  "CMIJJA:DD0",
+    "CMIJJA:DD5", "EMT:MSP", "CMI:DD0", "CMI:DD5", "MSP:TD")
+prcl <- exp(pbsapply(1:nrow(est), function(j)
+    Xn[,colnames(est[,col_keep,drop=FALSE]),drop=FALSE] %*% est[j,col_keep]))
+
+r1 <- rowMeans(log(pr))
+r2 <- rowMeans(log(prcl))
+
+par(mfrow=c(3,3))
+plot(lowess(xn$CTI, (r1)), type="l", ylab="log relative abundance",
+    xlab="Transformed CTI", col=4, lwd=2)
+plot(lowess(xn$SLP, (r1)), type="l", ylab="log relative abundance",
+    xlab="Transformed Slope", col=4, lwd=2)
+for (i in c("CMIJJA", "DD0", "DD5", "EMT", "MSP", "CMI", "TD"))
+    plot(lowess(xn[,i], (r1)), type="l", ylab="log relative abundance",
+        xlab=paste("Transformed", i), col=3, lwd=2)

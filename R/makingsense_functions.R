@@ -285,10 +285,14 @@ getModelVariation <- function(res, mods, use_rmax=FALSE) {
     out
 }
 
-plotMid <- function(res, mods, web=TRUE, ...) {
+plotMid <- function(res, mods, web=TRUE, subset=NULL, ...) {
     if (is.character(res))
         res <- allres[[res]]
     mid <- getMidPure(res, mods)
+    if (is.null(subset))
+        subset <- 1:length(mods)
+    mid <- mid[,subset]
+    mods <- mods[subset]
     if (web) {
         opar <- par(mai=0.1*c(1,1,2,1))
         midfig(mid, sapply(mods, length), ...)

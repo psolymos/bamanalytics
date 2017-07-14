@@ -134,6 +134,26 @@ yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam", "off")) {
 
 ## subsets
 
+## broad subsets for ms
+
+tres_all <- list()
+for (PART in c("all","bbs","bam","off")) {
+cat(PART, "\tFull\n");flush.console();gc()
+tres_full <- pbsapply(1:240, yr_fun, subset=NULL, part=PART)
+cat(PART, "\tCanada\n");flush.console();gc()
+tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN", part=PART)
+cat(PART, "\tBoreal\n");flush.console();gc()
+tres_bor <- pbsapply(1:240, yr_fun,
+    subset=DAT$BOREALLOC %in% c("B_ALPINE", "BOREAL"), part=PART)
+cat(PART, "\tHemiboreal\n");flush.console();gc()
+tres_hem <- pbsapply(1:240, yr_fun,
+    subset=DAT$BOREALLOC %in% c("H_ALPINE", "HEMIBOREAL"), part=PART)
+tres_all[[PART]] <- list(Full=tres_full, Canada=tres_can, Boreal=tres_bor, Hemiboreal=tres_hem)
+}
+save(tres_all,
+    file=paste0("e:/peter/bam/Apr2016/out/cawa/trend-est-broad-", PART, ".Rdata"))
+
+
 ii <- DAT$COUNTRY == "CAN"
 ii <- DAT$BOREALLOC %in% c("B_ALPINE", "BOREAL")
 ii <- DAT$BOREALLOC %in% c("B_ALPINE", "BOREAL", "H_ALPINE", "HEMIBOREAL")
