@@ -125,6 +125,22 @@ yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam", "off")) {
     #attr(out, "part") <- part
     out
 }
+dat_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam", "off")) {
+    part <- match.arg(part)
+    if (is.null(subset))
+        subset <- rep(TRUE, nrow(DAT))
+    dat <- DAT
+    dat$SUBSET <- subset
+    dat <- dat[bb[,i],]
+    dat <- dat[dat$SUBSET,,drop=FALSE]
+    if (part=="bbs") # BBS only
+        dat <- dat[dat$isBBS,,drop=FALSE]
+    if (part=="bam") # non-BBS excluding roadside surveys
+        dat <- dat[!dat$isBBS,,drop=FALSE]
+    if (part=="off") # non-BBS excluding roadside surveys
+        dat <- dat[!dat$isBBS & dat$ROAD==0,,drop=FALSE]
+    c(n=nrow(dat), det=sum(dat$Y>0))
+}
 #yr_res <- pbsapply(1:240, yr_fun)
 
 ## need to find BCR/JURS/Ecoreg/Brandt values
@@ -150,9 +166,33 @@ tres_hem <- pbsapply(1:240, yr_fun,
     subset=DAT$BOREALLOC %in% c("H_ALPINE", "HEMIBOREAL"), part=PART)
 tres_all[[PART]] <- list(Full=tres_full, Canada=tres_can, Boreal=tres_bor, Hemiboreal=tres_hem)
 }
-save(tres_all,
-    file=paste0("e:/peter/bam/Apr2016/out/cawa/trend-est-broad-", PART, ".Rdata"))
+dat_all <- list()
+for (PART in c("all","bbs","bam","off")) {
+dat_full <- dat_fun(1, subset=NULL, part=PART)
+dat_can <- dat_fun(1, subset=DAT$COUNTRY == "CAN", part=PART)
+dat_bor <- dat_fun(1,
+    subset=DAT$BOREALLOC %in% c("B_ALPINE", "BOREAL"), part=PART)
+dat_hem <- dat_fun(1,
+    subset=DAT$BOREALLOC %in% c("H_ALPINE", "HEMIBOREAL"), part=PART)
+dat_all[[PART]] <- list(Full=dat_full, Canada=dat_can, Boreal=dat_bor, Hemiboreal=dat_hem)
+}
+save(tres_all, dat_all, file="e:/peter/bam/Apr2016/out/cawa/trend-est-broad.Rdata")
 
+load("e:/peter/bam/Apr2016/out/cawa/trend-est-broad.Rdata")
+
+All <- do.call(rbind, lapply(names(tres_all), function(z) {
+    zz <- t(sapply(tres_all[[z]], fstat))
+    data.frame(set=z, reg=rownames(zz), zz)
+}))
+rownames(All) <- NULL
+
+All2 <- do.call(rbind, lapply(names(dat_all), function(z) {
+    zz <- t(sapply(dat_all[[z]], function(zzz) zzz))
+    data.frame(set=z, reg=rownames(zz), zz)
+}))
+rownames(All2) <- NULL
+All <- cbind(All,All2[,c("n","det")])
+All[order(All$reg),]
 
 ii <- DAT$COUNTRY == "CAN"
 ii <- DAT$BOREALLOC %in% c("B_ALPINE", "BOREAL")
