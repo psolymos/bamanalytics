@@ -204,7 +204,7 @@ if (NR > 0) {
         }
         mu0[,j] <- drop(Xn0 %*% est[j,colnames(Xn0)])
     }
-    lam <- lamfun(mu0)
+    lam <- lamfun(mu0, tr=0.99)
     rownames(lam) <- rownames(dat0)
     ## km^2 vs ha diff is 100
     lam_total <- groupSums(exp(mu0) * 100, 1, dat0$subreg)
@@ -369,6 +369,20 @@ for (fn in fl[-1]) {
 }
 dim(plam)
 sum(duplicated(rownames(plam)))
+
+if (FALSE) {
+q1 <- quantile(plam[,"Mean"], 0.99)
+q2 <- quantile(plam[,"Median"], 0.99)
+plam2 <- plam[plam[,"Mean"] > q1 | plam[,"Median"] > q2,]
+sort(unique(round(plam2[,"Mean"],0)))
+
+plam2 <- plam[plam[,"Mean"] > 0.2 | plam[,"Median"] > 0.2,]
+plam3 <- plam[!(plam[,"Mean"] > 0.2 | plam[,"Median"] > 0.2),]
+
+ii <- sample.int(dim(plam3)[1],10^6)
+with(data.frame(plam3[ii,]), plot(Mean,SD, ylim=c(0,10),xlim=c(0,10)))
+
+}
 
 ## already done in lamfun()
 if (TRUE) {
