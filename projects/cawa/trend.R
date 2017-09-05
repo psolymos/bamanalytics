@@ -356,6 +356,6 @@ tmp$off <- data.frame(Country="", BCR="",
     PROV="", BCRPROV=rownames(tmp$off), Data="off", tmp$off)
 tab <- rbind(tab, tmp$all, tmp$bam, tmp$bbs, tmp$off)
 
-write.csv(tab, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-trend-2017-05-03.csv")
-write.csv(d, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-det-2017-05-03.csv")
+write.csv(tab, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-trend-2017-07-18.csv")
+write.csv(d, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-det-2017-07-18.csv")
 
