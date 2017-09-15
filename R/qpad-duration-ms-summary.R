@@ -226,22 +226,30 @@ plot(sptab[SPP, "nfull"], waic[,"m0_0"] + waic[,"mb_0"], log="x", ylim=c(0,1),
 
 MAX <- 5000
 nn <- 25:MAX
-ww <- sapply(nn, function(z) mean((rowSums(waic[,grepl("_0",
+ww1 <- sapply(nn, function(z) mean((rowSums(waic[,grepl("_0",
     colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
 ww2 <- sapply(nn, function(z) mean((rowSums(waic[,grepl("mb_",
     colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
+ww3 <- sapply(nn, function(z) mean((rowSums(waic[,!grepl("_0",
+    colnames(waic)) & grepl("mb_", colnames(waic))]))[sptab[rownames(waic), "nfull"] >= z]))
 
-png(file.path(ROOT2, "tabfig", "Fig4_weights.png"), width=800, height=450)
-par(mfrow=c(1,2), las=1)
-plot(nn, 100*(1-ww), type="l", ylim=100*c(0.75, 1), xlab="Sample size",
-    ylab="% time varying", xlim=c(0,MAX), lwd=2)
+#png(file.path(ROOT2, "tabfig", "Fig4_weights.png"), width=800, height=450)
+pdf(file.path(ROOT2, "tabfig", "Fig4_weights.pdf"), width=6, height=6)
+op <- par(mfrow=c(1,1), las=1)
+plot(nn, 100*(1-ww1), type="l", ylim=100*c(0.8, 1), xlab="Number of detections",
+    ylab="Percent of species", xlim=c(0,MAX), lwd=2, col=1)
+lines(nn, 100*ww2, lwd=2, col=1, lty=2)
+lines(nn, 100*ww3, lwd=2, col=1, lty=3)
 rug(sptab[rownames(waic), "nfull"])
-plot(nn, 100*ww2, type="l", ylim=100*c(0.75, 1), xlab="Sample size",
-    ylab="% mixture", xlim=c(0,MAX), lwd=2)
-rug(sptab[rownames(waic), "nfull"])
-abline(v=nn[which(ww2 > 0.9)[1]], lty=2)
+#abline(v=nn[which(ww2 > 0.9)[1]], lty=2)
+#abline(h=90, lty=3)
+legend("bottomright", bty="n", lwd=2, lty=1:3,
+    legend=c("Time varying", "Mixture", "Time varying mixture"))
+par(op)
 dev.off()
+nn[which(ww1 > 0.9)[1]]
 nn[which(ww2 > 0.9)[1]]
+nn[which(ww3 > 0.9)[1]]
 
 
 table(Timevar=!grepl("_0", best), Mixture=grepl("mb_", best))
@@ -261,8 +269,11 @@ Support <- t(sapply(as.character(0:14), function(z) {
 Support <- cbind(Support, w0=colMeans(waic0),
     wb=colMeans(waicb), w0b=colMeans(waic0b))
 Support
-write.csv(Support, file=file.path(ROOT2, "tabfig", "support.csv"))
+#write.csv(Support, file=file.path(ROOT2, "tabfig", "support.csv"))
 
+(best0bxx <- table(sapply(strsplit(bestx, "_"), "[[", 2),
+    sapply(strsplit(bestx, "_"), "[[", 1)))
+colSums(best0bxx)
 
 zzz <- table(bestx)
 sum(zzz[grep("mb_", names(zzz))])
@@ -310,7 +321,8 @@ tt <- seq(0, 11, len=1000)
 mat0 <- sapply(SPPfull, function(z) 1-exp(-tt*cfall0[z, 1]))
 matb <- sapply(SPP, function(z) 1-cfallb[z, "c"]*exp(-tt*cfallb[z, "phi_b"]))
 
-png(file.path(ROOT2, "tabfig", "Fig2_probs.png"), width=800, height=450)
+#png(file.path(ROOT2, "tabfig", "Fig2_probs.png"), width=800, height=450)
+pdf(file.path(ROOT2, "tabfig", "Fig2_probs.pdf"), width=12, height=6)
 par(mfrow=c(1,2), las=1)
 matplot(tt, mat0, type="l", lty=1, main="M0",
     xlab="Point count duration (minutes)", ylab="P(availability)",
@@ -562,7 +574,8 @@ abline(h=0)
 }
 
 MOD <- c("M0", "M0", "Mb", "Mb", "M0t", "M0t", "Mbt", "Mbt")
-png(file.path(ROOT2, "tabfig", "Fig6_var-bias.png"), width=600, height=4*250)
+#png(file.path(ROOT2, "tabfig", "Fig5_var-bias.png"), width=600, height=4*250)
+pdf(file.path(ROOT2, "tabfig", "Fig5_var-bias.pdf"), width=10, height=4*3.5)
 par(mfrow=c(4,2), las=1)
 for (i in c(1,3,5,7)+1) {
 plot(ng, maxBias1[,i], main=paste("Bias", MOD[i]),
@@ -642,7 +655,8 @@ fit0s <- plogis(drop(X %*% coef(m0xs)))
 fitb <- plogis(drop(X %*% coef(mbx)))
 fitbs <- plogis(drop(X %*% coef(mbxs)))
 
-png(file.path(ROOT2, "tabfig", "Fig3_failure.png"), width=450, height=450)
+#png(file.path(ROOT2, "tabfig", "Fig3_failure.png"), width=450, height=450)
+pdf(file.path(ROOT2, "tabfig", "Fig3_failure.pdf"), width=6, height=6)
 par(las=1)
 plot(vnd, fit0, col=1, ylim=c(0,1), type="n", lwd=2,
     xlab="Sample size", ylab="Probability of success")
@@ -892,13 +906,15 @@ plf2 <- function(b, ...) {
     box()
 }
 
-png(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.png")),
-    height=1200, width=1600, res=150)
+#png(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.png")),
+#    height=1200, width=1600, res=150)
+pdf(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.pdf")),
+    height=7, width=10)
 op <- par(mfrow=c(2,3), las=1)
 plf2(OUT[["TSSR"]][["0"]],
     ylab="Probability (M0)", xlab="Time since sunrise (h)")
 plf2(OUT[["JDAY"]][["0"]],
-    ylab="Probability (M0)", xlab="Julian day")
+    ylab="Probability (M0)", xlab="Ordinal day")
 plf2(OUT[["TSLS"]][["0"]],
     ylab="Probability (M0)", xlab="Days since spring")
 plf2(OUT[["TSSR"]][["b"]],
@@ -1142,7 +1158,8 @@ sppTadj <- sppTadj0[!(rownames(sppTadj0) %in% c("EVGR", "MAWR", "WIPT")),rev(cn)
 cor.test(sppTadj[,"M0t_sr"], sppTadj[,"PIF"])
 cor.test(sppTadj[,"Mbt_sr"], sppTadj[,"PIF"])
 
-png(file.path(ROOT2, "tabfig", "FigX_tadj.png"), height=450, width=450)
+#png(file.path(ROOT2, "tabfig", "FigX_tadj.png"), height=450, width=450)
+pdf(file.path(ROOT2, "tabfig", "Fig6_tadj.pdf"), height=6, width=6)
 par(las=1, mar=c(5, 6, 4, 2) + 0.1)
 boxplot(sppTadj[,cn],
     xlab="Time adjustment",
