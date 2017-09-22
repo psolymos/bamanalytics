@@ -251,7 +251,6 @@ nn[which(ww1 > 0.9)[1]]
 nn[which(ww2 > 0.9)[1]]
 nn[which(ww3 > 0.9)[1]]
 
-
 table(Timevar=!grepl("_0", best), Mixture=grepl("mb_", best))
 
 hasJD <- paste0(rep(c("m0_", "mb_"), each=6), rep(c(1, 3, 5:8), 2))
@@ -274,6 +273,13 @@ Support
 (best0bxx <- table(sapply(strsplit(bestx, "_"), "[[", 2),
     sapply(strsplit(bestx, "_"), "[[", 1)))
 colSums(best0bxx)
+
+t0b <- table(M0=best0x,Mb=bestbx)
+addmargins(t0b[as.character(0:14),as.character(0:14)])
+
+t0b2 <- table(Mb=best0bx,M0b=bestbx)
+addmargins(t0b2[as.character(0:14),as.character(0:14)])
+
 
 zzz <- table(bestx)
 sum(zzz[grep("mb_", names(zzz))])
@@ -824,6 +830,24 @@ pf <- function(var, mod, n=10^4, resol=0.1) {
         d2$z[i,] <- cumsum(d1$z[i,])
     list(kde=d, std=d1, cumul=d2)
 }
+pf_simple <- function(var, mod, nx=21, ny=11) {
+    if (mod == "0")
+        sppPred <- sppPred0
+    if (mod == "b")
+        sppPred <- sppPredb
+    xval <- switch(var,
+        "TSSR"=pkDur$TSSR[iii]*24,
+        "JDAY"=pkDur$JDAY[iii]*365,
+        "TSLS"=pkDur$TSLS[iii]*365)
+    xbr <- seq(min(xval), max(xval), length.out=nx)
+    ybr <- seq(0, 1, length.out=ny)
+    ymid <- ybr[-1]-diff(ybr)/2
+    xmid <- xbr[-1]-diff(xbr)/2
+    xc <- cut(xval, breaks=xbr, include.lowest = TRUE)
+    Means <- groupMeans(sppPred, 1, xc)
+    Qs <- t(apply(Means, 1, function(z) table(cut(z, breaks=ybr, include.lowest = TRUE))))
+    out <- list(x=xmid, y=ymid, z=Qs)
+}
 
 iii <- rep(TRUE, nrow(pkDur))
 iii[pkDur$TSSR < quantile(pkDur$TSSR, 0.025)] <- FALSE
@@ -834,7 +858,7 @@ iii[pkDur$TSLS < quantile(pkDur$TSLS, 0.025)] <- FALSE
 iii[pkDur$TSLS > quantile(pkDur$TSLS, 0.975)] <- FALSE
 
 TT <- 3
-RESOL <- 0.05
+RESOL <- 0.1
 mSPPfull <- SPPfull
 mSPP <- SPP
 OUT <- list()
@@ -848,6 +872,7 @@ OUT <- list()
 
 
 for (WHAT in c("TSSR","JDAY","TSLS")) {
+    cat(WHAT, "\n");flush.console()
 
     Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur[iii,])
     sppPred0 <- matrix(NA, nrow(Xpk2), length(SPPfull))
@@ -883,14 +908,16 @@ for (WHAT in c("TSSR","JDAY","TSLS")) {
 
     gc()
     b0 <- pf(WHAT, "0", n=100000, resol=RESOL)
+#    b0 <- pf_simple(WHAT, "0", nx=11+2, ny=11)
     gc()
     bb <- pf(WHAT, "b", n=100000, resol=RESOL)
+#    bb <- pf_simple(WHAT, "b", nx=11+2, ny=11)
 
 OUT[[WHAT]] <- list("0"=b0, "b"=bb)
 }
 
-sort(apply(sppPred0, 2, max))
-sort(apply(sppPredb, 2, max))
+#sort(apply(sppPred0, 2, max))
+#sort(apply(sppPredb, 2, max))
 
 col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
 nl <- 5
@@ -898,11 +925,24 @@ nl <- 5
 plf2 <- function(b, ...) {
 #    contour(b1, levels=levels, lty=1, ...)
 #    contour(b2, add=TRUE, levels=levels, lty=2)
-    b1 <- b$std
-    #b1 <- b$kde
+    #b1 <- b$std
+    b1 <- b$kde
     b2 <- b$cumul
+    #b2 <- b$kde
     image(b1, col=col, ...)
-    contour(b2, add=TRUE, levels=seq(0.1, 0.9, by=0.1))
+    contour(b2, add=TRUE, levels=c(0.25, 0.5, 0.75))
+    box()
+}
+plf2 <- function(d, ...) {
+    j <- 2:(length(d$x-1))
+    d$x <- d$x[j]
+    d$z <- d$z[j,]
+    dc <- d
+    dc$z <- d$z / rowSums(d$z)
+    for (i in 1:nrow(d$z))
+        dc$z[i,] <- cumsum(dc$z[i,])
+    image(d, col=col, ...)
+    contour(dc, add=TRUE, levels=c(0.25, 0.5, 0.75))
     box()
 }
 
@@ -932,6 +972,14 @@ dev.off()
 
 sptab <- read.csv(file.path(ROOT2, "tabfig", "spptab.csv"))
 rownames(sptab) <- sptab$spp
+
+library(lhreg)
+lhrd <- lhreg_data[match(rownames(sptab), lhreg_data$spp),]
+table(Migr=lhrd$Mig2, Has_TSSR=sptab$Both_best %in% hasSR, useNA="a")
+table(Migr=lhrd$Mig2, Has_JDAY=sptab$Both_best %in% hasJD, useNA="a")
+table(Migr=lhrd$Mig2, Has_DSLS=sptab$Both_best %in% hasLS, useNA="a")
+table(Migr=lhrd$Mig2, Has_LSorJD=sptab$Both_best %in% hasLS | sptab$Both_best %in% hasJD, useNA="a")
+#lht2 <- lht[match(rownames(sptab), lht$SPECIES),]
 
 pif <- read.csv(file.path(ROOT2, "popContinental_v2_22-May-2013.csv"))
 pif <- pif[,c("Common.Name","Scientific.Name","Time.Adjust")]
@@ -1157,6 +1205,11 @@ sppTadj <- sppTadj0[!(rownames(sppTadj0) %in% c("EVGR", "MAWR", "WIPT")),rev(cn)
 
 cor.test(sppTadj[,"M0t_sr"], sppTadj[,"PIF"])
 cor.test(sppTadj[,"Mbt_sr"], sppTadj[,"PIF"])
+
+tmp <- sppTadj[,cn]
+tmp[tmp > 5] <- 5
+pairs(tmp)
+round(cor(tmp, method="spearman"), 3)
 
 #png(file.path(ROOT2, "tabfig", "FigX_tadj.png"), height=450, width=450)
 pdf(file.path(ROOT2, "tabfig", "Fig6_tadj.pdf"), height=6, width=6)
