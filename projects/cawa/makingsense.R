@@ -558,3 +558,21 @@ dim(e3$YY)
 dim(e4$YY)
 dim(e5$YY)
 dim(e6$YY)
+
+## maps
+
+library(mefa4)
+library(mapview)
+library(sp)
+ROOT2 <- "e:/peter/bam/Apr2016/out"
+e <- new.env()
+load(file.path(ROOT2, "data", "pack_2016-08-16.Rdata"), envir=e)
+
+xsp <- e$DAT[,c("X","Y")]
+coordinates(xsp) <- ~X+Y
+proj4string(xsp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+m <- mapview(xsp)
+
+
+
