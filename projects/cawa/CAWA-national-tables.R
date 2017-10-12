@@ -94,6 +94,7 @@ p2 <- fstat(colSums(x2[,ci])/10^6, level)
 write.csv(cbind("nss"=sum(x2[,"nSSinSubreg"]), "ndet"=sum(x2[,"nDETinSubreg"]),
     rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
     file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_full.csv")
+fstat(100*((colSums(x2[,ci])/colSums(x1[,ci]))^(1/(2012-2002)) -1), level)
 
 ## Canada
 ss <- x2$JURS %in% CAN
@@ -103,6 +104,7 @@ p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
 write.csv(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
     rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
     file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Canada.csv")
+fstat(100*((colSums(x2[ss,ci])/colSums(x1[ss,ci]))^(1/(2012-2002)) -1), level)
 
 ## Boreal
 ss <- x2$Brandt %in% c("B_ALPINE","BOREAL")
@@ -112,6 +114,7 @@ p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
 write.csv(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
     rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
     file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Boreal.csv")
+fstat(100*((colSums(x2[ss,ci])/colSums(x1[ss,ci]))^(1/(2012-2002)) -1), level)
 
 ## Hemiboreal
 ss <- x2$Brandt %in% c("H_ALPINE","HEMIBOREAL")
@@ -121,6 +124,7 @@ p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
 write.csv(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
     rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
     file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Hemiboreal.csv")
+fstat(100*((colSums(x2[ss,ci])/colSums(x1[ss,ci]))^(1/(2012-2002)) -1), level)
 
 ## By jurisdiction (2012 conditions, within study area)
 tmp <- as.matrix(x2[,c("nSSinSubreg","nDETinSubreg")])
