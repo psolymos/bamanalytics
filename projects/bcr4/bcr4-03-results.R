@@ -33,3 +33,19 @@ plotMid(out, mods)
 visualize_road()
 visualize_ysd()
 
+
+SPP <- gsub("\\.RData", "", list.files("e:/peter/bam/bcr4/results/"))
+
+pdf("e:/peter/bam/bcr4/results.pdf", onefile=TRUE, height=5, width=14)
+for (spp in SPP) {
+    cat(spp, "\n")
+    flush.console()
+    load(paste0("e:/peter/bam/bcr4/results/", spp, ".RData"))
+    est1 <- getEst(out, stage = 2, X=Xn)
+    est2 <- getEst(out, stage = 4, X=Xn)
+    par(mfrow=c(1,3))
+    plotMid(out, mods)
+    visualize_road()
+    visualize_ysd()
+}
+dev.off()

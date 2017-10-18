@@ -19,10 +19,13 @@ source("~/repos/mep/R/diagnostics-functions.R")
 ## here is how you can loop over species
 ## best model is saved only for the 1st run
 
-B <- 10 # number of bootstrap runs you want
+B <- 25 # number of bootstrap runs you want
 alpha <- 0
 
-SPP <- colnames(YY[,colSums(YY[DAT$xBCR == 4,]>0) > 999])
+SPP2 <- colnames(YY[,colSums(YY[DAT$xBCR == 4,]>0) > 999])
+SPP1 <- colnames(YY[,colSums(YY[DAT$xBCR == 4,]>0) > 99])
+
+SPP <- setdiff(SPP1, SPP2)
 #SPP <- c("OVEN", "OSFL") # comment this out for all species
 
 for (i in SPP) {
