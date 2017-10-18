@@ -43,8 +43,9 @@ DAT$SS.1 <- NULL
 library(RODBC)
 con <- odbcConnectAccess2007("c:/bam/May2015/BAM_BayneAccess_BAMBBScore.accdb")
 SS03 <- sqlFetch(con, "dbo_BAMBBS_LANDCOVER_PTS")
-SS03 <- nonDuplicated(SS03, SS, TRUE)
 close(con)
+#save(SS03, file="e:/peter/bam/bcr4/SS03.RData")
+SS03 <- nonDuplicated(SS03, SS, TRUE)
 DAT$NALC <- SS03$NALCMS_PT[match(DAT$SS, SS03$SS)]
 
 ## Resampling:
@@ -97,9 +98,70 @@ dim(BB)
 dim(DAT)
 
 nrow(BB)/nrow(DAT)
-aa <- unique(BB)
+aa <- unique(as.numeric(BB))
 DAT$HeldOut <- !(seq_len(nrow(DAT)) %in% aa)
 bb <- table(selected=seq_len(nrow(DAT)) %in% aa)
 bb[2]/sum(bb)
+
+YY <- YY[,colSums(YY)>0]
+OFF <- OFF[,colnames(YY)]
+
+## data transformations
+
+## years since last disturbance
+DAT$ysd <- ifelse(is.na(DAT$YearFire), 100, DAT$YEAR - DAT$YearFire)
+DAT$ysd[DAT$ysd < 0] <- 100
+DAT$ysd10 <- ifelse(DAT$ysd <= 10, 1, 0)
+DAT$ysd60 <- pmax(0, 1 - DAT$ysd / 60)
+DAT$ysd100 <- pmax(0, 1 - DAT$ysd / 100)
+DAT$ysd3 <- cut(DAT$ysd, c(0, 10, 99, 100), include.lowest=TRUE)
+levels(DAT$ysd3) <- c("early", "mid", "old")
+DAT$ysd3 <- relevel(DAT$ysd3, "old")
+DAT$ysdmid <- ifelse(DAT$ysd3 == "mid", 1, 0)
+DAT$ysd2 <- DAT$ysd^2
+DAT$ysd05 <- sqrt(DAT$ysd)
+
+## land cover reclass
+lt <- read.csv("~/repos/bamanalytics/lookup/nalcms.csv")
+DAT$hab <- reclass(DAT$NALC, lt[,c("Value", "BCR4")], allow_NA=TRUE)
+DAT$hab <- relevel(DAT$hab, "Conif")
+with(DAT[aa,], table(xBCR, hab))
+table(DAT$NALC, DAT$hab)
+
+## indicator variables for interactions
+DAT$isConif <- ifelse(DAT$hab == "Conif", 1, 0)
+DAT$isDecid <- ifelse(DAT$hab == "Decid", 1, 0)
+DAT$isForest <- ifelse(DAT$hab %in% c("Decid", "Conif", "Wet"), 1, 0)
+
+## terrain
+DAT$slp <- sqrt(DAT$slp90)
+DAT$cti <- (DAT$cti90 - 8) / 4
+DAT$elv <- sqrt(DAT$elv90) / 25 - 1
+DAT$slp2 <- DAT$slp^2
+DAT$slp3 <- DAT$slp^3
+DAT$cti2 <- DAT$cti^2
+DAT$elv2 <- DAT$elv^2
+DAT$cti3 <- DAT$cti^3
+tmp <- data.frame(y=YY[,"OSFL"], DAT[,c("slp", "cti", "elv")])
+#siplot(y ~ ., tmp, B=0)
+cor(tmp)
+
+## climate
+DAT$CMIJJA <- (DAT$CMIJJA - 0) / 50
+DAT$CMI <- (DAT$CMI - 0) / 50
+DAT$TD <- (DAT$TD - 300) / 100
+DAT$DD0 <- (DAT$DD01 - 1000) / 1000
+DAT$DD5 <- (DAT$DD51 - 1600) / 1000
+DAT$EMT <- (DAT$EMT + 400) / 100
+DAT$MSP <- (DAT$MSP - 400) / 200
+
+DAT$DD02 <- DAT$DD0^2
+DAT$DD52 <- DAT$DD5^2
+DAT$CMI2 <- DAT$CMI^2
+DAT$CMIJJA2 <- DAT$CMIJJA^2
+
+cor(DAT[,c("CMI", "CMIJJA", "TD", "DD0", "DD5", "EMT", "MSP")])
+## look up what these mean
+
 
 save(YY, OFF, DAT, BB, file="e:/peter/bam/bcr4/bcr4-data.RData")

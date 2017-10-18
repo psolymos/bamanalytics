@@ -1,1 +1,21 @@
-Value,Class_name,Label,LCC4,LCC20,No data,NA,NA,NA1,Temperate or sub-polar needleleaf forest,Conif,Conif,Forest2,Sub-polar taiga needleleaf forest,Conif,Conif,Forest3,Tropical or sub-tropical broadleaf evergreen,NA,NA,NA4,Tropical or sub-tropical broadleaf deciduous,NA,NA,NA5,Temperate or sub-polar broadleaf deciduous,Decid,DecidMixed,Forest6, Mixed Forest,Mixed,DecidMixed,Forest7,Tropical or sub-tropical shrubland,NA,NA,NA8,Temperate or sub-polar shrubland,Shrub,Open,OpenWet9,Tropical or sub-tropical grassland,NA,NA,NA10,Temperate or sub-polar grassland,Grass,Open,OpenWet11,Sub-polar or polar shrubland-lichen-moss,Shrub,Open,OpenWet12,Sub-polar or polar grassland-lichen-moss,Grass,Open,OpenWet13,Sub-polar or polar barren-lichen-moss,Barren,Open,OpenWet14,Wetland,Wet,Wet,OpenWet15,Cropland,Agr,Open,OpenWet16,Barren Lands,Barren,Open,OpenWet17,Urban and Built-up,Devel,Open,OpenWet18,Water,NA,NA,NA19,Snow and Ice,NA,NA,NA
+Value,Class_name,Label,LCC4,LCC2,BCR4
+0,No data,NA,NA,NA,NA
+1,Temperate or sub-polar needleleaf forest,Conif,Conif,Forest,Conif
+2,Sub-polar taiga needleleaf forest,Conif,Conif,Forest,Conif
+3,Tropical or sub-tropical broadleaf evergreen,NA,NA,NA,NA
+4,Tropical or sub-tropical broadleaf deciduous,NA,NA,NA,NA
+5,Temperate or sub-polar broadleaf deciduous,Decid,DecidMixed,Forest,Decid
+6, Mixed Forest,Mixed,DecidMixed,Forest,Decid
+7,Tropical or sub-tropical shrubland,NA,NA,NA,NA
+8,Temperate or sub-polar shrubland,Shrub,Open,OpenWet,Decid
+9,Tropical or sub-tropical grassland,NA,NA,NA,NA
+10,Temperate or sub-polar grassland,Grass,Open,OpenWet,Grass
+11,Sub-polar or polar shrubland-lichen-moss,Shrub,Open,OpenWet,Decid
+12,Sub-polar or polar grassland-lichen-moss,Grass,Open,OpenWet,Grass
+13,Sub-polar or polar barren-lichen-moss,Barren,Open,OpenWet,Nonveg
+14,Wetland,Wet,Wet,OpenWet,Wet
+15,Cropland,Agr,Open,OpenWet,Devel
+16,Barren Lands,Barren,Open,OpenWet,Nonveg
+17,Urban and Built-up,Devel,Open,OpenWet,Devel
+18,Water,NA,NA,NA,NA
+19,Snow and Ice,NA,NA,NA,NA
