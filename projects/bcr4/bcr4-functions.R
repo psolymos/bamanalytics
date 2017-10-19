@@ -100,22 +100,23 @@ visualize_road <- function(use_climate=TRUE) {
     mat <- t(matrix(q[,1], k, 2))
     pos <- barplot(mat, beside=TRUE, names.arg=rownames(Xn0),
         legend.text=c("Off road", "On road"), ylim=c(0, max(q)*1.2),
-        ylab="Density in undisturbed habitat (ysd=100)", main=spp)
+        ylab="Density in undisturbed habitat (ysd=100)",
+        main=paste0(spp, " (B=", nrow(est1), ")"))
     xpos <- c(pos[1,], pos[2,])
     for (i in 1:length(xpos))
         segments(x0=xpos[i], y0=q[i,2], y1=q[i,3], lwd=3, col=1)
     invisible(q)
 }
 
-visualize_ysd <- function(use_climate=TRUE) {
+visualize_ysd <- function(use_climate=TRUE, ysd=0:100) {
     k <- nlevels(DAT$hab)
-    ysd <- 0:120
     Xn0 <- Xn[1:length(ysd),]
     rownames(Xn0) <- ysd
     Xn0[] <- 0
     Xn0[,1] <- 1
     Xn0[,"ysd"] <- pmin(100, ysd)
     Xn0[,"ysd2"] <- Xn0[,"ysd"]^2
+    #Xn0[,"ysd3"] <- Xn0[,"ysd3"]^2
     Xn0[,"ysd05"] <- sqrt(Xn0[,"ysd"])
     Xn0[ysd <= 10,"ysd10"] <- 1
     Xn0[,"ysd60"] <- pmax(0, 1 - ysd / 60)
@@ -136,26 +137,6 @@ visualize_ysd <- function(use_climate=TRUE) {
             Xn1[,"isForest:ysd100"] <- Xn1[,"ysd100"]
             Xn1[,"isForest:ysdmid"] <- Xn1[,"ysdmid"]
         }
-        if (FALSE) {
-        if (levels(DAT$hab)[i] == "Conif") {
-            Xn1[,"isConif:ysd"] <- Xn1[,"ysd"]
-            Xn1[,"isConif:ysd2"] <- Xn1[,"ysd2"]
-            Xn1[,"isConif:ysd05"] <- Xn1[,"ysd05"]
-            Xn1[,"isConif:ysd10"] <- Xn1[,"ysd10"]
-            Xn1[,"isConif:ysd60"] <- Xn1[,"ysd60"]
-            Xn1[,"isConif:ysd100"] <- Xn1[,"ysd100"]
-            Xn1[,"isConif:ysdmid"] <- Xn1[,"ysdmid"]
-        }
-        if (levels(DAT$hab)[i] == "Decid") {
-            Xn1[,"isDecid:ysd"] <- Xn1[,"ysd"]
-            Xn1[,"isDecid:ysd2"] <- Xn1[,"ysd2"]
-            Xn1[,"isDecid:ysd05"] <- Xn1[,"ysd05"]
-            Xn1[,"isDecid:ysd10"] <- Xn1[,"ysd10"]
-            Xn1[,"isDecid:ysd60"] <- Xn1[,"ysd60"]
-            Xn1[,"isDecid:ysd100"] <- Xn1[,"ysd100"]
-            Xn1[,"isDecid:ysdmid"] <- Xn1[,"ysdmid"]
-        }
-        }
         pr <- apply(est, 1, function(z) Xn1 %*% z)
         qq[[i]] <- t(apply(exp(pr), 1, quantile, c(0.5, 0.05, 0.95)))
     }
@@ -163,7 +144,8 @@ visualize_ysd <- function(use_climate=TRUE) {
 
     mat <- sapply(qq, function(z) z[,1])
     matplot(mat, lty=1, type="l", lwd=2, ylim=c(0, 1.2*max(mat)),
-        ylab="Relative abundance", xlab="Years since last disturbance", main=spp)
+        ylab="Relative abundance", xlab="Years since last disturbance",
+        main=paste0(spp, " (B=", nrow(est1), ")"))
     legend("topright", lty=1, col=1:k, lwd=2, legend=names(qq))
 
     invisible(qq)

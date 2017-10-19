@@ -1,7 +1,9 @@
 library(mefa4)
+library(pbapply)
 
 load("e:/peter/bam/bcr4/bcr4-data.RData")
 source("~/repos/bamanalytics/projects/bcr4/bcr4-models.R")
+#source("~/repos/bamanalytics/projects/bcr4/bcr4-models2.R")
 source("~/repos/bamanalytics/projects/bcr4/bcr4-functions.R")
 source("~/repos/mep/R/diagnostics-functions.R")
 
@@ -28,13 +30,20 @@ SPP1 <- colnames(YY[,colSums(YY[DAT$xBCR == 4,]>0) > 99])
 SPP <- setdiff(SPP1, SPP2)
 #SPP <- c("OVEN", "OSFL") # comment this out for all species
 
-for (i in SPP) {
+t0 <- proc.time()[3]
+ETA <- NULL
+for (spp in SPP) {
+    i <- which(SPP == spp)
     out <- list()
     for (j in 1:B) {
-        cat("Species:", i, "- Run:", j, "\n")
+        cat("Species: ", spp, " (", i, "/", length(SPP), ") - Run: ",
+            j, "/", B, " - ETA: ",
+            pbapply:::getTimeAsString(ETA), "\n", sep="")
         flush.console()
-        out[[j]] <- try(do_1spec1run(j, i, mods, CAICalpha = alpha,
+        out[[j]] <- try(do_1spec1run(j, spp, mods, CAICalpha = alpha,
             return_best = j==1))
+        dt <- proc.time()[3] - t0
+        ETA <- ((B*length(SPP)) - ((i-1)*B+j)) * dt / ((i-1)*B+j)
     }
-    save(out, file=paste0("e:/peter/bam/bcr4/results/", i, ".RData"))
+    save(out, file=paste0("e:/peter/bam/bcr4/results/", spp, ".RData"))
 }

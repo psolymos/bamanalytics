@@ -114,11 +114,12 @@ DAT$ysd[DAT$ysd < 0] <- 100
 DAT$ysd10 <- ifelse(DAT$ysd <= 10, 1, 0)
 DAT$ysd60 <- pmax(0, 1 - DAT$ysd / 60)
 DAT$ysd100 <- pmax(0, 1 - DAT$ysd / 100)
-DAT$ysd3 <- cut(DAT$ysd, c(0, 10, 99, 100), include.lowest=TRUE)
-levels(DAT$ysd3) <- c("early", "mid", "old")
-DAT$ysd3 <- relevel(DAT$ysd3, "old")
-DAT$ysdmid <- ifelse(DAT$ysd3 == "mid", 1, 0)
+DAT$ysdcat <- cut(DAT$ysd, c(0, 10, 99, 100), include.lowest=TRUE)
+levels(DAT$ysdcat) <- c("early", "mid", "old")
+DAT$ysdcat <- relevel(DAT$ysdcat, "old")
+DAT$ysdmid <- ifelse(DAT$ysdcat == "mid", 1, 0)
 DAT$ysd2 <- DAT$ysd^2
+DAT$ysd3 <- DAT$ysd^3
 DAT$ysd05 <- sqrt(DAT$ysd)
 
 ## land cover reclass
