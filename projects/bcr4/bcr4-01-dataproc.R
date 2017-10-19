@@ -166,3 +166,45 @@ cor(DAT[,c("CMI", "CMIJJA", "TD", "DD0", "DD5", "EMT", "MSP")])
 
 
 save(YY, OFF, DAT, BB, file="e:/peter/bam/bcr4/bcr4-data.RData")
+
+## processing the prediction grid
+
+library(mefa4)
+library(sp)
+library(raster)
+
+st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
+regs <- levels(st$LEVEL3)
+slp <- raster("e:/peter/bam/bcr4/alfresco_data/iem_prism_slope_1km.tiff")
+
+#regi <- "10.1.1"
+cn <- c("pointid", "POINT_X", "POINT_Y", "BCR", "JURS",
+    "HAB_NALC2", "YearFire",
+    "CMIJJA", "CMI", "TD", "DD0", "DD5", "EMT", "MSP", "CTI", "CTI2",
+    "SLP", "SLP2", "DD02", "DD52", "CMI2", "CMIJJA2")
+Subset <- NULL
+for (regi in regs) {
+    gc()
+    cat(regi);flush.console()
+    load(file.path("e:/peter/bam/pred-2016", "chunks", paste0("pgdat-", regi, ".Rdata")))
+    ## Canada Lambert Conformal Conic
+    ## http://spatialreference.org/ref/esri/canada-lambert-conformal-conic/
+    xy <- dat[,c("POINT_X", "POINT_Y")]
+    coordinates(xy) <- c("POINT_X", "POINT_Y")
+    proj4string(xy) <- "+proj=lcc +lat_1=50 +lat_2=70 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+    xy <- spTransform(xy, proj4string(slp))
+    In <- !is.na(extract(slp, xy))
+    cat("\t", sum(In), "\n")
+    if (sum(In)>0)
+        Subset <- rbind(Subset, dat[In,cn])
+}
+
+save(Subset, file="e:/peter/bam/bcr4/bam_data/pred_grid_subset.RData")
+
+xy <- Subset[,c("POINT_X", "POINT_Y","DD0")]
+coordinates(xy) <- c("POINT_X", "POINT_Y")
+proj4string(xy) <- "+proj=lcc +lat_1=50 +lat_2=70 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+xy <- spTransform(xy, proj4string(slp))
+rr <- rasterize(xy, slp, field="DD0")
+
+

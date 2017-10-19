@@ -36,7 +36,7 @@ visualize_road()
 visualize_ysd()
 
 
-SPP <- gsub("\\.RData", "", list.files("e:/peter/bam/bcr4/results2/"))
+SPP <- gsub("\\.RData", "", list.files("e:/peter/bam/bcr4/results/"))
 
 pdf("e:/peter/bam/bcr4/results.pdf", onefile=TRUE, height=5, width=14)
 for (spp in SPP) {
