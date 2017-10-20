@@ -1,6 +1,7 @@
 library(mefa4)
 library(pbapply)
 
+## this file analyzes the BAM data
 load("e:/peter/bam/bcr4/bcr4-data.RData")
 source("~/repos/bamanalytics/projects/bcr4/bcr4-models.R")
 #source("~/repos/bamanalytics/projects/bcr4/bcr4-models2.R")
