@@ -2,6 +2,8 @@ library(mefa4)
 library(pbapply)
 library(sp)
 library(raster)
+library(rgdal)
+library(rgeos)
 
 ## predictions
 
@@ -75,7 +77,15 @@ coordinates(xy) <- c("POINT_X", "POINT_Y")
 proj4string(xy) <- "+proj=lcc +lat_1=50 +lat_2=70 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 xy <- spTransform(xy, proj4string(slp))
 
+od <- setwd("e:/peter/AB_data_v2017/data/raw/xy/bcr/")
+BCR <- readOGR(".", "BCR_Terrestrial_master_International") # rgdal
+setwd(od)
+BCR <- spTransform(BCR, proj4string(xy))
+BCR <- gSimplify(BCR, tol=500, topologyPreserve=TRUE)
+
+
 ## load species data
+Col <- colorRampPalette(c('#ffffe5','#fff7bc','#fee391','#fec44f','#fe9929','#ec7014','#cc4c02','#993404','#662506'))(10)
 #spp <- "BCCH"
 SPP <- gsub("\\.RData", "", list.files("e:/peter/bam/bcr4/results/"))
 for (spp in SPP) {
@@ -105,11 +115,23 @@ for (spp in SPP) {
     #i <- sample(nrow(qpr), 5000)
     #plot(pr[i], qpr[i,1])
 
+    ## save raster and corresponding map
     ## rasterize predictions
-    xy@data$pred <- mpr
-    system.time(rpr <- rasterize(xy, slp, field="pred"))
-    png(paste0("e:/peter/bam/bcr4/maps/", spp, ".png"))
-    plot(rpr, main=spp)
+    #xy@data$pred <- mpr
+    #rpr <- rasterize(xy, slp, field="pred")
+    #writeRaster(rpr, paste0("e:/peter/bam/bcr4/maps/", spp, ".tif"))
+    #png(paste0("e:/peter/bam/bcr4/maps/", spp, ".png"))
+    #plot(rpr, main=spp)
+    #dev.off()
+
+    ## save a map without creating a raster (save time)
+    q <- quantile(mpr, seq(0, 1, by=0.1))
+    ii <- cut(mpr, q, include.lowest=TRUE)
+    png(paste0("e:/peter/bam/bcr4/maps/", spp, "-fancy-map.png"))
+    plot(xy, pch=".", col=Col[ii], main=spp)
+    plot(BCR, add=TRUE, border="grey")
+    legend("topright", bty="n", fill=rev(Col), border=NA,
+        legend=paste0(">", round(rev(q[1:9]), 6)))
     dev.off()
 }
 
