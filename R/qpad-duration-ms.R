@@ -654,6 +654,23 @@ res[[spp]] <- try(xvfun(spp))
 
 save(res, nob, file=file.path(ROOT2, "var-bias-res.Rdata"))
 
+Sumfun <- function(spp) {
+    Y <- groupSums(xtDur[[spp]][rn,], 2,
+        c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3",
+        "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10",
+        "5-10", "5-10", "xxx", "5-10", "5-10", "5-10", "5-10", "5-10"))
+    Y <- as.matrix(Y)[,c("0-3","3-5","5-10")]
+    YY <- cbind("0-3"=Y[,1], "0-5"=Y[,1]+Y[,2], "0-10"=rowSums(Y), "n"=1)
+   YY
+}
+res_sum <- list()
+for (spp in SPP) {
+cat(spp, date(), "\n");flush.console()
+res_sum[[spp]] <- try(Sumfun(spp))
+}
+
+save(res_sum, file=file.path(ROOT2, "var-bias-countsummary.Rdata"))
+
 ## =============================================================================
 ## when does model fail?
 
