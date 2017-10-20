@@ -79,9 +79,11 @@ xy <- spTransform(xy, proj4string(slp))
 #spp <- "BCCH"
 SPP <- gsub("\\.RData", "", list.files("e:/peter/bam/bcr4/results/"))
 for (spp in SPP) {
+    gc()
     cat(spp, "\n");flush.console()
     load(paste0("e:/peter/bam/bcr4/results/", spp, ".RData"))
     est <- getEst(out, stage = 4, X=Xn)
+    est <- est[1:25,]
 
     ## making prediction based on 1st run
     pr <- exp(drop(Xn %*% est[1,]))
