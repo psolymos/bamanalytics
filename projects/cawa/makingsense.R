@@ -32,7 +32,7 @@ colnames(Xn) <- fixNames(colnames(Xn))
 xn <- xn[rownames(Xn),]
 off <- e$OFF[rownames(xn),]
 #bb <- e$BB
-bbb <- unique(e$BB)
+bbb <- unique(as.numeric(e$BB))
 rm(e)
 
 modTab <- getFancyModsTab(mods)
