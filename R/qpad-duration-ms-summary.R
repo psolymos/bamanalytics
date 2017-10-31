@@ -1624,3 +1624,100 @@ for (spp in SPPss) {
 dev.off()
 
 ## todo: bootstrap for M0 and Mb to better capture uncertainty
+
+## resDur_mix, resDur_rem
+load("e:/peter/bam/May2015/out/estimates_SRA_QPAD_v2016-ABMIfix-boot0rem.Rdata")
+load("e:/peter/bam/May2015/out/estimates_SRA_QPAD_v2016-ABMIfix-boot0mix.Rdata")
+
+SPPss <- sort(SPPss[SPPss %in% names(resDur_mix)])
+pdf(file.path(ROOT2, "tabfig", "corrected-counts-0boot.pdf"), onefile=TRUE, width=10, height=10)
+for (spp in SPPss) {
+    cat(spp, "\n");flush.console()
+    YYsum <- colSums(res_sum[[spp]])
+    YYmean <- YYsum[1:3] / YYsum["n"]
+    nn <- sum(rowSums(res_sum[[spp]][,-4]) > 0)
+    op <- par(mfrow=c(2,2))
+
+    ## CI for m0, m0: asymptotics
+    cfi00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+    vci00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$vcov
+    phi00 <- exp(c(cfi00, rnorm(R, cfi00, sqrt(vci00))))
+    ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
+    CI00 <- cbind(Est=ci00[,1], t(apply(ci00, 1, quantile, c(0.025, 0.975))))
+
+
+    cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
+    vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
+    pcf1b <- rbind(cfi0b, mvrnorm(R, cfi0b, Matrix::nearPD(vci0b)$mat))
+    ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
+    CI0b <- cbind(Est=ci0b[,1], t(apply(ci0b, 1, quantile, c(0.025, 0.975))))
+
+    p00 <- CI00[ii,]
+    p0b <- CI0b[ii,]
+
+    yc00 <- YYmean / p00
+    yc0b <- YYmean / p0b
+
+    plot(0, type="n", ylim=c(0,1), xlim=c(0,10), main=paste(spp, "Wald-type"),
+        xlab="Duration (min)", ylab="Probability")
+    polygon(c(t, rev(t)), c(CI00[,2], rev(CI00[,3])), border="#0000FF40", col="#0000FF40")
+    lines(t, CI00[,1], col="#0000FF")
+    polygon(c(t, rev(t)), c(CI0b[,2], rev(CI0b[,3])), border="#FF000040", col="#FF000040")
+    lines(t, CI0b[,1], col="#FF0000")
+    legend("bottomright", bty="n", fill=c("#0000FF40", "#FF000040"), border=NA,
+        lty=1, col=c("#0000FF", "#FF0000"), legend=c("M0", "Mb"))
+
+    plot(0, type="n", ylim=c(0, max(yc00,yc0b)), xlim=c(0,10.2), main=paste("n =", nn),
+        xlab="Duration (min)", ylab="Corrected Mean Count")
+    polygon(c(-1, 11, 11, -1), c(yc00[3,2], yc00[3,2], yc00[3,3], yc00[3,3]),
+        border="#0000FF40", col="#0000FF40")
+    polygon(c(-1, 11, 11, -1), c(yc0b[3,2], yc0b[3,2], yc0b[3,3], yc0b[3,3]),
+        border="#FF000040", col="#FF000040")
+    segments(x0=c(3,5,10)-0.1, y0=yc00[,2], y1=yc00[,3], col="#0000FF")
+    segments(x0=c(3,5,10)+0.1, y0=yc0b[,2], y1=yc0b[,3], col="#FF0000")
+    points(c(3,5,10)-0.1, yc00[,1], col="#0000FF", cex=1.2)
+    points(c(3,5,10)+0.1, yc0b[,1], col="#FF0000", cex=1.2)
+
+    ## CI for m0, m0: bootstrap
+    tmp0 <- resDur_rem[[spp]]
+    tmp0 <- tmp0[!sapply(tmp0, inherits, "try-error")]
+    phi00 <- exp(sapply(tmp0, "[[", "coefficients"))
+    ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
+    CI00 <- cbind(Est=ci00[,1], t(apply(ci00, 1, quantile, c(0.025, 0.975))))
+
+    tmpb <- resDur_mix[[spp]]
+    tmpb <- tmpb[!sapply(tmpb, inherits, "try-error")]
+    pcf1b <- t(sapply(tmpb, "[[", "coefficients"))
+    ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
+    CI0b <- cbind(Est=ci0b[,1], t(apply(ci0b, 1, quantile, c(0.025, 0.975))))
+
+    p00 <- CI00[ii,]
+    p0b <- CI0b[ii,]
+
+    yc00 <- YYmean / p00
+    yc0b <- YYmean / p0b
+
+    plot(0, type="n", ylim=c(0,1), xlim=c(0,10), main=paste(spp, "bootstrap"),
+        xlab="Duration (min)", ylab="Probability")
+    polygon(c(t, rev(t)), c(CI00[,2], rev(CI00[,3])), border="#0000FF40", col="#0000FF40")
+    lines(t, CI00[,1], col="#0000FF")
+    polygon(c(t, rev(t)), c(CI0b[,2], rev(CI0b[,3])), border="#FF000040", col="#FF000040")
+    lines(t, CI0b[,1], col="#FF0000")
+    legend("bottomright", bty="n", fill=c("#0000FF40", "#FF000040"), border=NA,
+        lty=1, col=c("#0000FF", "#FF0000"), legend=c("M0", "Mb"))
+
+    plot(0, type="n", ylim=c(0, max(yc00,yc0b)), xlim=c(0,10.2), main=paste("n =", nn),
+        xlab="Duration (min)", ylab="Corrected Mean Count")
+    polygon(c(-1, 11, 11, -1), c(yc00[3,2], yc00[3,2], yc00[3,3], yc00[3,3]),
+        border="#0000FF40", col="#0000FF40")
+    polygon(c(-1, 11, 11, -1), c(yc0b[3,2], yc0b[3,2], yc0b[3,3], yc0b[3,3]),
+        border="#FF000040", col="#FF000040")
+    segments(x0=c(3,5,10)-0.1, y0=yc00[,2], y1=yc00[,3], col="#0000FF")
+    segments(x0=c(3,5,10)+0.1, y0=yc0b[,2], y1=yc0b[,3], col="#FF0000")
+    points(c(3,5,10)-0.1, yc00[,1], col="#0000FF", cex=1.2)
+    points(c(3,5,10)+0.1, yc0b[,1], col="#FF0000", cex=1.2)
+
+    par(op)
+
+}
+dev.off()
