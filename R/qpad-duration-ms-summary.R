@@ -609,6 +609,9 @@ box()
 }
 dev.off()
 
+mbv <- data.frame(MedB=colMeans(maxBias0),MedV=colMeans(maxVar0))
+round(mbv,6)
+
 ## =============================================================================
 ## when does model fail?
 
@@ -808,6 +811,7 @@ hist(datbse$cor)
 ## average responses across species
 
 library(MASS)
+library(KernSmooth)
 
 pf <- function(var, mod, n=10^4, resol=0.1) {
     if (mod == "0")
@@ -823,7 +827,10 @@ pf <- function(var, mod, n=10^4, resol=0.1) {
     if (is.null(n))
         n <- length(ix)
     is <- sample.int(length(ix), n)
-    d <- kde2d(ix[is], iy[is], n=c(50, round(1/resol)))
+
+    d <- KernSmooth::bkde2D(cbind(ix[is], iy[is]), bandwidth=c(diff(range(ix))/50, resol))
+    #d <- kde2d(ix[is], iy[is], n=c(50, round(1/resol)))
+    names(d) <- c("x", "y", "z")
     d1 <- d2 <- d
     d1$z <- d$z / rowSums(d$z)
     for (i in 1:nrow(d$z))
@@ -919,36 +926,32 @@ OUT[[WHAT]] <- list("0"=b0, "b"=bb)
 #sort(apply(sppPred0, 2, max))
 #sort(apply(sppPredb, 2, max))
 
-col <- colorRampPalette(c("white", "black"))(30)[c(1,1,1:27)]
+col <- colorRampPalette(c("white", "black"))(100)[c(1,1,1,1,1:66)]
 nl <- 5
 
 plf2 <- function(b, ...) {
-#    contour(b1, levels=levels, lty=1, ...)
-#    contour(b2, add=TRUE, levels=levels, lty=2)
-    #b1 <- b$std
-    b1 <- b$kde
+    b1 <- b$std
     b2 <- b$cumul
-    #b2 <- b$kde
     image(b1, col=col, ...)
-    contour(b2, add=TRUE, levels=c(0.25, 0.5, 0.75))
-    box()
-}
-plf2 <- function(d, ...) {
-    j <- 2:(length(d$x-1))
-    d$x <- d$x[j]
-    d$z <- d$z[j,]
-    dc <- d
-    dc$z <- d$z / rowSums(d$z)
-    for (i in 1:nrow(d$z))
-        dc$z[i,] <- cumsum(dc$z[i,])
-    image(d, col=col, ...)
-    contour(dc, add=TRUE, levels=c(0.25, 0.5, 0.75))
+
+    o <- order(b1$z)
+    i <- order(o)
+    f <- b1$z
+    f <- f/sum(f)
+    cs <- cumsum(f[o])[i]
+    dim(cs) <- dim(b1$z)
+    b3 <- b1
+    b3$z <- cs
+
+    contour(b3, add=TRUE, lwd=1, levels=0.75, drawlabels=FALSE)
+    contour(b2, add=TRUE, lty=2, levels=c(0.05, 0.25, 0.5, 0.75, 0.95))
+
     box()
 }
 
 #png(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.png")),
 #    height=1200, width=1600, res=150)
-pdf(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.pdf")),
+pdf(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min-bkde2d.pdf")),
     height=7, width=10)
 op <- par(mfrow=c(2,3), las=1)
 plf2(OUT[["TSSR"]][["0"]],
@@ -960,7 +963,7 @@ plf2(OUT[["TSLS"]][["0"]],
 plf2(OUT[["TSSR"]][["b"]],
     ylab="Probability (Mb)", xlab="Time since sunrise (h)")
 plf2(OUT[["JDAY"]][["b"]],
-    ylab="Probability (Mb)", xlab="Julian day")
+    ylab="Probability (Mb)", xlab="Ordinal day")
 plf2(OUT[["TSLS"]][["b"]],
     ylab="Probability (Mb)", xlab="Days since spring")
 par(op)
@@ -1206,6 +1209,14 @@ sppTadj <- sppTadj0[!(rownames(sppTadj0) %in% c("EVGR", "MAWR", "WIPT")),rev(cn)
 cor.test(sppTadj[,"M0t_sr"], sppTadj[,"PIF"])
 cor.test(sppTadj[,"Mbt_sr"], sppTadj[,"PIF"])
 
+cor.test(sppTadj[,"M0t_jdsr_mean"], sppTadj[,"PIF"], method="spearman")
+cor.test(sppTadj[,"Mbt_jdsr_mean"], sppTadj[,"PIF"], method="spearman")
+cor.test(sppTadj[,"Mbt_jdsr_mean"], sppTadj[,"M0t_jdsr_mean"], method="spearman")
+
+summary(sppTadj[,"M0t_jdsr_mean"]/ sppTadj[,"PIF"])
+summary(sppTadj[,"Mbt_jdsr_mean"]/ sppTadj[,"PIF"])
+summary(sppTadj[,"Mbt_jdsr_mean"]/ sppTadj[,"M0t_jdsr_mean"])
+
 tmp <- sppTadj[,cn]
 tmp[tmp > 5] <- 5
 pairs(tmp)
@@ -1220,6 +1231,20 @@ boxplot(sppTadj[,cn],
     names=rev(c("Tadj (PIF)", "Tadj (M0t)", "Tadj (Mbt)", "1/p (M0t)", "1/p (Mbt)")))
 abline(v=median(sppTadj[,1], na.rm=TRUE))
 dev.off()
+
+op <- par(mfrow=c(3,3))
+plot(density(sppTadj[sppTadj[,"PIF"]<5,"PIF"]), xlim=c(0,5))
+plot.new()
+plot.new()
+
+plot(sppTadj[,"PIF"], sppTadj[,"M0t_jdsr_mean"], xlim=c(0,5), ylim=c(0,5))
+plot(density(sppTadj[sppTadj[,"M0t_jdsr_mean"]<5,"M0t_jdsr_mean"]), xlim=c(0,5))
+plot.new()
+
+plot(sppTadj[,"PIF"], sppTadj[,"Mbt_jdsr_mean"], xlim=c(0,5), ylim=c(0,5))
+plot(sppTadj[,"M0t_jdsr_mean"], sppTadj[,"Mbt_jdsr_mean"], xlim=c(0,5), ylim=c(0,5))
+plot(density(sppTadj[sppTadj[,"Mbt_jdsr_mean"]<5,"Mbt_jdsr_mean"]), xlim=c(0,5))
+par(op)
 
 ##
 
@@ -1720,4 +1745,72 @@ for (spp in SPPss) {
     par(op)
 
 }
+dev.off()
+
+## composite figure for ms
+
+load(file.path(ROOT2, "var-bias-countsummary.Rdata"))
+
+t <- 0:100/10
+R <- 10^4
+ii <- c('3'=which(t==3), '5'=which(t==5), '10'=which(t==10))
+
+
+pdf(file.path(ROOT2, "tabfig", "FigZ_corrected-counts.pdf"), onefile=TRUE, width=7, height=9)
+op <- par(mfrow=c(3,2), las=1, mar=c(5,5,1,1))
+for (spp in c("CONW", "WEWP", "RUBL")) {
+
+    YYsum <- colSums(res_sum[[spp]])
+    YYmean <- YYsum[1:3] / YYsum["n"]
+    nn <- sum(rowSums(res_sum[[spp]][,-4]) > 0)
+
+    ## CI for m0, m0: asymptotics
+    cfi00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+    vci00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$vcov
+    phi00 <- exp(c(cfi00, rnorm(R, cfi00, sqrt(vci00))))
+    ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
+    CI00 <- cbind(Est=ci00[,1], t(apply(ci00, 1, quantile, c(0.025, 0.975))))
+
+    cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
+    vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
+    pcf1b <- rbind(cfi0b, mvrnorm(R, cfi0b, Matrix::nearPD(vci0b)$mat))
+    ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
+    CI0b <- cbind(Est=ci0b[,1], t(apply(ci0b, 1, quantile, c(0.025, 0.975))))
+
+    p00 <- CI00[ii,]
+    p0b <- CI0b[ii,]
+
+    yc00 <- YYmean / p00
+    yc0b <- YYmean / p0b
+
+    Ref <- yc00[3,1]
+    yc00 <- yc00 / Ref
+    yc0b <- yc0b / Ref
+
+
+    col <- "#80808080"
+    plot(0, type="n", ylim=c(0,1), xlim=c(0,10),
+        xlab="Duration (min)", ylab="Probability")
+    polygon(c(t, rev(t)), c(CI00[,2], rev(CI00[,3])), border=col, col=col)
+    lines(t, CI00[,1], col=1, lty=1, lwd=2)
+    polygon(c(t, rev(t)), c(CI0b[,2], rev(CI0b[,3])), border=col, col=col)
+    lines(t, CI0b[,1], col=1, lty=2, lwd=2)
+    legend("bottomright", bty="n", lty=c(1,2), col=1,
+        title=paste(spp, "\nn =", nn), lwd=2,
+        legend=c(expression(M[0]), expression(M[b])))
+
+    plot(0, type="n", ylim=c(0, 2), xlim=c(0,10.2),
+        xlab="Duration (min)", ylab="Corrected Relative Mean Count")
+    polygon(c(-1, 11, 11, -1), c(yc00[3,2], yc00[3,2], yc00[3,3], yc00[3,3]),
+        border=col, col=col)
+    polygon(c(-1, 11, 11, -1), c(yc0b[3,2], yc0b[3,2], yc0b[3,3], yc0b[3,3]),
+        border=col, col=col)
+    segments(x0=c(3,5,10)-0.1, y0=yc00[,2], y1=yc00[,3], col=1, lwd=2)
+    segments(x0=c(3,5,10)+0.1, y0=yc0b[,2], y1=yc0b[,3], col=1, lwd=2, lty=1)
+    points(c(3,5,10)-0.1, yc00[,1], col=1, cex=1.2, pch=19)
+    points(c(3,5,10)+0.1, yc0b[,1], col=1, cex=1.2, pch=21)
+    legend("bottomright", bty="n", pch=c(19,21), col=1, title=spp, lty=c(1,1),
+        legend=c(expression(M[0]), expression(M[b])))
+}
+par(op)
 dev.off()
