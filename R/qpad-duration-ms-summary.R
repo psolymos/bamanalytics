@@ -460,7 +460,8 @@ round(zz, 3)[order(abs(zz[,1]), decreasing=TRUE),]
 #sptab$Resid_var <- zz$var_res[match(rownames(sptab), rownames(zz))]
 
 
-ng <- 2:400
+#ng <- 2:400
+ng <- c(20, 50, 100, 200, 400)
 sf0 <- function(x) quantile(x, 0.5, na.rm=TRUE)
 sf1 <- function(x) quantile(x, 0.9, na.rm=TRUE)
 sf2 <- function(x) quantile(x, 0.95, na.rm=TRUE)
@@ -608,6 +609,91 @@ polygon(c(ng, rev(ng)), c(maxVar1[,i], rev(maxVar2[,i])),
 box()
 }
 dev.off()
+
+pdf(file.path(ROOT2, "tabfig", "Fig5_var-bias2.pdf"), width=10, height=2*5)
+op <- par(mfrow=c(2,1), las=1, mar=c(0,4,3,3))
+
+ct <- 6*1:length(ng)-6
+
+w <- 0.3 # width
+plot(ct, rep(0, length(ng)), xlab="Sample size", ylab="Bias",
+    type="n", axes=FALSE,
+    ylim=max(abs(maxBias1),abs(maxBias2))*c(-1,1), xlim=c(ct[1]-2,ct[length(ct)]+2))
+box()
+axis(2)
+#axis(1, ct, ng, tick=FALSE)
+for (i in 1:length(ng)) {
+    for (j in 1:4) {
+        ## 3 min
+        c3 <- c("max3_0", "max3_b", "max3_0t", "max3_bt")[j]
+        xj <- ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j] - w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxBias1[i,c3], maxBias1[i,c3], maxBias2[i,c3], maxBias2[i,c3]),
+            border="grey", col="grey")
+        lines(xj+c(-w,w)/2, rep(maxBias0[i,c3], 2), lwd=2, col=1, lend=2)
+        ## 5 min
+        c5 <- c("max5_0", "max5_b", "max5_0t", "max5_bt")[j]
+        xj <- ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j] + w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxBias1[i,c5], maxBias1[i,c5], maxBias2[i,c5], maxBias2[i,c5]),
+            border=1, col=1)
+        lines(xj+c(-w,w)/2, rep(maxBias0[i,c5], 2), lwd=2, col="grey", lend=2)
+        ## text
+        if (i == 1) {
+            ex <- list(
+                expression(M[0]),
+                expression(M[b]),
+                expression(M[0]^t),
+                expression(M[b]^t))
+            text(ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j],
+                maxBias1[i,c("max3_0", "max3_b", "max3_0t", "max3_bt")[j]] + 0.02,
+                ex[[j]], cex=0.8)
+        }
+    }
+}
+abline(h=0, lty=2)
+legend("topright", fill=c("grey", "black"), legend=c("3-min", "5-min"), bty="n")
+
+par(mar=c(5,4,0,3))
+plot(ct, rep(0, length(ng)), xlab="Sample size", ylab="Variance",
+    type="n", axes=FALSE,
+    ylim=c(0, 1.1*max(maxVar1,maxVar2)), xlim=c(ct[1]-2,ct[length(ct)]+2))
+box()
+axis(2)
+axis(1, ct, ng, tick=FALSE)
+for (i in 1:length(ng)) {
+    for (j in 1:4) {
+        ## 3 min
+        c3 <- c("max3_0", "max3_b", "max3_0t", "max3_bt")[j]
+        xj <- ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j] - w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxVar1[i,c3], maxVar1[i,c3], maxVar2[i,c3], maxVar2[i,c3]),
+            border="grey", col="grey")
+        #lines(xj+c(-w,w)/2, rep(maxVar0[i,c3], 2), lwd=3, col=1, lend=2)
+        ## 5 min
+        c5 <- c("max5_0", "max5_b", "max5_0t", "max5_bt")[j]
+        xj <- ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j] + w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxVar1[i,c5], maxVar1[i,c5], maxVar2[i,c5], maxVar2[i,c5]),
+            border=1, col=1)
+        #lines(xj+c(-w,w)/2, rep(maxVar0[i,c5], 2), lwd=3, col="grey", lend=2)
+        ## text
+        if (i == 1) {
+            ex <- list(
+                expression(M[0]),
+                expression(M[b]),
+                expression(M[0]^t),
+                expression(M[b]^t))
+            text(ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j],
+                maxVar1[i,c("max3_0", "max3_b", "max3_0t", "max3_bt")[j]]+0.003,
+                ex[[j]], cex=0.8)
+        }
+    }
+}
+#legend("topright", fill=c("grey", "black"), legend=c("3-min", "5-min"), bty="n")
+par(op)
+dev.off()
+
 
 mbv <- data.frame(MedB=colMeans(maxBias0),MedV=colMeans(maxVar0))
 round(mbv,6)

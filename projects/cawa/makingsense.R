@@ -575,4 +575,79 @@ proj4string(xsp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0
 m <- mapview(xsp)
 
 
+## marginal effects
 
+str(xn)
+
+#SS$CMIJJA <- (SS$CMIJJA - 0) / 50
+#SS$CMI <- (SS$CMI - 0) / 50
+#SS$TD <- (SS$TD - 300) / 100
+#SS$DD0 <- (SS$DD01 - 1000) / 1000
+#SS$DD5 <- (SS$DD51 - 1600) / 1000
+#SS$EMT <- (SS$EMT + 400) / 100
+#SS$MSP <- (SS$MSP - 400) / 200
+xn$oCMIJJA <- xn$CMIJJA * 50 + 0
+xn$oCMI <-    xn$CMI    * 50 + 0
+xn$oTD <-     (xn$TD     * 100 + 300)/10
+xn$oDD0 <-    xn$DD0    * 1000 + 1000
+xn$oDD5 <-    xn$DD5    * 1600 + 1000
+xn$oEMT <-    (xn$EMT    * 100 - 400)/10
+xn$oMSP <-    xn$MSP    * 200 + 400
+#SS$SLP <- sqrt(SS$slp90)
+#SS$CTI <- (SS$cti90 - 8) / 4
+xn$oSLP <-    xn$SLP^2*90
+xn$oCTI <-    xn$CTI * 4 + 8
+
+pf <- function(var, level=0.9, xlab="x", ylab="Density", ...) {
+    qq <- quantile(var, c(0.025, 0.975))
+    i <- var >= qq[1] & var <= qq[2]
+    var <- var[i]
+    loglam <- log(xn$lam_hat)[i]
+    mod <- mgcv::gam(loglam ~ s(var, k=3), family=gaussian())
+    xout <- seq(min(var), max(var), length.out=1000)
+    pr <- predict(mod, newdata=data.frame(var=xout), se.fit=TRUE)
+    q <- abs(qnorm(0.5*(1-level)))
+    plot(xout, exp(pr$fit),  type="n",
+        #ylim=c(0,0.014),
+        ylim=c(0, exp(max(pr$fit + q * pr$se.fit))),
+        xlab=xlab, ylab=ylab, ...)
+    #rug(var)
+    polygon(c(xout, rev(xout)),
+        exp(c(pr$fit + q * pr$se.fit, rev(pr$fit - q * pr$se.fit))),
+        border="grey", col="grey")
+    lines(xout, exp(pr$fit))
+    invisible()
+}
+
+par(mfrow=c(3,3))
+pf(xn$oCMI, xlab="CMI")
+pf(xn$oCMIJJA, xlab="CMIJJA")
+pf(xn$oTD, xlab="TD")
+pf(xn$oDD0, xlab="DD0")
+pf(xn$oDD5, xlab="DD5")
+pf(xn$oEMT, xlab="EMT")
+pf(xn$oMSP, xlab="MSP")
+pf(xn$oCTI, xlab="CTI")
+pf(xn$oSLP, xlab="SLP")
+
+par(mfrow=c(1,2))
+pf(xn$oCMI, xlab="CMI")
+plot(xn$oCMI, xn$lam_hat, xlab="CMI", ylab="Density", pch=".")
+
+par(mfrow=c(1,2))
+pf(xn$oCTI, xlab="CTI")
+plot(xn$oCTI, xn$lam_hat, xlab="CTI", ylab="Density", pch=".")
+
+par(mfrow=c(1,2))
+pf(xn$oSLP, xlab="SLP")
+plot(xn$oSLP, xn$lam_hat, xlab="SLP", ylab="Density", pch=".")
+
+## Here are climate variable definitions and units. I put *10 in parentheses if units were multiplied by 10. It might be easier to adjust the units on the graph rather than explain in the caption.
+## msp: mean summer (May-Sep) precipitation
+## td: temperature difference (mean warm month temperature - mean cold month temperature) in degrees Celsius (*10)
+## emt: extreme minimum temperature in degrees Celsius (*10)
+## dd5: degree days above 5 degrees Celsius
+## dd0: degree days below 0 degrees Celsius
+## cmi: climate moisture index (mean annual precipitation - potential evapotranspiration) in mm *
+## cmijja: climate moisture index for Jun/Jul/Aug *
+## * Hogg, E. H. 1997. Temporal scaling of moisture and the forest-grassland boundary in western Canada. Agricultural and Forest Meteorology 84:115-122.

@@ -6,6 +6,9 @@ ROOT <- "e:/peter/bam/Apr2016"
 ROOT2 <- "e:/peter/bam/pred-2015"
 ROOT3 <- "e:/peter/bam/pred-2016"
 
+st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
+regs <- levels(st$LEVEL3)
+
 if (FALSE) {
 ## need to loop over chunks and save a proper XY where rownames match etc
 ## current load has BCR as NA etc
