@@ -530,6 +530,9 @@ compare_sets(SS$SS, PKEY$SS)
 compare_sets(SS$SS, PCTBL$SS)
 compare_sets(PKEY$PKEY, PCTBL$PKEY)
 
+## BBS PCODEs are not real in table PCTBL (all says BBS)
+levels(PCTBL$PCODE)
+
 save(SS, PKEY, PCTBL, TAX,
     file=file.path(ROOT2, "out",
     #paste0("data_package_2016-04-18.Rdata")))
