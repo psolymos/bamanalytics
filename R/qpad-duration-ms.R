@@ -5,8 +5,8 @@
 
 ## Define root folder where data are stored
 #ROOT <- "c:/bam/May2015"
-#ROOT <- "e:/peter/bam/May2015"
-ROOT <- "~/Dropbox/Public"
+ROOT <- "e:/peter/bam/May2015"
+#ROOT <- "~/Dropbox/Public"
 ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
 
 ## Load required packages
@@ -17,7 +17,7 @@ library(detect)
 ## Load functions kept in separate file
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
-## Load preprocesses data
+## Load preprocessed data
 load(file.path(ROOT, "out", "new_offset_data_package_2017-03-01.Rdata"))
 
 ## =============================================================================
@@ -95,7 +95,7 @@ xtDur <- Xtab(ABUND ~ PKEY + dur + SPECIES, pc)
 xtDur[["NONE"]] <- NULL
 SPP <- names(xtDur)
 
-fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix")) {
+fitDurFun <- function(spp, fit=TRUE, type=c("rem","mix","fmix")) {
     rn <- intersect(rownames(pkDur), rownames(xtDur[[spp]]))
     X0 <- pkDur[rn,]
     Y0 <- as.matrix(xtDur[[spp]][rn,])
@@ -159,7 +159,9 @@ c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur
 t(sapply(resDurOK, "[[", "n"))
 resDurData <- resDurOK
 
-type <- "rem"
+#type <- "rem"
+#type <- "mix"
+type <- "fmix"
 
 ## estimate species with data
 SPP <- names(resDurOK)
@@ -171,6 +173,8 @@ for (i in 1:length(SPP)) {
         resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="rem"))
     if (type == "mix")
         resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="mix"))
+    if (type == "fmix")
+        resDur[[i]] <- try(fitDurFun(SPP[i], TRUE, type="fmix"))
 }
 names(resDur) <- SPP
 resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
@@ -185,6 +189,10 @@ if (type == "mix")
     save(resDur, resDurData,
         file=file.path(ROOT2,
         "estimates_SRA_QPAD_v2016abmifix_mix.Rdata"))
+if (type == "fmix")
+    save(resDur, resDurData,
+        file=file.path(ROOT2,
+        "estimates_SRA_QPAD_v2016abmifix_fmix.Rdata"))
 
 ## =============================================================================
 ## summarize results a la QPAD (no distance sampling this time) --------------
