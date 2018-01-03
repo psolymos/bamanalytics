@@ -199,7 +199,9 @@ if (type == "fmix")
 
 ### Putting things together
 
-type <- "rem"
+#type <- "rem"
+#type <- "mix"
+type <- "fmix"
 
 ## n.min is threshold above which all models are considered
 ## n.con is threshold above which the 0 constant model is considered
@@ -211,6 +213,8 @@ if (type == "rem")
     load(file.path(ROOT2, "estimates_SRA_QPAD_v2016abmifix_rem.Rdata"))
 if (type == "mix")
     load(file.path(ROOT2, "estimates_SRA_QPAD_v2016abmifix_mix.Rdata"))
+if (type == "fmix")
+    load(file.path(ROOT2, "estimates_SRA_QPAD_v2016abmifix_fmix.Rdata"))
 
 ## 0/1 table for successful model fit
 sra_mod <- t(sapply(resDur, function(z)
@@ -228,6 +232,8 @@ for (spp in tmp) {
             if (type == "rem")
                 lcf <- length(resDur[[spp]][[mid]]$coefficients)
             if (type == "mix")
+                lcf <- length(resDur[[spp]][[mid]]$coefficients) - 1
+            if (type == "fmix")
                 lcf <- length(resDur[[spp]][[mid]]$coefficients) - 1
             lnm <- length(resDur[[spp]][[mid]]$names)
             if (lcf != lnm) {
@@ -376,6 +382,9 @@ if (type == "rem") {
 }
 if (type == "mix") {
     save(.BAMCOEFS, file=file.path(ROOT2, "BAMCOEFS_duration_mix.rda"))
+}
+if (type == "fmix") {
+    save(.BAMCOEFS, file=file.path(ROOT2, "BAMCOEFS_duration_fmix.rda"))
 }
 
 

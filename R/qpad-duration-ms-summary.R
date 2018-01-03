@@ -1,9 +1,9 @@
 ## Define root folder where data are stored
 #ROOT <- "c:/bam/May2015"
 #ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2016"
-#ROOT <- "e:/peter/bam/May2015"
+ROOT <- "e:/peter/bam/May2015"
 #ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
-ROOT <- "~/Dropbox/Public"
+#ROOT <- "~/Dropbox/Public"
 ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
 
 ## Load required packages
@@ -113,6 +113,10 @@ e <- new.env()
 load(file.path(ROOT2, "BAMCOEFS_duration_mix.rda"), envir=e)
 .BAMCOEFSmix <- e$.BAMCOEFS
 
+e <- new.env()
+load(file.path(ROOT2, "BAMCOEFS_duration_fmix.rda"), envir=e)
+.BAMCOEFSfmix <- e$.BAMCOEFS
+
 ## species where rem model sample size is at least 25
 
 ## check here !!!
@@ -170,24 +174,32 @@ SppOcc <- sapply(SPPfull, function(z) sum(rowSums(xtDur[[z]][rn,], na.rm=TRUE)>0
 SppYmean <- sapply(SPPfull, function(z) mean(rowSums(xtDur[[z]][rn,], na.rm=TRUE)))
 
 
-## sra 0 vs b models
+## sra 0 vs b (or f) models
 
 ## aic is really AICc to account for small sample sizes
 aic0 <- .BAMCOEFSrem$sra_aic
 aicb <- .BAMCOEFSmix$sra_aic
+aicf <- .BAMCOEFSfmix$sra_aic
 df0 <- matrix(.BAMCOEFSrem$sra_df, nrow(aic0), 15, byrow=TRUE)
 dfb <- matrix(.BAMCOEFSmix$sra_df, nrow(aicb), 15, byrow=TRUE)
+dff <- matrix(.BAMCOEFSfmix$sra_df, nrow(aicb), 15, byrow=TRUE)
 n0 <- .BAMCOEFSrem$sra_n
 nb <- .BAMCOEFSmix$sra_n
+nf <- .BAMCOEFSfmix$sra_n
 
 aicc0 <- aic0 + (2*df0*(df0+1)) / (n0-df0-1)
 aiccb <- aicb + (2*dfb*(dfb+1)) / (nb-dfb-1)
+aiccf <- aicf + (2*dff*(dff+1)) / (nf-dff-1)
 colnames(aicc0) <- paste0("m0_", colnames(aic0))
 colnames(aiccb) <- paste0("mb_", colnames(aicb))
+colnames(aiccf) <- paste0("mf_", colnames(aicf))
 
 aic0 <- aicc0[SPPfull,]
 aicb <- aiccb[SPP,]
+aicf <- aiccf[SPP,]
 aic <- cbind(aicc0[SPP,], aiccb[SPP,])
+aicx <- cbind(aicc0[SPP,], aiccb[SPP,], aiccf[SPP,])
+aicbf <- cbind(aiccb[SPP,], aiccf[SPP,])
 
 waic0 <- t(apply(aic0, 1, function(z) {
     dAIC <- z - min(z)
@@ -199,7 +211,22 @@ waicb <- t(apply(aicb, 1, function(z) {
     w <- exp(-dAIC/2)
     w/sum(w)
 }))
+waicf <- t(apply(aicf, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2)
+    w/sum(w)
+}))
 waic <- t(apply(aic, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2)
+    w/sum(w)
+}))
+waicx <- t(apply(aicx, 1, function(z) {
+    dAIC <- z - min(z)
+    w <- exp(-dAIC/2)
+    w/sum(w)
+}))
+waicbf <- t(apply(aicbf, 1, function(z) {
     dAIC <- z - min(z)
     w <- exp(-dAIC/2)
     w/sum(w)
@@ -214,9 +241,14 @@ H0b <- apply(waic0b, 1, function(z) sum(z^2))
 
 best0 <- as.character(0:14)[apply(aic0, 1, which.min)]
 bestb <- as.character(0:14)[apply(aicb, 1, which.min)]
+bestf <- as.character(0:14)[apply(aicf, 1, which.min)]
 best <- colnames(aic)[apply(aic, 1, which.min)]
+bestx <- as.factor(colnames(aicx))[apply(aicx, 1, which.min)]
+bestbf <- as.factor(colnames(aicbf))[apply(aicbf, 1, which.min)]
 names(best0) <- SPPfull
-names(bestb) <- names(best) <- SPP
+names(bestb) <- names(best) <- names(bestf) <- names(bestx) <- names(bestbf) <- SPP
+
+cbind(Mb=table(bestbf)[1:15], Mf=table(bestbf)[16:30])
 
 par(mfrow=c(1,3))
 plot(sptab[SPPfull, "nfull"], waic0[,1], log="x", ylim=c(0,1), pch=ifelse(best0=="0", "o", "+"))
