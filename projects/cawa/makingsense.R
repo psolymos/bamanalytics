@@ -33,7 +33,6 @@ xn <- xn[rownames(Xn),]
 off <- e$OFF[rownames(xn),]
 #bb <- e$BB
 bbb <- unique(as.numeric(e$BB))
-rm(e)
 
 modTab <- getFancyModsTab(mods)
 xnh <- nonDuplicated(xn, HABTR, TRUE)[,c("HAB","HABTR","isNF","isDev",
@@ -43,6 +42,27 @@ xnh <- xnh[c("ConifDense", "ConifSparse","ConifOpen",
     "MixedDense", "MixedSparse", "MixedOpen",
     "WetDense", "WetSparse", "WetOpen",
     "Shrub", "Grass", "Barren", "Agr", "Devel"),]
+
+if (FALSE) {
+rpt <- data.frame(PKEY=rownames(e$DAT), SS=e$DAT$SS, ROAD=e$DAT$ROAD,
+    CAWA=as.numeric(yy[rownames(e$DAT),"CAWA"]),
+    internal=ifelse(1:nrow(e$DAT) %in% bbb, 1, 0))
+with(rpt, ftable(internal, ROAD, CAWA))
+
+nlevels(droplevels(rpt$SS[rpt$ROAD == 0]))
+nlevels(droplevels(rpt$SS[rpt$ROAD == 0 & rpt$internal > 0]))
+
+nlevels(droplevels(rpt$PKEY[rpt$ROAD == 0]))
+nlevels(droplevels(rpt$PKEY[rpt$ROAD == 0 & rpt$internal > 0]))
+
+nlevels(droplevels(rpt$SS[rpt$CAWA > 0]))
+nlevels(droplevels(rpt$SS[rpt$CAWA > 0 & rpt$internal > 0]))
+
+sum(rpt$CAWA[rpt$CAWA > 0])
+sum(rpt$CAWA[rpt$CAWA > 0 & rpt$internal > 0])
+}
+
+rm(e)
 
 spp <- "CAWA"
 
