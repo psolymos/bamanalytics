@@ -47,6 +47,7 @@ if (FALSE) {
 rpt <- data.frame(PKEY=rownames(e$DAT), SS=e$DAT$SS, ROAD=e$DAT$ROAD,
     CAWA=as.numeric(yy[rownames(e$DAT),"CAWA"]),
     internal=ifelse(1:nrow(e$DAT) %in% bbb, 1, 0))
+rpt <- droplevels(rpt)
 with(rpt, ftable(internal, ROAD, CAWA))
 
 nlevels(droplevels(rpt$SS[rpt$ROAD == 0]))
@@ -60,6 +61,36 @@ nlevels(droplevels(rpt$SS[rpt$CAWA > 0 & rpt$internal > 0]))
 
 sum(rpt$CAWA[rpt$CAWA > 0])
 sum(rpt$CAWA[rpt$CAWA > 0 & rpt$internal > 0])
+
+library(sp)
+library(rgdal)
+library(rgeos)
+library(raster)
+
+xy <- e$DAT[,c("X", "Y")]
+xy <- nonDuplicated(xy, e$DAT$SS, TRUE)
+ct <- Xtab(~SS+CAWA, rpt)
+ct <- ifelse(ct[,1]==0, 1, 0)
+xy$cawa <- ct[match(rownames(xy), names(ct))]
+coordinates(xy) <- ~ X + Y
+proj4string(xy) <-
+    CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+
+
+od <- setwd("e:/peter/bam/gis/jurisdictions")
+bd <- readOGR(".", "Political Boundaries (Area)") # rgdal
+setwd(od)
+
+bd2 <- crop(bd, extent(-180, -50, 30, 75))
+crs <- CRS("+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+bd2 <- spTransform(bd2, crs)
+xy <- spTransform(xy, crs)
+
+plot(bd2, col="lightgrey", border="white")
+plot(xy, pch=".", add=TRUE, col=1)
+plot(xy[xy@data$cawa>0,], pch=19, cex=0.2, add=TRUE, col="tomato")
+
+
 }
 
 rm(e)
