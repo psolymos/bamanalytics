@@ -411,14 +411,20 @@ lht <- droplevels(lht[SPPfull,1:6])
 lht[is.na(lht$DATABASE_MIG_TYPE),]
 
 load(file.path(ROOT2, "var-bias-res.Rdata"))
-res2 <- res[!sapply(res, inherits, "try-error")]
+load(file.path(ROOT2, "var-bias-res-2.Rdata"))
+load(file.path(ROOT2, "var-bias-res-3.Rdata"))
 
-aaa <- data.frame(Var=as.numeric(sapply(res2, "[[", "Var")),
-    MSE=as.numeric(sapply(res2, "[[", "MSE")),
-    Bias=as.numeric(sapply(res2, "[[", "Bias")),
+resx <- res[!sapply(res, inherits, "try-error")] # ymin=1, y3min=0
+resx <- res2[!sapply(res2, inherits, "try-error")] # y3min=1
+resx <- res3[!sapply(res3, inherits, "try-error")] # aggregate
+resx <- res4[!sapply(res4, inherits, "try-error")] # aggregate + estimate
+
+aaa <- data.frame(Var=as.numeric(sapply(resx, "[[", "Var")),
+    MSE=as.numeric(sapply(resx, "[[", "MSE")),
+    Bias=as.numeric(sapply(resx, "[[", "Bias")),
     Model=rep(c("0","b","0t","bt"), each=2),
     Duration=c("3","5"),
-    Species=as.factor(rep(names(res2), each=8)))
+    Species=as.factor(rep(names(resx), each=8)))
 aaa$n <- nob[match(aaa$Species, names(nob))]
 aaa$logn <- log(aaa$n)
 dim(aaa)
@@ -645,6 +651,7 @@ box()
 }
 dev.off()
 
+
 pdf(file.path(ROOT2, "tabfig", "Fig5_var-bias2.pdf"), width=10, height=2*5)
 op <- par(mfrow=c(2,1), las=1, mar=c(0,4,3,3))
 
@@ -726,6 +733,87 @@ for (i in 1:length(ng)) {
     }
 }
 #legend("topright", fill=c("grey", "black"), legend=c("3-min", "5-min"), bty="n")
+par(op)
+dev.off()
+
+## use res4 for aaa
+maxBias0[maxBias0 == -1] <- 0
+maxBias1[maxBias1 == -1] <- 0
+maxBias2[maxBias2 == -1] <- 0
+
+pdf(file.path(ROOT2, "tabfig", "Fig5_var-bias2-est.pdf"), width=10, height=2*5)
+op <- par(mfrow=c(2,1), las=1, mar=c(0,4,3,3))
+
+ct <- 3*1:length(ng)-3
+
+w <- 0.4 # width
+plot(ct, rep(0, length(ng)), xlab="Sample size", ylab="Bias",
+    type="n", axes=FALSE,
+    ylim=max(abs(maxBias1),abs(maxBias2))*c(-1,1), xlim=c(ct[1]-2,ct[length(ct)]+2))
+box()
+axis(2)
+for (i in 1:length(ng)) {
+    for (j in 1:2) {
+        ## 3 min
+        c3 <- c("max3_0", "max3_b")[j]
+        xj <- ct[i] + c(-0.5, 0.5)[j] - w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxBias1[i,c3], maxBias1[i,c3], maxBias2[i,c3], maxBias2[i,c3]),
+            border="grey", col="grey")
+        lines(xj+c(-w,w)/2, rep(maxBias0[i,c3], 2), lwd=2, col=1, lend=2)
+        ## 5 min
+        c5 <- c("max5_0", "max5_b")[j]
+        xj <- ct[i] + c(-0.5, 0.5)[j] + w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxBias1[i,c5], maxBias1[i,c5], maxBias2[i,c5], maxBias2[i,c5]),
+            border=1, col=1)
+        lines(xj+c(-w,w)/2, rep(maxBias0[i,c5], 2), lwd=2, col="grey", lend=2)
+        ## text
+        if (i == 1) {
+            ex <- list(
+                expression(M[0]),
+                expression(M[f]))
+            text(ct[i] + c(-0.5, 0.5)[j],
+                maxBias1[i,c("max3_0", "max3_b")[j]] + 0.02,
+                ex[[j]], cex=1)
+        }
+    }
+}
+abline(h=0, lty=2)
+legend("topright", fill=c("grey", "black"), legend=c("3-min", "5-min"), bty="n")
+
+par(mar=c(5,4,0,3))
+plot(ct, rep(0, length(ng)), xlab="Sample size", ylab="Variance",
+    type="n", axes=FALSE,
+    ylim=c(0, 1.1*max(maxVar1,maxVar2)), xlim=c(ct[1]-2,ct[length(ct)]+2))
+box()
+axis(2)
+axis(1, ct, ng, tick=FALSE)
+for (i in 1:length(ng)) {
+    for (j in 1:2) {
+        ## 3 min
+        c3 <- c("max3_0", "max3_b")[j]
+        xj <- ct[i] + c(-0.5, 0.5)[j] - w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxVar1[i,c3], maxVar1[i,c3], maxVar2[i,c3], maxVar2[i,c3]),
+            border="grey", col="grey")
+        ## 5 min
+        c5 <- c("max5_0", "max5_b")[j]
+        xj <- ct[i] + c(-0.5, 0.5)[j] + w/2
+        polygon(xj+c(-w, w, w, -w)/2,
+            c(maxVar1[i,c5], maxVar1[i,c5], maxVar2[i,c5], maxVar2[i,c5]),
+            border=1, col=1)
+        ## text
+        if (i == 1) {
+            ex <- list(
+                expression(M[0]),
+                expression(M[f]))
+            text(ct[i] + c(-0.5, 0.5)[j],
+                maxVar1[i,c("max3_0", "max3_b")[j]]+0.003,
+                ex[[j]], cex=1)
+        }
+    }
+}
 par(op)
 dev.off()
 
@@ -1956,3 +2044,73 @@ for (spp in c("CONW", "WEWP", "RUBL")) {
 }
 par(op)
 dev.off()
+
+## figure based on res4
+
+pdf(file.path(ROOT2, "tabfig", "FigZZ_corrected-counts.pdf"), onefile=TRUE, width=7, height=9)
+op <- par(mfrow=c(3,2), las=1, mar=c(5,5,1,1))
+for (spp in c("CONW", "WEWP", "RUBL")) {
+
+    tmp <- res4[[spp]]
+
+    YYsum <- colSums(res_sum[[spp]])
+    YYmean <- YYsum[1:3] / YYsum["n"]
+    nn <- sum(rowSums(res_sum[[spp]][,-4]) > 0)
+
+    ## CI for m0, m0: asymptotics
+    #cfi00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+    #vci00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$vcov
+    cfi00 <- attr(tmp, "est")$m0cf
+    vci00 <- attr(tmp, "est")$m0vc
+    phi00 <- exp(c(cfi00, rnorm(R, cfi00, sqrt(vci00))))
+    ci00 <- sapply(phi00, function(z) 1-exp(-t*z))
+    CI00 <- cbind(Est=ci00[,1], t(apply(ci00, 1, quantile, c(0.025, 0.975))))
+
+    #cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
+    #vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
+    cfi0b <- attr(tmp, "est")$mbcf
+    vci0b <- attr(tmp, "est")$mbvc
+    pcf1b <- rbind(cfi0b, mvrnorm(R, cfi0b, Matrix::nearPD(vci0b)$mat))
+    ci0b <- apply(pcf1b, 1, function(z) 1-plogis(z[2])*exp(-t*exp(z[1])))
+    CI0b <- cbind(Est=ci0b[,1], t(apply(ci0b, 1, quantile, c(0.025, 0.975))))
+
+    p00 <- CI00[ii,]
+    p0b <- CI0b[ii,]
+
+    yc00 <- YYmean / p00
+    yc0b <- YYmean / p0b
+
+    Ref <- yc00[3,1]
+    yc00 <- yc00 / Ref
+    yc0b <- yc0b / Ref
+
+
+    col <- "#80808080"
+    plot(0, type="n", ylim=c(0,1), xlim=c(0,10),
+        xlab="Duration (min)", ylab="Probability")
+    polygon(c(t, rev(t)), c(CI00[,2], rev(CI00[,3])), border=col, col=col)
+    polygon(c(t, rev(t)), c(CI0b[,2], rev(CI0b[,3])), border=col, col=col)
+    lines(t, CI00[,1], col=1, lty=1, lwd=1.5)
+    lines(t, CI0b[,1], col=1, lty=2, lwd=1.5)
+    abline(v=c(3,5),lty=3)
+    legend("topleft", bty="n", lty=c(1,2), col=1,
+        title=paste0(spp, " (n =", nn, ")"), lwd=1.5,
+        legend=c(expression(M[0]), expression(M[f])))
+
+    plot(0, type="n", ylim=c(0, max(2, yc00, yc0b)), xlim=c(0,10.2),
+        xlab="Duration (min)", ylab="Corrected Relative Mean Count")
+    polygon(c(-1, 11, 11, -1), c(yc00[3,2], yc00[3,2], yc00[3,3], yc00[3,3]),
+        border=col, col=col)
+    polygon(c(-1, 11, 11, -1), c(yc0b[3,2], yc0b[3,2], yc0b[3,3], yc0b[3,3]),
+        border=col, col=col)
+    segments(x0=c(3,5,10)-0.15, y0=yc00[,2], y1=yc00[,3], col=1, lwd=1.5)
+    segments(x0=c(3,5,10)+0.15, y0=yc0b[,2], y1=yc0b[,3], col=1, lwd=1.5, lty=1)
+    abline(v=c(3,5),lty=3)
+    points(c(3,5,10)-0.15, yc00[,1], col=1, cex=1.2, pch=19)
+    points(c(3,5,10)+0.15, yc0b[,1], col=1, cex=1.2, pch=21)
+    legend("topleft", bty="n", pch=c(19,21), col=1, title=spp, lty=c(1,1), lwd=1.5,
+        legend=c(expression(M[0]), expression(M[f])))
+}
+par(op)
+dev.off()
+

@@ -564,86 +564,129 @@ NAMES <- list(
     "13"=c("INTERCEPT", "TSLS", "TSSR", "TSSR2"),
     "14"=c("INTERCEPT", "TSLS", "TSLS2", "TSSR", "TSSR2"))
 
-ymin <- 1
+#ymin <- 1
 B <- 1000
 
 spp <- "OVEN"
 
-xvfun <- function(spp, B=1000, ymin=1) {
-    if (B < 1)
-        stop("B must be > 1")
+xvfun <- function(spp, B=1000, ymin=1, y3min=0, aggr=FALSE, est=FALSE) {
+    if (ymin < 0 && !aggr)
+        stop("aggregare to avoid x/0 -> NaN")
+    if (!aggr && est)
+        stop("estimate only with aggr=T")
     Y <- groupSums(xtDur[[spp]][rn,], 2,
         c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3",
         "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10",
         "5-10", "5-10", "xxx", "5-10", "5-10", "5-10", "5-10", "5-10"))
     Y <- as.matrix(Y)[,c("0-3","3-5","5-10")]
     YY <- cbind("0-3"=Y[,1], "0-5"=Y[,1]+Y[,2], "0-10"=rowSums(Y))
-    YY <- YY[YY[,3] >= ymin,,drop=FALSE]
-    pkDurS <- pkDur[rownames(YY),]
-
-    cfi00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
-    vci00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$vcov
-
-
-    cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
-    vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
-
-    aic0 <- .BAMCOEFSrem$sra_aic
-    aicb <- .BAMCOEFSmix$sra_aic
-
-    best0 <- colnames(aic0)[which.min(aic0[spp,])]
-    bestb <- colnames(aicb)[which.min(aicb[spp,])]
-    X0 <- model.matrix(ff[[best0]], pkDurS)
-    Xb <- model.matrix(ff[[bestb]], pkDurS)
-
-    cf0 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
-    vc0 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$vcov
-    cfb <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
-    vcb <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$vcov
-
-    vci0b <- Matrix::nearPD(vci0b)$mat
-    vc0 <- Matrix::nearPD(vc0)$mat
-    vcb <- Matrix::nearPD(vcb)$mat
-
+    YY <- YY[YY[,3] >= ymin,,drop=FALSE] # 10 min count
+    YY <- YY[YY[,1] >= y3min,,drop=FALSE] # 3 min count
     b_out <- list()
-    for (j in 1:B) {
-        phi00 <- exp(rnorm(1, cfi00, sqrt(vci00)))
-        pcf0b <- mvrnorm(1, cfi0b, vci0b)
 
-        pp_0 <- 1-exp(-c(3,5,10)*phi00)
-        pp_b <- 1-plogis(pcf0b[2])*exp(-c(3,5,10)*exp(pcf0b[1]))
+    if (!aggr) {
+        pkDurS <- pkDur[rownames(YY),]
 
-        YC3_0 <- (YY[,1] * pp_0[3]) / (pp_0[1] * YY[,3])
-        YC5_0 <- (YY[,2] * pp_0[3]) / (pp_0[2] * YY[,3])
-        YC3_b <- (YY[,1] * pp_b[3]) / (pp_b[1] * YY[,3])
-        YC5_b <- (YY[,2] * pp_b[3]) / (pp_b[2] * YY[,3])
+        cfi00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+        vci00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$vcov
 
-        ## time varying models
+        cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
+        vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
 
-        cft0 <- mvrnorm(1, cf0, vc0)
-        cftb <- mvrnorm(1, cfb, vcb)
-        phi0i <- exp(X0 %*% cft0)
-        phib <- exp(cftb[1])
-        cbi <- plogis(Xb %*% cftb[-1])
-        #phi0i <- exp(X0 %*% cf0)
-        #phib <- exp(cfb[1])
-        #scbi <- plogis(Xb %*% cfb[-1])
+        best0 <- colnames(aic0)[which.min(aic0[spp,])]
+        bestb <- colnames(aicb)[which.min(aicb[spp,])]
+        X0 <- model.matrix(ff[[best0]], pkDurS)
+        Xb <- model.matrix(ff[[bestb]], pkDurS)
 
-        ## survey level correction needed:
-        ## otherwise covariate effects cannot be quantified
-        YC3i_0 <- (YY[,1] * (1-exp(-10*phi0i))) / ((1-exp(-3*phi0i)) * YY[,3])
-        YC5i_0 <- (YY[,2] * (1-exp(-10*phi0i))) / ((1-exp(-5*phi0i)) * YY[,3])
-        YC3i_b <- (YY[,1] * (1-cbi*exp(-10*phib))) / ((1-cbi*exp(-3*phib)) * YY[,3])
-        YC5i_b <- (YY[,2] * (1-cbi*exp(-10*phib))) / ((1-cbi*exp(-5*phib)) * YY[,3])
+        cf0 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$coefficients
+        vc0 <- .BAMCOEFSrem$sra_estimates[[spp]][[best0]]$vcov
+        cfb <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$coefficients
+        vcb <- .BAMCOEFSmix$sra_estimates[[spp]][[bestb]]$vcov
 
-        out <- list()
-        out$Y10 <- mean(YY[,3])
-        out$m0 <- c(YC3=mean(YC3_0), YC5=mean(YC5_0))
-        out$mb <- c(YC3=mean(YC3_b), YC5=mean(YC5_b))
-        out$m0t <- c(YC3=mean(YC3i_0), YC5=mean(YC5i_0))
-        out$mbt <- c(YC3=mean(YC3i_b), YC5=mean(YC5i_b))
+        vci0b <- Matrix::nearPD(vci0b)$mat
+        vc0 <- Matrix::nearPD(vc0)$mat
+        vcb <- Matrix::nearPD(vcb)$mat
 
-        b_out[[j]] <- unlist(out)
+        for (j in 1:B) {
+            phi00 <- exp(rnorm(1, cfi00, sqrt(vci00)))
+            pcf0b <- mvrnorm(1, cfi0b, vci0b)
+
+            pp_0 <- 1-exp(-c(3,5,10)*phi00)
+            pp_b <- 1-plogis(pcf0b[2])*exp(-c(3,5,10)*exp(pcf0b[1]))
+
+            YC3_0 <- (YY[,1] * pp_0[3]) / (pp_0[1] * YY[,3])
+            YC5_0 <- (YY[,2] * pp_0[3]) / (pp_0[2] * YY[,3])
+            YC3_b <- (YY[,1] * pp_b[3]) / (pp_b[1] * YY[,3])
+            YC5_b <- (YY[,2] * pp_b[3]) / (pp_b[2] * YY[,3])
+
+            ## time varying models
+
+            cft0 <- mvrnorm(1, cf0, vc0)
+            cftb <- mvrnorm(1, cfb, vcb)
+            phi0i <- exp(X0 %*% cft0)
+            phib <- exp(cftb[1])
+            cbi <- plogis(Xb %*% cftb[-1])
+            #phi0i <- exp(X0 %*% cf0)
+            #phib <- exp(cfb[1])
+            #scbi <- plogis(Xb %*% cfb[-1])
+
+            ## survey level correction needed:
+            ## otherwise covariate effects cannot be quantified
+            YC3i_0 <- (YY[,1] * (1-exp(-10*phi0i))) / ((1-exp(-3*phi0i)) * YY[,3])
+            YC5i_0 <- (YY[,2] * (1-exp(-10*phi0i))) / ((1-exp(-5*phi0i)) * YY[,3])
+            YC3i_b <- (YY[,1] * (1-cbi*exp(-10*phib))) / ((1-cbi*exp(-3*phib)) * YY[,3])
+            YC5i_b <- (YY[,2] * (1-cbi*exp(-10*phib))) / ((1-cbi*exp(-5*phib)) * YY[,3])
+
+            out <- list()
+            out$Y10 <- mean(YY[,3])
+            out$m0 <- c(YC3=mean(YC3_0), YC5=mean(YC5_0))
+            out$mb <- c(YC3=mean(YC3_b), YC5=mean(YC5_b))
+            out$m0t <- c(YC3=mean(YC3i_0), YC5=mean(YC5i_0))
+            out$mbt <- c(YC3=mean(YC3i_b), YC5=mean(YC5i_b))
+
+            b_out[[j]] <- unlist(out)
+        }
+    } else {
+        if (!est) {
+            cfi00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+            vci00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$vcov
+
+            cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
+            vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
+
+        } else {
+            y <- Y[rownames(YY),,drop=FALSE]
+            dmat <- matrix(c(3,5,10), nrow(y), 3, byrow=TRUE)
+            mod0 <- cmulti(y | dmat ~ 1, type="rem")
+            modb <- cmulti(y | dmat ~ 1, type="mix")
+            cfi00 <- coef(mod0)
+            cfi0b <- coef(modb)
+            vci00 <- vcov(mod0)
+            vci0b <- vcov(modb)
+        }
+        vci0b <- as.matrix(Matrix::nearPD(vci0b)$mat)
+        YYs <- colMeans(YY)
+        for (j in 1:B) {
+            phi00 <- exp(rnorm(1, cfi00, sqrt(vci00)))
+            pcf0b <- mvrnorm(1, cfi0b, vci0b)
+
+            pp_0 <- 1-exp(-c(3,5,10)*phi00)
+            pp_b <- 1-plogis(pcf0b[2])*exp(-c(3,5,10)*exp(pcf0b[1]))
+
+            YC3_0 <- (YYs[1] * pp_0[3]) / (pp_0[1] * YYs[3])
+            YC5_0 <- (YYs[2] * pp_0[3]) / (pp_0[2] * YYs[3])
+            YC3_b <- (YYs[1] * pp_b[3]) / (pp_b[1] * YYs[3])
+            YC5_b <- (YYs[2] * pp_b[3]) / (pp_b[2] * YYs[3])
+
+            out <- list()
+            out$Y10 <- YY[3]
+            out$m0 <- c(YC3=YC3_0, YC5=YC5_0)
+            out$mb <- c(YC3=YC3_b, YC5=YC5_b)
+            out$m0t <- c(YC3=0, YC5=0)
+            out$mbt <- c(YC3=0, YC5=0)
+
+            b_out[[j]] <- unlist(out)
+        }
     }
 
     b_out <- do.call(rbind, b_out)
@@ -656,7 +699,14 @@ xvfun <- function(spp, B=1000, ymin=1) {
     Var <- colSums(t(t(theta_hat) - colMeans(theta_hat))^2) / B
     #Bias <- sqrt(MSE - Var)
     Bias <- colSums(theta_hat - theta) / B # same as colMeans(theta_hat) - theta
-    data.frame(MSE=MSE, Var=Var, Bias=Bias)
+    rval <- data.frame(MSE=MSE, Var=Var, Bias=Bias)
+    attr(rval, "n") <- table(YY[,3])
+    if (aggr)
+        attr(rval, "y") <- YYs
+    if (est) {
+        attr(rval, "est") <- list(m0cf=cfi00, m0vc=vci00, mbcf=cfi0b, mbvc=vci0b)
+    }
+    rval
 }
 xtfun <- function(spp, ymin=1) {
     Y <- groupSums(xtDur[[spp]][rn,], 2,
@@ -675,10 +725,19 @@ for (spp in SPP) {
 cat(spp, date(), "\n");flush.console()
 res[[spp]] <- try(xvfun(spp))
 }
-
 ## check revealed no huge diffs
-#save(res, nob, file=file.path(ROOT2, "var-bias-res.Rdata"))
-save(res, nob, file=file.path(ROOT2, "var-bias-res-2.Rdata"))
+save(res, nob, file=file.path(ROOT2, "var-bias-res.Rdata"))
+
+system.time(xvfun("OVEN", ymin=0, y3min=0, aggr=TRUE))
+system.time(xvfun("OVEN", ymin=0, y3min=0, aggr=TRUE, est=TRUE))
+res2 <- pblapply(SPP, function(z) try(xvfun(z, ymin=1, y3min=1, aggr=FALSE)))
+res3 <- pblapply(SPP, function(z) try(xvfun(z, ymin=0, y3min=0, aggr=TRUE)))
+names(res2) <- names(res3) <- SPP
+save(res2, res3, file=file.path(ROOT2, "var-bias-res-2.Rdata"))
+
+res4 <- pblapply(SPP, function(z) try(xvfun(z, ymin=0, y3min=0, aggr=TRUE, est=TRUE)))
+names(res4) <- SPP
+save(res4, file=file.path(ROOT2, "var-bias-res-3.Rdata"))
 
 Sumfun <- function(spp) {
     Y <- groupSums(xtDur[[spp]][rn,], 2,
