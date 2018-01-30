@@ -360,16 +360,19 @@ mat0 <- sapply(SPPfull, function(z) 1-exp(-tt*cfall0[z, 1]))
 matb <- sapply(SPP, function(z) 1-cfallb[z, "c"]*exp(-tt*cfallb[z, "phi_b"]))
 
 #png(file.path(ROOT2, "tabfig", "Fig2_probs.png"), width=800, height=450)
-pdf(file.path(ROOT2, "tabfig", "Fig2_probs.pdf"), width=12, height=6)
-par(mfrow=c(1,2), las=1)
-matplot(tt, mat0, type="l", lty=1, main="M0",
+pdf(file.path(ROOT2, "tabfig", "Fig2_probs.pdf"), width=10, height=5)
+op <- par(mfrow=c(1,2), las=1)
+matplot(tt, mat0, type="l", lty=1, main="",
     xlab="Point count duration (minutes)", ylab="P(availability)",
     col=rgb(50,50,50,50,maxColorValue=255), lwd=2)
-abline(v=c(3,5,10))
-matplot(tt, matb, type="l", lty=1, main="Mb",
+abline(v=c(3,5,10),lty=3)
+text(0.5,0.95,expression(M[0]))
+matplot(tt, matb, type="l", lty=1, main="",
     xlab="Point count duration (minutes)", ylab="P(availability)",
     col=rgb(50,50,50,50,maxColorValue=255), lwd=2)
-abline(v=c(3,5,10))
+abline(v=c(3,5,10),lty=3)
+text(0.5,0.95,expression(M[f]))
+par(op)
 dev.off()
 
 tt <- c(3,5,10)
@@ -674,12 +677,12 @@ for (i in 1:length(ng)) {
         if (i == 1) {
             ex <- list(
                 expression(M[0]),
-                expression(M[b]),
-                expression(M[0]^t),
-                expression(M[b]^t))
+                expression(M[f]),
+                expression(M[0]^varphi),
+                expression(M[f]^c))
             text(ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j],
                 maxBias1[i,c("max3_0", "max3_b", "max3_0t", "max3_bt")[j]] + 0.02,
-                ex[[j]], cex=0.8)
+                ex[[j]], cex=1)
         }
     }
 }
@@ -714,11 +717,11 @@ for (i in 1:length(ng)) {
             ex <- list(
                 expression(M[0]),
                 expression(M[b]),
-                expression(M[0]^t),
-                expression(M[b]^t))
+                expression(M[0]^varphi),
+                expression(M[f]^c))
             text(ct[i] + c(-1.5, -0.5, 0.5, 1.5)[j],
                 maxVar1[i,c("max3_0", "max3_b", "max3_0t", "max3_bt")[j]]+0.003,
-                ex[[j]], cex=0.8)
+                ex[[j]], cex=1)
         }
     }
 }
@@ -1070,20 +1073,39 @@ plf2 <- function(b, ...) {
 #png(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min.png")),
 #    height=1200, width=1600, res=150)
 pdf(file.path(ROOT2, "tabfig", paste0("Fig4_responses", TT, "min-bkde2d.pdf")),
-    height=7, width=10)
-op <- par(mfrow=c(2,3), las=1)
-plf2(OUT[["TSSR"]][["0"]],
-    ylab="Probability (M0)", xlab="Time since sunrise (h)")
-plf2(OUT[["JDAY"]][["0"]],
-    ylab="Probability (M0)", xlab="Ordinal day")
-plf2(OUT[["TSLS"]][["0"]],
-    ylab="Probability (M0)", xlab="Days since spring")
-plf2(OUT[["TSSR"]][["b"]],
-    ylab="Probability (Mb)", xlab="Time since sunrise (h)")
-plf2(OUT[["JDAY"]][["b"]],
-    ylab="Probability (Mb)", xlab="Ordinal day")
-plf2(OUT[["TSLS"]][["b"]],
-    ylab="Probability (Mb)", xlab="Days since spring")
+    height=7, width=8)
+op <- par(mfrow=c(2,3), las=1, mar=c(5, 4, 4, 2)+0.1, oma=c(2,6,1,2), xpd=NA)
+
+par(mar=c(5, 0, 4, 0))
+plf2(OUT[["TSSR"]][["0"]], axes=FALSE, ann=FALSE)
+axis(1)
+axis(2)
+title(ylab="P(availability)", xlab="Time since sunrise (h)")
+text(-6.5, 1.2, expression(M[0]^varphi), cex=1.25)
+par(mar=c(5, 0, 4, 0))
+plf2(OUT[["JDAY"]][["0"]], axes=FALSE, ann=FALSE)
+axis(1)
+title(xlab="Ordinal day")
+par(mar=c(5, 0, 4, 0))
+plf2(OUT[["TSLS"]][["0"]], axes=FALSE, ann=FALSE)
+axis(1)
+title(xlab="Days since spring")
+
+par(mar=c(5, 0, 4, 0))
+plf2(OUT[["TSSR"]][["b"]], axes=FALSE, ann=FALSE)
+axis(1)
+axis(2)
+title(ylab="P(availability)", xlab="Time since sunrise (h)")
+text(-6.5, 1.2, expression(M[f]^c), cex=1.25)
+par(mar=c(5, 0, 4, 0))
+plf2(OUT[["JDAY"]][["b"]], axes=FALSE, ann=FALSE)
+axis(1)
+title(xlab="Ordinal day")
+par(mar=c(5, 0, 4, 0))
+plf2(OUT[["TSLS"]][["b"]], axes=FALSE, ann=FALSE)
+axis(1)
+title(xlab="Days since spring")
+
 par(op)
 dev.off()
 
@@ -1913,9 +1935,10 @@ for (spp in c("CONW", "WEWP", "RUBL")) {
     lines(t, CI00[,1], col=1, lty=1, lwd=2)
     polygon(c(t, rev(t)), c(CI0b[,2], rev(CI0b[,3])), border=col, col=col)
     lines(t, CI0b[,1], col=1, lty=2, lwd=2)
+    abline(v=c(3,5),lty=3)
     legend("bottomright", bty="n", lty=c(1,2), col=1,
         title=paste(spp, "\nn =", nn), lwd=2,
-        legend=c(expression(M[0]), expression(M[b])))
+        legend=c(expression(M[0]), expression(M[f])))
 
     plot(0, type="n", ylim=c(0, 2), xlim=c(0,10.2),
         xlab="Duration (min)", ylab="Corrected Relative Mean Count")
@@ -1925,10 +1948,11 @@ for (spp in c("CONW", "WEWP", "RUBL")) {
         border=col, col=col)
     segments(x0=c(3,5,10)-0.1, y0=yc00[,2], y1=yc00[,3], col=1, lwd=2)
     segments(x0=c(3,5,10)+0.1, y0=yc0b[,2], y1=yc0b[,3], col=1, lwd=2, lty=1)
+    abline(v=c(3,5),lty=3)
     points(c(3,5,10)-0.1, yc00[,1], col=1, cex=1.2, pch=19)
     points(c(3,5,10)+0.1, yc0b[,1], col=1, cex=1.2, pch=21)
     legend("bottomright", bty="n", pch=c(19,21), col=1, title=spp, lty=c(1,1),
-        legend=c(expression(M[0]), expression(M[b])))
+        legend=c(expression(M[0]), expression(M[f])))
 }
 par(op)
 dev.off()

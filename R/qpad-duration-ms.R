@@ -570,6 +570,8 @@ B <- 1000
 spp <- "OVEN"
 
 xvfun <- function(spp, B=1000, ymin=1) {
+    if (B < 1)
+        stop("B must be > 1")
     Y <- groupSums(xtDur[[spp]][rn,], 2,
         c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3",
         "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10",
@@ -585,6 +587,9 @@ xvfun <- function(spp, B=1000, ymin=1) {
 
     cfi0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$coefficients
     vci0b <- .BAMCOEFSmix$sra_estimates[[spp]][["0"]]$vcov
+
+    aic0 <- .BAMCOEFSrem$sra_aic
+    aicb <- .BAMCOEFSmix$sra_aic
 
     best0 <- colnames(aic0)[which.min(aic0[spp,])]
     bestb <- colnames(aicb)[which.min(aicb[spp,])]
@@ -624,6 +629,8 @@ xvfun <- function(spp, B=1000, ymin=1) {
         #phib <- exp(cfb[1])
         #scbi <- plogis(Xb %*% cfb[-1])
 
+        ## survey level correction needed:
+        ## otherwise covariate effects cannot be quantified
         YC3i_0 <- (YY[,1] * (1-exp(-10*phi0i))) / ((1-exp(-3*phi0i)) * YY[,3])
         YC5i_0 <- (YY[,2] * (1-exp(-10*phi0i))) / ((1-exp(-5*phi0i)) * YY[,3])
         YC3i_b <- (YY[,1] * (1-cbi*exp(-10*phib))) / ((1-cbi*exp(-3*phib)) * YY[,3])
@@ -641,14 +648,14 @@ xvfun <- function(spp, B=1000, ymin=1) {
 
     b_out <- do.call(rbind, b_out)
 
-    theta <- b_out[,1]
+    #theta <- b_out[,1]
     theta <- 1
     theta_hat <- b_out[,-1]
 
     MSE <- colSums((theta_hat - theta)^2) / B
     Var <- colSums(t(t(theta_hat) - colMeans(theta_hat))^2) / B
     #Bias <- sqrt(MSE - Var)
-    Bias <- colSums(theta_hat - theta) / B
+    Bias <- colSums(theta_hat - theta) / B # same as colMeans(theta_hat) - theta
     data.frame(MSE=MSE, Var=Var, Bias=Bias)
 }
 xtfun <- function(spp, ymin=1) {
@@ -669,7 +676,9 @@ cat(spp, date(), "\n");flush.console()
 res[[spp]] <- try(xvfun(spp))
 }
 
-save(res, nob, file=file.path(ROOT2, "var-bias-res.Rdata"))
+## check revealed no huge diffs
+#save(res, nob, file=file.path(ROOT2, "var-bias-res.Rdata"))
+save(res, nob, file=file.path(ROOT2, "var-bias-res-2.Rdata"))
 
 Sumfun <- function(spp) {
     Y <- groupSums(xtDur[[spp]][rn,], 2,

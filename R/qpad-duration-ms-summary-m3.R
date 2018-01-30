@@ -233,3 +233,9 @@ dfb <- data.frame(spp=SPP, best=bestx, type=sapply(tmp, "[[", 1),
 btab <- table(dfb$model, dfb$type)
 rownames(btab) <- paste(rownames(btab), as.character(ff))
 btab <- addmargins(btab)
+
+tb <- read.csv("~/Dropbox/bam/duration_ms/revisionMarch2017/tabfig/spptab.csv")
+rownames(tb) <- tb$spp
+tb$Mf_best <- as.integer(bestf)[match(rownames(tb), names(bestf))]
+tb$Best3 <- bestx[match(rownames(tb), names(bestx))]
+write.csv(tb, row.names=FALSE, file="~/Dropbox/bam/duration_ms/revisionMarch2017/tabfig/spptab3x.csv")
