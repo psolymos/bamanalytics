@@ -850,31 +850,49 @@ dev.off()
 
 ## compare PIF time adjustment -----------------------------
 
-sptab <- read.csv(file.path(ROOT2, "tabfig", "spptab.csv"))
+sptab <- read.csv("~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table.csv")
 rownames(sptab) <- sptab$spp
 
-library(lhreg)
-lhrd <- lhreg_data[match(rownames(sptab), lhreg_data$spp),]
-table(Migr=lhrd$Mig2, Has_TSSR=sptab$Both_best %in% hasSR, useNA="a")
-table(Migr=lhrd$Mig2, Has_JDAY=sptab$Both_best %in% hasJD, useNA="a")
-table(Migr=lhrd$Mig2, Has_DSLS=sptab$Both_best %in% hasLS, useNA="a")
-table(Migr=lhrd$Mig2, Has_LSorJD=sptab$Both_best %in% hasLS | sptab$Both_best %in% hasJD, useNA="a")
-#lht2 <- lht[match(rownames(sptab), lht$SPECIES),]
+spp <- "OVEN"
+TT <- 3
+psumm <- list()
+for (spp in SPPfull) {
+    cat(spp, "\n");flush.console()
+    bmod <- strsplit(as.character(bestx[spp]), "_")[[1]]
+    if (all(is.na(bmod)))
+        bmod <- c("M0", "0")
+    if (bmod[1] == "M0" && bmod[2] == "0") {
+        cf00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+        p <- 1-exp(-TT*exp(cf00))
+    } else {
+        Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2), pkDur[iii,])
+        if (bmod[1] == "M0") {
+            cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[bmod[2]]]$coefficients
+            p <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "",
+                names(cf02)),drop=FALSE] %*% cf02)))
+        }
+        if (bmod[1] == "Mb") {
+            cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bmod[2]]]$coefficients
+            p <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "",
+                names(cfb2)[-1]),drop=FALSE] %*%
+                cfb2[-1])) * exp(-TT*exp(cfb2[1]))
+        }
+        if (bmod[1] == "Mf") {
+            cff2 <- .BAMCOEFSfmix$sra_estimates[[spp]][[bmod[2]]]$coefficients
+            c2 <- plogis(cff2["logit.c"])
+            logphi2 <- cff2[-length(cff2)]
+            p <- 1-c2*exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "",
+                names(logphi2)),drop=FALSE] %*% logphi2)))
+        }
+    }
+    psumm[[spp]] <- summary(p)
+}
+pp <- do.call(rbind, psumm)
 
-pif <- read.csv(file.path(ROOT2, "popContinental_v2_22-May-2013.csv"))
-pif <- pif[,c("Common.Name","Scientific.Name","Time.Adjust")]
+sptab$Inv_p3best <- 1/pp[rownames(sptab),"Mean"]
+sptab$Inv_p3bestadj <- 1/(pp[rownames(sptab),"Mean"]/pp[rownames(sptab),"Max."])
+ta <- sptab[!is.na(sptab$tadj),c("tadj","Inv_p3best","Inv_p3bestadj")]
+ta <- ta[ta$Inv_p3bestadj < 5 & ta$tadj < 5,]
 
-compare_sets(sptab$common_name, pif$Common.Name)
-compare_sets(sptab$scientific_name, pif$Scientific.Name)
-
-sptab[sptab$common_name %in% setdiff(sptab$common_name, pif$Common.Name),]
-
-sptab$tadj <- pif$Time.Adjust[match(sptab$common_name, pif$Common.Name)]
-sptab$Inv_p30 <- 1/(1-exp(-3*sptab$M0_phi))
-sptab$Inv_p3b <- 1/(1-sptab$Mb_c*exp(-3*sptab$Mb_phi))
-#sptab$bias0 <- (1/sptab$p30) / sptab$tadj
-#sptab$biasb <- (1/sptab$p3b) / sptab$tadj
-write.csv(sptab, row.names=FALSE, file=file.path(ROOT2, "tabfig", "spptab.csv"))
-
-boxplot(sptab[,c("tadj","Inv_p30","Inv_p3b")])
-
+write.csv(sptab, row.names=FALSE,
+    file="~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
