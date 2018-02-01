@@ -896,3 +896,21 @@ ta <- ta[ta$Inv_p3bestadj < 5 & ta$tadj < 5,]
 
 write.csv(sptab, row.names=FALSE,
     file="~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
+
+spt <- read.csv("~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
+rownames(spt) <- spt$spp
+
+x <- spt[!is.na(spt$tadj),c("tadj","Inv_p3best","Inv_p3bestadj")]
+colnames(x) <- c("Tadj", "Uinv", "Uadj")
+summary(x)
+max(x$Tadj)
+x <- x[x$Uadj <= max(x$Tadj),]
+
+cor.test(x$Tadj, x$Uinv, method="spearman")
+cor.test(x$Tadj, x$Uadj, method="spearman")
+
+plot(x$Tadj, x$Uinv)
+
+summary(x$Uinv/x$Tadj)
+summary(x$Uadj/x$Tadj)
+
