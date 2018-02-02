@@ -548,8 +548,14 @@ par(op)
 dev.off()
 
 rownames(maxBias0) <- rownames(maxVar0) <- paste0("ndet=",ng)
-round(maxBias0[,1:4],6)
-round(maxVar0[,1:4],6)
+round(100*maxBias2[,1:4],2) # 5%
+round(100*maxBias0[,1:4],2) # 50%
+round(100*maxBias1[,1:4],2) # 95%
+round(100*maxVar2[,1:4],2) # 5%
+round(100*maxVar0[,1:4],2) # 50%
+round(100*maxVar1[,1:4],2) # 95%
+round(100*maxVar0[,1:4],2)
+
 
 
 ## count correction, example species (m0/Mf) ---------------------------------
