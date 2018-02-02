@@ -611,7 +611,7 @@ for (spp in rev(c("CONW", "WEWP", "RUBL"))) {
 
     col <- "#80808080"
     plot(0, type="n", ylim=c(0,1), xlim=c(0,10),
-        xlab="Duration (min)", ylab="Probability")
+        xlab="Duration (min)", ylab="P(availability)")
     polygon(c(tt, rev(tt)), c(CI00[,2], rev(CI00[,3])), border=col, col=col)
     polygon(c(tt, rev(tt)), c(CI0b[,2], rev(CI0b[,3])), border=col, col=col)
     lines(tt, CI00[,1], col=1, lty=1, lwd=1.5)
@@ -627,7 +627,7 @@ for (spp in rev(c("CONW", "WEWP", "RUBL"))) {
     if (ylim[2] <= 1.2)
         ylim[2] <- 1.2
     plot(0, type="n", ylim=ylim, xlim=c(0,10.2),
-        xlab="Duration (min)", ylab="Corrected Relative Mean Count")
+        xlab="Duration (min)", ylab="Corrected relative count")
     if (ref1) {
         polygon(c(-1, 11, 11, -1), c(yc00[3,2], yc00[3,2], yc00[3,3], yc00[3,3]),
             border=col, col=col)
@@ -648,6 +648,23 @@ for (spp in rev(c("CONW", "WEWP", "RUBL"))) {
 }
 par(op)
 dev.off()
+
+## stats for the figures
+cf <- lapply(c("CONW", "WEWP", "RUBL"), function(z) attr(resx[[z]], "est"))
+names(cf) <- c("CONW", "WEWP", "RUBL")
+
+ff <- function(x, R=10^4) {
+    z1 <- exp(rnorm(R, x$m0cf, x$m0vc[1,1]))
+    z2 <- MASS::mvrnorm(R, x$mbcf, x$mbvc)
+    z2[,1] <- exp(z2[,1])
+    z2[,2] <- plogis(z2[,2])
+    c(m0_phi=exp(x$m0cf), M0_phi_SE=sd(z1),
+      mb_phi=exp(x$mbcf[1]), mb_phi_SE=sd(z2[,1]),
+      mb_c=plogis(x$mbcf[2]), mb_phi_SE=sd(z2[,2]),
+      mv_cor=cor(z2)[2,1])
+}
+round(sapply(cf, ff), 3)
+
 
 ## time varying responses ---------------------------------
 
