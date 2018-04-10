@@ -2,7 +2,7 @@
 ## M0, Mf, Mb
 ## Define root folder where data are stored
 ROOT <- "e:/peter/bam/May2015"
-ROOT2 <- "~/Dropbox/bam/duration_ms/revisionMarch2017"
+ROOT2 <- "~/GoogleWork/bam/duration_ms/revisionMarch2017"
 
 ## Load required packages
 library(MASS)
@@ -236,11 +236,11 @@ btab <- addmargins(btab)
 
 ## appendix table ---------------------------------
 
-tb <- read.csv("~/Dropbox/bam/duration_ms/revisionMarch2017/tabfig/spptab.csv")
+tb <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2017/tabfig/spptab.csv")
 rownames(tb) <- tb$spp
 tb$Mf_best <- as.integer(bestf)[match(rownames(tb), names(bestf))]
 tb$Best3 <- bestx[match(rownames(tb), names(bestx))]
-#write.csv(tb, row.names=FALSE, file="~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table.csv")
+#write.csv(tb, row.names=FALSE, file="~/GoogleWork/bam/duration_ms/revisionMarch2017/internal/Appendix-table.csv")
 
 ## constant model figure (M0/Mf) ---------------------------------
 
@@ -873,7 +873,7 @@ dev.off()
 
 ## compare PIF time adjustment -----------------------------
 
-sptab <- read.csv("~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table.csv")
+sptab <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2017/internal/Appendix-table.csv")
 rownames(sptab) <- sptab$spp
 
 spp <- "OVEN"
@@ -918,9 +918,9 @@ ta <- sptab[!is.na(sptab$tadj),c("tadj","Inv_p3best","Inv_p3bestadj")]
 ta <- ta[ta$Inv_p3bestadj < 5 & ta$tadj < 5,]
 
 write.csv(sptab, row.names=FALSE,
-    file="~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
+    file="~/GoogleWork/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
 
-spt <- read.csv("~/Dropbox/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
+spt <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
 rownames(spt) <- spt$spp
 
 x <- spt[!is.na(spt$tadj),c("tadj","Inv_p3best","Inv_p3bestadj")]
@@ -937,3 +937,37 @@ plot(x$Tadj, x$Uinv)
 summary(x$Uinv/x$Tadj)
 summary(x$Uadj/x$Tadj)
 
+## Migratory status
+
+if (FALSE) {
+tb <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2017/internal/Appendix-table.csv")
+rownames(tb) <- tb$spp
+library(lhreg)
+data(lhreg_data)
+tb$Mig <- lhreg_data$Mig[match(rownames(tb), lhreg_data$spp)]
+tb <- write.csv(tb, row.names=FALSE,
+    "~/GoogleWork/bam/duration_ms/revisionMarch2018/Appendix-table.csv")
+tb[is.na(tb$Mig),]
+}
+
+tb <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2018/Appendix-table.csv")
+rownames(tb) <- tb$spp
+tb$b3m <- sapply(strsplit(as.character(tb$Best3), "_"),
+    function(z) if (length(z) < 2 && is.na(z)) -1 else as.integer(z[2]))
+tb$m3ts <- ifelse(tb$b3m %in% grep("TSSR", sapply(NAMES, paste, collapse=" "))-1, 1, 0)
+tb$m3jd <- ifelse(tb$b3m %in% grep("JDAY", sapply(NAMES, paste, collapse=" "))-1, 1, 0)
+tb$m3ls <- ifelse(tb$b3m %in% grep("TSLS", sapply(NAMES, paste, collapse=" "))-1, 1, 0)
+tb$Mig2 <- tb$Mig
+levels(tb$Mig2)[levels(tb$Mig2) %in% c("SD","LD")] <- "MI"
+
+with(tb[!is.na(tb$Mb_phi),], table(m3jd, Mig2))
+with(tb[!is.na(tb$Mb_phi),], table(m3ls, Mig2))
+
+with(tb[!is.na(tb$Mb_phi),], chisq.test(m3jd, Mig2))
+with(tb[!is.na(tb$Mb_phi),], chisq.test(m3ls, Mig2))
+
+## JDAY
+prop.test(c(62, 13), c(62+62, 10+13))
+
+## DSLS
+prop.test(c(86, 13), c(86+38, 10+13))
