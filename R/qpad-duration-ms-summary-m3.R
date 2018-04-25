@@ -954,16 +954,19 @@ tb <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2018/Appendix-table.cs
 rownames(tb) <- tb$spp
 tb$b3m <- sapply(strsplit(as.character(tb$Best3), "_"),
     function(z) if (length(z) < 2 && is.na(z)) -1 else as.integer(z[2]))
-tb$m3ts <- ifelse(tb$b3m %in% grep("TSSR", sapply(NAMES, paste, collapse=" "))-1, 1, 0)
-tb$m3jd <- ifelse(tb$b3m %in% grep("JDAY", sapply(NAMES, paste, collapse=" "))-1, 1, 0)
-tb$m3ls <- ifelse(tb$b3m %in% grep("TSLS", sapply(NAMES, paste, collapse=" "))-1, 1, 0)
+tb$m3ts <- ifelse(tb$b3m %in% (grep("TSSR", sapply(NAMES, paste, collapse=" "))-1), 1, 0)
+tb$m3jd <- ifelse(tb$b3m %in% (grep("JDAY", sapply(NAMES, paste, collapse=" "))-1), 1, 0)
+tb$m3ls <- ifelse(tb$b3m %in% (grep("TSLS", sapply(NAMES, paste, collapse=" "))-1), 1, 0)
 tb$Mig2 <- tb$Mig
 levels(tb$Mig2)[levels(tb$Mig2) %in% c("SD","LD")] <- "MI"
 
-with(tb[!is.na(tb$Mb_phi),], table(m3jd, Mig2))
-with(tb[!is.na(tb$Mb_phi),], table(m3ls, Mig2))
+with(tb[!is.na(tb$Mb_phi),], table(m3jd, m3ls))
+addmargins(with(tb[!is.na(tb$Mb_phi),], table(b3m, Mig2)))
 
+addmargins(with(tb[!is.na(tb$Mb_phi),], table(m3jd, Mig2)))
 with(tb[!is.na(tb$Mb_phi),], chisq.test(m3jd, Mig2))
+
+addmargins(with(tb[!is.na(tb$Mb_phi),], table(m3ls, Mig2)))
 with(tb[!is.na(tb$Mb_phi),], chisq.test(m3ls, Mig2))
 
 ## JDAY
@@ -971,3 +974,17 @@ prop.test(c(62, 13), c(62+62, 10+13))
 
 ## DSLS
 prop.test(c(86, 13), c(86+38, 10+13))
+
+
+xtfun2 <- function(spp, ymin=1) {
+    Y <- groupSums(xtDur[[spp]][rn,], 2,
+        c("0-3", "xxx", "0-3", "0-3", "xxx", "xxx", "0-3", "0-3",
+        "xxx", "3-5", "3-5", "xxx", "xxx", "3-5", "5-10", "5-10",
+        "5-10", "5-10", "xxx", "5-10", "5-10", "5-10", "5-10", "5-10"))
+    Y <- as.matrix(Y)[,c("0-3","3-5","5-10")]
+    YY <- cbind("0-3"=Y[,1], "0-5"=Y[,1]+Y[,2], "0-10"=rowSums(Y))
+    YY <- YY[YY[,3] >= ymin,,drop=FALSE]
+    colMeans(YY)
+}
+yyy <- t(pbsapply(SPP, xtfun2, ymin=1))
+yyyy <- yyy/yyy[,3]
