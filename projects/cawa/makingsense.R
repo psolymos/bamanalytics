@@ -20,7 +20,7 @@ Date <- "2016-08-16"
 level <- 0.9
 
 e <- new.env()
-load(file.path(ROOT2, "data", "pack_2016-08-16.Rdata"), envir=e)
+load(file.path(ROOT2, "data", "pack_2017-01-27.Rdata"), envir=e)
 
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")

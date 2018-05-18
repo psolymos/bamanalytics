@@ -34,7 +34,7 @@ load(file.path(ROOT, "out", "new_offset_data_package_2017-03-01.Rdata")) # this 
 ### Removal sampling
 
 ## non NA subset for duration related estimates
-pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE")]
+pkDur <- dat[,c("PKEY","JDAY","TSSR","TSLS","DURMETH","YEAR","PCODE","SS")]
 pkDur$TSSR2 <- pkDur$TSSR^2
 pkDur$JDAY2 <- pkDur$JDAY^2
 pkDur$DSLS <- pkDur$TSLS
@@ -175,6 +175,7 @@ resDurOK <- resDur[!sapply(resDur, inherits, "try-error")]
 c(OK=length(resDurOK), failed=length(resDur)-length(resDurOK), all=length(resDur))
 t(sapply(resDurOK, "[[", "n"))
 resDurData <- resDurOK
+#save(pkDur, resDurOK, file="~/GoogleWork/bam/duration_ms/pkResDur_data.Rdata")
 
 ## estimate species with data
 SPP <- names(resDurOK)
