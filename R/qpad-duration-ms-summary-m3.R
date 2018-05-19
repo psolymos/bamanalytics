@@ -988,3 +988,66 @@ xtfun2 <- function(spp, ymin=1) {
 }
 yyy <- t(pbsapply(SPP, xtfun2, ymin=1))
 yyyy <- yyy/yyy[,3]
+
+## addressing non-independence of revisits
+
+library(detect)
+load("~/GoogleWork/bam/duration_ms/pkResDur_data.Rdata")
+pkDur$SSYR <- interaction(pkDur$SS, pkDur$YEAR, drop=TRUE)
+f <- function(fa) {
+    fa <- as.integer(droplevels(as.factor(fa)))
+    o <- seq_along(fa)
+    r <- sample(o)
+    keep <- !duplicated(fa[r])
+    r[keep]
+}
+g <- function(m00, m0f) {
+    V <- vcov(m0f)
+    unname(c(coef(m00), coef(m0f),
+        sqrt(vcov(m00)[1]), sqrt(diag(V)), cov2cor(V)[2,1]))
+}
+
+n <- 500 # fixed sample size
+B <- 200
+z <- resDurOK[["BTNW"]]
+x <- droplevels(pkDur[z$pkey,])
+stopifnot(nlevels(x$SS) >= n)
+
+out0 <- matrix(0, B, 7)
+colnames(out0) <- c("logphi0", "logphi", "logitc",
+                    "SE_logphi0", "SE_logphi", "SE_logitc", "cor")
+out2 <- out1 <- out0
+
+for (j in 1:B) {
+    cat(j, "\n");flush.console()
+    i0 <- sample.int(z$n, n, replace=FALSE) # ss/yr/visit
+    i1 <- f(x$SSYR)[1:B]                 # ss/yr
+    i2 <- f(x$SS)[1:B]                   # ss
+
+    m00 <- cmulti(z$Y[i0,] | z$D[i0,] ~ 1, type="rem")
+    m0f <- cmulti(z$Y[i0,] | z$D[i0,] ~ 1, type="mix")
+    m10 <- cmulti(z$Y[i1,] | z$D[i1,] ~ 1, type="rem")
+    m1f <- cmulti(z$Y[i1,] | z$D[i1,] ~ 1, type="mix")
+    m20 <- cmulti(z$Y[i2,] | z$D[i2,] ~ 1, type="rem")
+    m2f <- cmulti(z$Y[i2,] | z$D[i2,] ~ 1, type="mix")
+
+    out0[j,] <- g(m00, m0f)
+    out1[j,] <- g(m10, m1f)
+    out2[j,] <- g(m20, m2f)
+}
+
+k <- "SE_logphi0"
+out <- cbind(out0[,k], out1[,k], out2[,k])
+summary(out)
+
+d0 <- density(out[,1])
+d1 <- density(out[,2])
+d2 <- density(out[,3])
+ylim <- range(d0$y, d1$y, d2$y)
+xlim <- range(d0$x, d1$x, d2$x)
+plot(d0, xlim=xlim, ylim=ylim, col=1)
+lines(d1, xlim=xlim, ylim=ylim, col=2)
+lines(d2, xlim=xlim, ylim=ylim, col=4)
+
+
+
