@@ -1080,3 +1080,19 @@ for (k in colnames(out0)[1:6]) {
     lines(d1, xlim=xlim, ylim=ylim, col=2)
     lines(d2, xlim=xlim, ylim=ylim, col=4)
 }
+
+
+load("~/GoogleWork/bam/duration_ms/pkResDur_RES1.Rdata")
+
+par(mfrow=c(2,3))
+for (k in 1:6) {
+    v0 <- sapply(RES, function(z) z[k,1,1])
+    v1 <- sapply(RES, function(z) z[k,1,2])
+    v2 <- sapply(RES, function(z) z[k,1,3])
+    lim <- if (k %in% 1:3)
+        c(-4, 4) else c(0, 1)
+    plot(v0, v2, main=dimnames(RES[[1]])[[1]][k], ylim=lim, xlim=lim,
+        pch=19, cex=0.7, col="#00000040")
+    abline(0,1)
+}
+
