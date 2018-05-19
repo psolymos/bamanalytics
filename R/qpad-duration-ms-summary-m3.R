@@ -1006,17 +1006,10 @@ g <- function(m00, m0f) {
     unname(c(coef(m00), coef(m0f),
         sqrt(vcov(m00)[1]), sqrt(diag(V)), cov2cor(V)[2,1]))
 }
-
-SPP <- names(resDurOK)
-B <- 200
-nmax <- 500
-
-OUT <- list()
-for (spp in SPP) {
-    z <- resDurOK[["BTNW"]]
-    x <- droplevels(pkDur[z$pkey,])
-    n <- min(nlevels(x$SS), nmax)
-    if (n >= 200) {
+h <- function(spp, B, nmax) {
+        z <- resDurOK[[spp]]
+        x <- droplevels(pkDur[z$pkey,])
+        n <- min(nlevels(x$SS), nmax)
 
         out0 <- matrix(0, B, 7)
         colnames(out0) <- c("logphi0", "logphi", "logitc",
@@ -1047,8 +1040,31 @@ for (spp in SPP) {
         OUT[,,1] <- t(apply(out0, 2, quantile, c(0.5, 0.025, 0.975)))
         OUT[,,2] <- t(apply(out1, 2, quantile, c(0.5, 0.025, 0.975)))
         OUT[,,3] <- t(apply(out2, 2, quantile, c(0.5, 0.025, 0.975)))
-    }
+    OUT
 }
+
+SPP <- names(resDurOK)
+B <- 100
+nmax <- 500
+RES <- list()
+for (spp in SPP) {
+    OUT <- try(h(spp, B, nmax))
+    if (!inherits(OUT, "try-error"))
+        RES[[spp]] <- OUT
+}
+save(RES, file="~/GoogleWork/bam/duration_ms/pkResDur_RESB.Rdata")
+
+SPP <- names(resDurOK)
+B <- 1
+nmax <- 10^6
+RES <- list()
+for (spp in SPP) {
+    OUT <- try(h(spp, B, nmax))
+    if (!inherits(OUT, "try-error"))
+        RES[[spp]] <- OUT
+}
+save(RES, file="~/GoogleWork/bam/duration_ms/pkResDur_RES1.Rdata")
+
 
 par(mfrow=c(2,3))
 for (k in colnames(out0)[1:6]) {
