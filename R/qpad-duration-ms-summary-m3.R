@@ -1044,8 +1044,8 @@ h <- function(spp, B, nmax) {
 }
 
 SPP <- names(resDurOK)
-B <- 100
-nmax <- 500
+B <- 200
+nmax <- 1000
 RES <- list()
 for (spp in SPP) {
     OUT <- try(h(spp, B, nmax))
