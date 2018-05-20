@@ -1096,3 +1096,77 @@ for (k in 1:6) {
     abline(0,1)
 }
 
+load("~/GoogleWork/bam/duration_ms/pkResDur_RESB.Rdata")
+library(intrval)
+
+
+## medians
+m0 <- sapply(1:6, function(k) sapply(RES, function(z) z[k,1,1]))
+m1 <- sapply(1:6, function(k) sapply(RES, function(z) z[k,1,2]))
+m2 <- sapply(1:6, function(k) sapply(RES, function(z) z[k,1,3]))
+colnames(m0) <- colnames(m1) <- colnames(m2) <- c("phi0", "phi", "c",
+    "SE_logphi0","SE_logphi","SE_logitc")
+m0[,1:2] <- exp(m0[,1:2])
+m0[,3] <- plogis(m0[,3])
+m1[,1:2] <- exp(m1[,1:2])
+m1[,3] <- plogis(m1[,3])
+m2[,1:2] <- exp(m2[,1:2])
+m2[,3] <- plogis(m2[,3])
+
+d02 <- m0 - m2
+for (i in 1:3)
+    d02[,i] <- d02[,i] / (m0[,i]*0.5 + m2[,i]*0.5)
+summary(d02)
+summary(m0 - m2)
+
+## interval comparisons
+t02 <- m0
+t02[] <- 0
+for (i in 1:nrow(t02)) {
+    for (j in 1:ncol(t02)) {
+        int0 <- RES[[i]][j,2:3,1]
+        int2 <- RES[[i]][j,2:3,3]
+        t02[i,j] <- as.integer(int0 %)o(% int2)
+    }
+}
+sum(t02)
+t02[unique(row(t02)[t02 > 0]),]
+
+pdf("~/GoogleWork/bam/duration_ms/revisionMay2018/revisit.pdf",
+    height=0.8*7, width=0.8*10)
+par(mfrow=c(2,3))
+for (k in 1:6) {
+    v0 <- sapply(RES, function(z) z[k,1,1])
+    v1 <- sapply(RES, function(z) z[k,1,2])
+    v2 <- sapply(RES, function(z) z[k,1,3])
+    lim <- range(v0, v2)
+    if (k %in% 1:3) {
+        lim[1] <- max(-4, lim[1])
+        lim[2] <- min(4, lim[2])
+    } else {
+        lim[1] <- 0
+        lim[2] <- min(2, lim[2])
+    }
+    main <- switch(as.character(k),
+        "1"="log(phi) [M0]",
+        "2"="log(phi) [Mf]",
+        "3"="logit(c) [Mf]",
+        "4"="SE [M0, log(phi)]",
+        "5"="SE [Mf, log(phi)]",
+        "6"="SE [Mf, logit(c)]")
+    plot(v0, v2, main=main, ylim=lim, xlim=lim,
+         xlab="With revisits", ylab="Without revisits",
+        pch=19, cex=1, col="#00000040")
+    abline(0,1, lty=2)
+    abline(lm(v2 ~ v0), lty=1, col=2)
+    points(v0[t02[,k] > 0], v2[t02[,k] > 0], col=2, pch=19)
+}
+par(mfrow=c(1,1))
+dev.off()
+
+library(magick)
+img <- image_read("~/GoogleWork/bam/duration_ms/revisionMay2018/revisit.pdf",
+    density=300)
+image_write(img, format = "png",
+    path = "~/GoogleWork/bam/duration_ms/revisionMay2018/revisit.png")
+
