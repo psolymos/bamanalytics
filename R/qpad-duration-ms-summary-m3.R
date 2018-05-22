@@ -1159,7 +1159,7 @@ for (k in 1:6) {
         pch=19, cex=1, col="#00000040")
     abline(0,1, lty=2)
     abline(lm(v2 ~ v0), lty=1, col=2)
-    points(v0[t02[,k] > 0], v2[t02[,k] > 0], col=2, pch=19)
+    #points(v0[t02[,k] > 0], v2[t02[,k] > 0], col=2, pch=19)
 }
 par(mfrow=c(1,1))
 dev.off()
