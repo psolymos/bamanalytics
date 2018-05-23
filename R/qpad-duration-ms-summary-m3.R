@@ -878,8 +878,56 @@ rownames(sptab) <- sptab$spp
 
 spp <- "OVEN"
 TT <- 3
+
+psummb <- psummf <- psumm0 <- list()
+for (spp in sort(SPP)) {
+    cat(spp, "\n");flush.console()
+    for (type in c("M0", "Mb", "Mf")) {
+        BMOD <- switch(type,
+            "M0"=best0[spp],
+            "Mb"=bestb[spp],
+            "Mf"=bestf[spp])
+        bmod <- c(type, unname(BMOD))
+        if (bmod[1] == "M0" && bmod[2] == "0") {
+            cf00 <- .BAMCOEFSrem$sra_estimates[[spp]][["0"]]$coefficients
+            p <- 1-exp(-TT*exp(cf00))
+        } else {
+            Xpk2 <- model.matrix(~JDAY + I(JDAY^2) + TSSR + I(TSSR^2) + TSLS + I(TSLS^2),
+                pkDur[iii,])
+            if (bmod[1] == "M0") {
+                cf02 <- .BAMCOEFSrem$sra_estimates[[spp]][[bmod[2]]]$coefficients
+                p <- 1-exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "",
+                    names(cf02)),drop=FALSE] %*% cf02)))
+            }
+            if (bmod[1] == "Mb") {
+                cfb2 <- .BAMCOEFSmix$sra_estimates[[spp]][[bmod[2]]]$coefficients
+                p <- 1-plogis(drop(Xpk2[,gsub("logit.c_", "",
+                    names(cfb2)[-1]),drop=FALSE] %*%
+                    cfb2[-1])) * exp(-TT*exp(cfb2[1]))
+            }
+            if (bmod[1] == "Mf") {
+                cff2 <- .BAMCOEFSfmix$sra_estimates[[spp]][[bmod[2]]]$coefficients
+                c2 <- plogis(cff2["logit.c"])
+                logphi2 <- cff2[-length(cff2)]
+                p <- 1-c2*exp(-TT*exp(drop(Xpk2[,gsub("log.phi_", "",
+                    names(logphi2)),drop=FALSE] %*% logphi2)))
+            }
+        }
+        if (type == "M0")
+            psumm0[[spp]] <- summary(p)
+        if (type == "Mb")
+            psummb[[spp]] <- summary(p)
+        if (type == "Mf")
+            psummf[[spp]] <- summary(p)
+    }
+}
+pp0 <- do.call(rbind, psumm0)
+ppb <- do.call(rbind, psummb)
+ppf <- do.call(rbind, psummf)
+
+
 psumm <- list()
-for (spp in SPPfull) {
+for (spp in sort(SPPfull)) {
     cat(spp, "\n");flush.console()
     bmod <- strsplit(as.character(bestx[spp]), "_")[[1]]
     if (all(is.na(bmod)))
@@ -1119,6 +1167,8 @@ for (i in 1:3)
 summary(d02)
 summary(m0 - m2)
 
+apply(m0 - m2, 2, quantile, c(0.025, 0.975))
+
 ## interval comparisons
 t02 <- m0
 t02[] <- 0
@@ -1131,6 +1181,9 @@ for (i in 1:nrow(t02)) {
 }
 sum(t02)
 t02[unique(row(t02)[t02 > 0]),]
+100*colSums(t02[unique(row(t02)[t02 > 0]),]) / nrow(t02)
+
+sapply(resDurOK, "[[", "n")[rownames(t02[unique(row(t02)[t02 > 0]),])]
 
 pdf("~/GoogleWork/bam/duration_ms/revisionMay2018/revisit.pdf",
     height=0.8*7, width=0.8*10)
@@ -1158,7 +1211,7 @@ for (k in 1:6) {
          xlab="With revisits", ylab="Without revisits",
         pch=19, cex=1, col="#00000040")
     abline(0,1, lty=2)
-    abline(lm(v2 ~ v0), lty=1, col=2)
+    abline(lm(v2 ~ v0), lty=1, col=1)
     #points(v0[t02[,k] > 0], v2[t02[,k] > 0], col=2, pch=19)
 }
 par(mfrow=c(1,1))
@@ -1169,4 +1222,24 @@ img <- image_read("~/GoogleWork/bam/duration_ms/revisionMay2018/revisit.pdf",
     density=300)
 image_write(img, format = "png",
     path = "~/GoogleWork/bam/duration_ms/revisionMay2018/revisit.png")
+
+
+library(mefa4)
+tb <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2018/Appendix-table.csv")
+rownames(tb) <- rb$spp
+tb$cn <- tb$common_name
+levels(tb$cn)[levels(tb$cn) == "Le Conte's Sparrow"] <- "LeConte's Sparrow"
+
+tb2 <- read.csv("~/GoogleWork/bam/duration_ms/revisionMay2018/NACC_list_species.csv")
+tb2$rank <- 1:nrow(tb2)
+compare_sets(tb$cn, tb2$common_name)
+setdiff(tb$common_name, tb2$common_name)
+
+tb$rank <- tb2$rank[match(tb$cn, tb2$common_name)]
+tb$species <- tb2$species[match(tb$cn, tb2$common_name)]
+write.csv(tb, row.names=FALSE,
+    "~/GoogleWork/bam/duration_ms/revisionMay2018/Appendix-table-rank.csv")
+
+
+
 
