@@ -985,6 +985,16 @@ plot(x$Tadj, x$Uinv)
 summary(x$Uinv/x$Tadj)
 summary(x$Uadj/x$Tadj)
 
+## revises stats for PIF
+spt <- read.csv("~/GoogleWork/bam/duration_ms/revisionMarch2017/internal/Appendix-table-pif.csv")
+rownames(spt) <- spt$spp
+x <- spt[!is.na(spt$tadj),c("tadj","Inv_p3best","Inv_p3bestadj")]
+colnames(x) <- c("Tadj", "Uinv", "Uadj")
+x <- x[!(rownames(x) %in% c("RUBL","EABL")),]
+nrow(x)
+summary(x)
+cor.test(x$Tadj, x$Uinv, method="spearman")
+
 ## Migratory status
 
 if (FALSE) {
