@@ -156,6 +156,56 @@ legend("bottomright", col=4, lty=c(2,1), legend=c("NULL", "Clim"), bty="n")
 par(op)
 
 ## regional ROC
+
+## Boreal/Hemiboreal
+e <- new.env()
+load("e:/peter/bam/Apr2016/out/data_package_2016-12-01.Rdata", envir=e)
+xn$BOR <- e$SS$BOREALLOC[match(DAT$SS, e$SS$SS)]
+table(xn$BOR, useNA="a")
+
+aucfun <- function(i, VAR, REG="All", mode=c("internal", "external", "both")) {
+    if (REG == "All")
+        REG <- levels(VAR)
+    if (mode == "internal") {
+        ppp <- mn_in[,i] * exp(off1[ss2])
+        yyy <- Y1[ss2]
+        sss <- VAR[ss2] %in% REG
+    }
+    if (mode == "external") {
+        ppp <- mn[,i] * exp(off1[ss1])
+        yyy <- Y1[ss1]
+        sss <- VAR[ss1] %in% REG
+    }
+    if (mode == "both") {
+        ppp <- c(mn_in[,i] * exp(off1[ss2]), mn[,i] * exp(off1[ss1]))
+        yyy <- c(Y1[ss2], Y1[ss1])
+        sss <- VAR[c(ss2, ss1)] %in% REG
+    }
+    simple_roc(yyy[sss], ppp[sss])
+}
+rocB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR, REG="BOREAL", mode="external"))
+rocHB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR, REG="HEMIBOREAL", mode="external"))
+rocA <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR, REG="All", mode="external"))
+aucB <- sapply(rocB, simple_auc)
+aucHB <- sapply(rocHB, simple_auc)
+aucA <- sapply(rocA, simple_auc)
+
+par(las=1)
+plot(aucA[1:7], 0:6, type="n",
+    xlim=c(0.4, 1), ylim=c(0, 7), axes=FALSE,
+    pch=19, col=1, xlab="AUC", ylab="Model Stages")
+for (i in 0:6)
+    lines(c(0.4, 1), c(i,i), col="grey")
+lines(aucA[1:7],0:6,  col=1, pch=19, type="b", lty=1)
+lines(aucB[1:7],0:6,  col=1, pch=5, type="b", lty=2)
+lines(aucHB[1:7],0:6,  col=1, pch=6, type="b", lty=2)
+axis(1)
+axis(2, 0:6, c("Null", names(mods)[1:6]), tick=FALSE, line=FALSE)
+text(aucA[7], 5.5, "All", pos=2)
+text(aucB[7], 5.5, "Boreal", pos=2)
+text(aucHB[7], 6.5, "Hemiboreal")
+
+
 ## need to use all the data: only 2 regions with enough validation points
 
 table(xn$Units,Y1)
