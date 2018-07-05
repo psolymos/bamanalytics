@@ -279,8 +279,8 @@ rownames(XY3) <- XY3$subreg
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 
 PROJECT <- "bam"
-#Date <- "2016-12-01"
-Date <- "2017-01-27"
+Date <- "2016-12-01"
+#Date <- "2017-01-27"
 
 ## observations
 e <- new.env()
@@ -641,6 +641,55 @@ legend("topright", bty = "n", legend=rev(TEXT),
     title=paste(spp, "diff bfill-2012"))
 par(op)
 dev.off()
+
+## try diffs
+
+df <- x2-x1
+br1 <- seq(min(df), 0, length.out=6)
+br2 <- seq(0, max(df), length.out=6)
+br <- c(br1[c(1,3,5)], br2[c(2,4,6)])
+br
+zval <- cut(df, br, include.lowest=TRUE, labels=FALSE)
+table(zval)
+Col <- brewer.pal(max(zval), "RdYlGn")
+png(file.path(ROOT3, "maps", paste0("NEW_diff_12-02_", fo, ".png")),
+    width = 2000, height = 1000)
+op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",type="n",
+    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
+points(XY2all[zval==3,c("POINT_X","POINT_Y")], col = Col[3], pch=".")
+points(XY2all[zval!=3,c("POINT_X","POINT_Y")], col = Col[zval[zval!=3]], pch=".")
+TEXT <- paste0(round(br[-length(br)],3), ", ", round(br[-1],3))
+legend("topright", bty = "n", legend=rev(TEXT),
+    fill=rev(Col), border=1, cex=3,
+    title=paste(spp, "diff 2002-2012"))
+par(op)
+dev.off()
+
+df <- x2-x0
+br1 <- seq(min(df), 0, length.out=6)
+br2 <- seq(0, max(df), length.out=6)
+br <- c(br1[c(1,3,5)], br2[c(2,4,6)])
+br
+zval <- cut(df, br, include.lowest=TRUE, labels=FALSE)
+table(zval)
+Col <- brewer.pal(max(zval), "RdYlGn")
+png(file.path(ROOT3, "maps", paste0("NEW_diff_12-bf_", fo, ".png")),
+    width = 2000, height = 1000)
+op <- par(mfrow=c(1,1), mar=c(1,1,1,1)+0.1)
+plot(XY[!XY$studyarea,1:2], col = "lightgrey", pch=".",type="n",
+    ann=FALSE, axes=FALSE, xlim=range(XY$POINT_X), ylim=range(XY$POINT_Y))
+points(XY2all[zval==3,c("POINT_X","POINT_Y")], col = Col[3], pch=".")
+points(XY2all[zval!=3,c("POINT_X","POINT_Y")], col = Col[zval[zval!=3]], pch=".")
+TEXT <- paste0(round(br[-length(br)],3), ", ", round(br[-1],3))
+legend("topright", bty = "n", legend=rev(TEXT),
+    fill=rev(Col), border=1, cex=3,
+    title=paste(spp, "diff bf-2012"))
+par(op)
+dev.off()
+
+
+
 
 
 ## --
