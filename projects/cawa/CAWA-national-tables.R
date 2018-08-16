@@ -91,29 +91,19 @@ CAN <- c("ALBERTA", "BRITISH COLUMBIA", "MANITOBA",
 p0 <- fstat(colSums(x0[,ci])/10^6, level)
 p1 <- fstat(colSums(x1[,ci])/10^6, level)
 p2 <- fstat(colSums(x2[,ci])/10^6, level)
-write.csv(cbind("nss"=sum(x2[,"nSSinSubreg"]), "ndet"=sum(x2[,"nDETinSubreg"]),
-    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
-    file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_full.csv")
+round(tmp <- cbind("nss"=sum(x2[,"nSSinSubreg"]), "ndet"=sum(x2[,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), 2)
+write.csv(tmp, file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_full.csv")
 fstat(100*((colSums(x2[,ci])/colSums(x1[,ci]))^(1/(2012-2002)) -1), level)
-
-## Canada
-ss <- x2$JURS %in% CAN
-p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
-p1 <- fstat(colSums(x1[ss,ci])/10^6, level)
-p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
-write.csv(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
-    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
-    file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Canada.csv")
-fstat(100*((colSums(x2[ss,ci])/colSums(x1[ss,ci]))^(1/(2012-2002)) -1), level)
 
 ## Boreal
 ss <- x2$Brandt %in% c("B_ALPINE","BOREAL")
 p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
 p1 <- fstat(colSums(x1[ss,ci])/10^6, level)
 p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
-write.csv(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
-    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
-    file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Boreal.csv")
+round(tmp <- cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), 2)
+write.csv(tmp, file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Boreal.csv")
 fstat(100*((colSums(x2[ss,ci])/colSums(x1[ss,ci]))^(1/(2012-2002)) -1), level)
 
 ## Hemiboreal
@@ -121,9 +111,19 @@ ss <- x2$Brandt %in% c("H_ALPINE","HEMIBOREAL")
 p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
 p1 <- fstat(colSums(x1[ss,ci])/10^6, level)
 p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
-write.csv(cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
-    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)),
-    file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Hemiboreal.csv")
+round(tmp <- cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), 2)
+write.csv(tmp, file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Hemiboreal.csv")
+fstat(100*((colSums(x2[ss,ci])/colSums(x1[ss,ci]))^(1/(2012-2002)) -1), level)
+
+## Canada
+ss <- x2$JURS %in% CAN
+p0 <- fstat(colSums(x0[ss,ci])/10^6, level)
+p1 <- fstat(colSums(x1[ss,ci])/10^6, level)
+p2 <- fstat(colSums(x2[ss,ci])/10^6, level)
+round(tmp <- cbind("nss"=sum(x2[ss,"nSSinSubreg"]), "ndet"=sum(x2[ss,"nDETinSubreg"]),
+    rbind("Backfilled"=p0, "2002"=p1, "2012"=p2)), 2)
+write.csv(tmp, file="e:/peter/bam/Apr2016/out/cawa/cawa-pop-est_Canada.csv")
 fstat(100*((colSums(x2[ss,ci])/colSums(x1[ss,ci]))^(1/(2012-2002)) -1), level)
 
 ## By jurisdiction (2012 conditions, within study area)
@@ -158,7 +158,6 @@ write.csv(by_bcrjurs,
 
 ### Canada
 
-```{r echo=FALSE}
 trall <- read.csv("e:/peter/bam/Apr2016/out/cawa/cawa-trend-2016-12-01.csv")
 tdall <- read.csv("e:/peter/bam/Apr2016/out/cawa/cawa-det-2016-12-01.csv")
 tr1 <- trall[trall$Country != "",]
@@ -166,11 +165,9 @@ tr1 <- tr1[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")]
 colnames(tr1) <- c("Data", "Mean", "Median", "LCL", "UCL")
 tr1$ndet <- colSums(tdall[tdall$Country=="CAN", c("ndet_all", "ndet_bam", "ndet_bbs")])
 kable(tr1)
-```
 
 ### BCR
 
-```{r echo=FALSE}
 tr2 <- trall[!is.na(trall$BCR),]
 tr2 <- data.frame(BCR=tr2$BCR, tr2[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")])
 colnames(tr2) <- c("BCR", "Data", "Mean", "Median", "LCL", "UCL")
@@ -182,11 +179,9 @@ tr2$ndet <- nn$value[match(paste(tr2$Data, tr2$BCR), paste(nn$cols, nn$rows))]
 tr2$ndet[is.na(tr2$ndet)] <- 0
 tr2 <- tr2[tr2$ndet > 0,]
 kable(tr2[order(tr2$BCR, tr2$Data),], row.names=FALSE)
-```
 
 ### Jurisdiction
 
-```{r echo=FALSE}
 tr3 <- trall[trall$PROV != "",]
 tr3 <- data.frame(Jurisdiction=tr3$PROV, tr3[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")])
 colnames(tr3) <- c("Jurisdiction", "Data", "Mean", "Median", "LCL", "UCL")
@@ -198,12 +193,10 @@ tr3$ndet <- nn$value[match(paste(tr3$Data, tr3$Jurisdiction), paste(nn$cols, nn$
 tr3$ndet[is.na(tr3$ndet)] <- 0
 tr3 <- tr3[tr3$ndet > 0,]
 kable(tr3[order(tr3$Jurisdiction, tr3$Data),], row.names=FALSE)
-```
 
 
 ### BCR & Jurisdiction
 
-```{r echo=FALSE}
 tr4 <- trall[trall$BCRPROV != "",]
 tr4 <- data.frame(BCRJurs=tr4$BCRPROV, tr4[,c("Data", "Mean", "Median", "X2.5.", "X97.5.")])
 colnames(tr4) <- c("BCRJurs", "Data", "Mean", "Median", "LCL", "UCL")
@@ -215,5 +208,4 @@ tr4$ndet <- nn$value[match(paste(tr4$Data, tr4$BCRJurs), paste(nn$cols, nn$rows)
 tr4$ndet[is.na(tr4$ndet)] <- 0
 tr4 <- tr4[tr4$ndet > 0,]
 kable(tr4[order(tr4$BCRJurs, tr4$Data),], row.names=FALSE)
-```
 

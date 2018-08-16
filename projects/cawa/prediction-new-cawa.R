@@ -87,7 +87,11 @@ colnames(Xn) <- fixNames(colnames(Xn))
 rm(e)
 
 st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
-regs <- levels(st$LEVEL3)
+regs0 <- levels(st$LEVEL3)
+inout <- read.csv("~/repos/bamanalytics/lookup/EcoregionsMaskYesNo.csv")
+regs <- unique(as.character(inout[inout$Mask=="No","LEVEL3"])) # 8.1.10 ???
+regs <- regs[regs != "Water"]
+regs <- regs[regs != "8.1.10"]
 #regs <- c("2.1.9", "2.2.1", "2.2.2", "2.3.1", "2.4.1", "2.4.2", "2.4.4",
 #    "3.1.1", "3.1.3", "3.2.1", "3.2.3", "3.3.1", "3.4.5", "6.1.1")
 
@@ -117,6 +121,7 @@ est <- getEst(res, stage = Stage, X=Xn)
 B_use <- min(B_use, nrow(est))
 
 #regi <- "10.1.1"
+#regi <- "8.1.10"
 for (regi in regs) {
 
 cat(spp, regi, BASE_YEAR, ifelse(bfill, "bfill", "no-bfill"), "\n");flush.console()
@@ -265,7 +270,11 @@ save(XY, file=file.path(ROOT3, "allXY.Rdata"))
 load(file.path(ROOT3, "allXY.Rdata"))
 XY$subreg <- as.factor(paste(XY$LEVEL3, XY$BCR, XY$JURS, XY$Brandt, sep=" + "))
 st <- read.csv(file.path("e:/peter/bam/Apr2016", "BAMCECStudyAreaEcoregionLevel2.csv"))
-regs <- levels(st$LEVEL3)
+#regs <- levels(st$LEVEL3)
+inout <- read.csv("~/repos/bamanalytics/lookup/EcoregionsMaskYesNo.csv")
+regs <- unique(as.character(inout[inout$Mask=="No","LEVEL3"])) # 8.1.10 ???
+regs <- regs[regs != "Water"]
+regs <- regs[regs != "8.1.10"]
 XY$studyarea <- XY$LEVEL3 %in% regs
 #summary(XY)
 gc()
