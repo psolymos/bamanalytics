@@ -210,6 +210,23 @@ levels(DAT$JURS2)[levels(DAT$JURS2) %in% c("NS","PEI")] <- "NS+PEI"
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 DAT$BCRPROV2 <- interaction(DAT$BCR, DAT$JURS2, drop=TRUE, sep="_")
 
+## NS and PEI as separate
+tres_nspei <- list()
+tres_nspei[["off-NS"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "NS", part="off")
+tres_nspei[["all-NS"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "NS", part="all")
+tres_nspei[["bbs-NS"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "NS", part="bbs")
+tres_nspei[["bam-NS"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "NS", part="bam")
+tres_nspei[["off-PEI"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "PEI", part="off")
+tres_nspei[["all-PEI"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "PEI", part="all")
+tres_nspei[["bbs-PEI"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "PEI", part="bbs")
+tres_nspei[["bam-PEI"]] <- pbsapply(1:240, yr_fun, subset=DAT$JURSALPHA == "PEI", part="bam")
+sapply(tres_nspei, fstat)
+save(tres_nspei,
+    file=paste0("e:/peter/bam/Apr2016/out/cawa/trend-est-full-NSandPEIseparate.Rdata"))
+
+
+
+
 PART <- "off" # "all","bbs","bam","off"
 
 tres_can <- pbsapply(1:240, yr_fun, subset=DAT$COUNTRY == "CAN", part=PART)
