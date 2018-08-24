@@ -22,6 +22,7 @@ e <- new.env()
 load(file.path(ROOT, "data", "pack_2016-12-01.Rdata"), envir=e)
 #load(file.path(ROOT, "data", "pack_2017-04-19.Rdata"), envir=e)
 
+DAT <- e$DAT
 mods <- e$mods
 Terms <- getTerms(e$mods, "list")
 setdiff(Terms, colnames(e$DAT))
@@ -161,10 +162,17 @@ par(op)
 e <- new.env()
 load("e:/peter/bam/Apr2016/out/data_package_2016-12-01.Rdata", envir=e)
 xn$BOR <- e$SS$BOREALLOC[match(DAT$SS, e$SS$SS)]
+xn$JURS <- DAT$JURS
+xn$EW <- ifelse(DAT$X < (-97), "W", "E")
 table(xn$BOR, useNA="a")
+table(xn$JURS, xn$EW, useNA="a")
+table(xn$BOR, xn$EW, useNA="a")
+xn$EWBOR <- paste0(xn$EW, "::", xn$BOR)
+table(xn$EWBOR[ss1],Y1[ss1])
+table(xn$EWBOR,Y1)
 
 aucfun <- function(i, VAR, REG="All", mode=c("internal", "external", "both")) {
-    if (REG == "All")
+    if (REG[1] == "All")
         REG <- levels(VAR)
     if (mode == "internal") {
         ppp <- mn_in[,i] * exp(off1[ss2])
@@ -183,27 +191,55 @@ aucfun <- function(i, VAR, REG="All", mode=c("internal", "external", "both")) {
     }
     simple_roc(yyy[sss], ppp[sss])
 }
-rocB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR, REG="BOREAL", mode="external"))
-rocHB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR, REG="HEMIBOREAL", mode="external"))
-rocA <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR, REG="All", mode="external"))
-aucB <- sapply(rocB, simple_auc)
-aucHB <- sapply(rocHB, simple_auc)
-aucA <- sapply(rocA, simple_auc)
+rocA <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR,
+    REG="All", mode="external"))
+rocEA <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$EW,
+    REG="E", mode="external"))
+rocWA <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$EW,
+    REG="W", mode="external"))
+rocB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR,
+    REG=c("BOREAL", "B_ALPINE"), mode="external"))
+rocHB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$BOR,
+    REG=c("HEMIBOREAL", "H_ALPINE"), mode="external"))
+rocEB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$EWBOR,
+    REG=c("E::BOREAL", "E::B_ALPINE"), mode="external"))
+rocEHB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$EWBOR,
+    REG=c("E::HEMIBOREAL", "E::H_ALPINE"), mode="external"))
+rocWB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$EWBOR,
+    REG=c("W::BOREAL", "W::B_ALPINE"), mode="external"))
+rocWHB <- pblapply(1:ncol(mn), function(i) aucfun(i, VAR=xn$EWBOR,
+    REG=c("W::HEMIBOREAL", "W::H_ALPINE"), mode="external"))
+auctab <- data.frame(A = sapply(rocA, simple_auc),
+    EA = sapply(rocEA, simple_auc),
+    WA = sapply(rocWA, simple_auc),
+    B = sapply(rocB, simple_auc),
+    HB = sapply(rocHB, simple_auc),
+    EB = sapply(rocEB, simple_auc),
+    EHB = sapply(rocEHB, simple_auc),
+    WB = sapply(rocWB, simple_auc),
+    WHB = sapply(rocWHB, simple_auc))
 
-par(las=1)
+
+
+par(las=1, mar=c(5,6,2,2))
 plot(aucA[1:7], 0:6, type="n",
-    xlim=c(0.4, 1), ylim=c(0, 7), axes=FALSE,
+    xlim=c(0.5, 1), ylim=c(0, 6), axes=FALSE,
     pch=19, col=1, xlab="AUC", ylab="Model Stages")
 for (i in 0:6)
     lines(c(0.4, 1), c(i,i), col="grey")
-lines(aucA[1:7],0:6,  col=1, pch=19, type="b", lty=1)
-lines(aucB[1:7],0:6,  col=1, pch=5, type="b", lty=2)
-lines(aucHB[1:7],0:6,  col=1, pch=6, type="b", lty=2)
+lines(auctab[1:7,"A"],0:6,  col=1, pch=19, type="b", lty=1)
+lines(auctab[1:7, "B"],0:6,  col=1, pch=5, type="b", lty=2)
+lines(auctab[1:7, "HB"],0:6,  col=1, pch=6, type="b", lty=2)
+lines(auctab[1:7,"EA"],0:6,  col=1, pch=3, type="b", lty=3)
+lines(auctab[1:7,"WA"],0:6,  col=1, pch=4, type="b", lty=3)
 axis(1)
-axis(2, 0:6, c("Null", names(mods)[1:6]), tick=FALSE, line=FALSE)
-text(aucA[7], 5.5, "All", pos=2)
-text(aucB[7], 5.5, "Boreal", pos=2)
-text(aucHB[7], 6.5, "Hemiboreal")
+axis(2, 0:6,
+    paste(0:6, c("Null", names(mods)[1:6])), tick=FALSE, line=FALSE, cex=0.9)
+legend("topleft", pch=c(19,5,6,3,4), lty=c(1,2,2,3,3), legend=c("All",
+    "Boreal", "Hemiboreal", "East", "West"), bg="white")
+#text(aucA[7], 5.5, "All", pos=2)
+#text(aucB[7], 5.5, "Boreal", pos=2)
+#text(aucHB[7], 6.5, "Hemiboreal")
 
 
 ## need to use all the data: only 2 regions with enough validation points
@@ -349,12 +385,12 @@ par(op)
 pro <- table(Y[ss1])/length(ss1)
 op <- par(mfrow=c(1,2))
 tmp <- boxplot(mn[,"NULL"] * exp(off1[ss1]) ~ Y[ss1], range=0,
-    at=cumsum(2*pro^0.2), width=2*pro^0.2, main="NULL",
-    xlab="Observed count", ylab="Density", col="grey",
+    at=cumsum(2*pro^0.2), width=2*pro^0.2, main="Null",
+    xlab="Observed count", ylab="Predicted density (males/ha)", col="grey",
     ylim=c(0, max(mn)))
 boxplot(mn[,"Clim"] * exp(off1[ss1]) ~ Y[ss1], range=0,
-    at=cumsum(2*pro^0.2), width=2*pro^0.2, main="Clim",
-    xlab="Observed count", ylab="Density", col="grey",
+    at=cumsum(2*pro^0.2), width=2*pro^0.2, main="Full",
+    xlab="Observed count", ylab="Predicted density (males/ha)", col="grey",
     ylim=c(0, max(mn)))
 par(op)
 

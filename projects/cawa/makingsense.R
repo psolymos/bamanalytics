@@ -148,12 +148,15 @@ colnames(pr) <- rownames(xn2)
 
 pr <- pr[,order(colMeans(pr))]
 
-op <- par(mar=c(5,8,2,2), las=1)
-boxplot(pr, horizontal=TRUE, range=0,
-    xlab="Expected density (males / ha)",
-    col=rev(terrain.colors(ncol(pr))),
-    main=spp)
-par(op)
+op <- par(mar=c(8,5,2,2), las=2, mfrow=c(1,2))
+boxplot(pr, horizontal=FALSE, range=0,
+    ylab="Predicted density (males/ha)",
+    #col=rev(terrain.colors(ncol(pr))),
+    col="white", border="white", ylim=c(0,0.09))
+points(1:ncol(pr), apply(pr, 2, median), pch=19, cex=1.2)
+dclone::errlines(1:ncol(pr), t(apply(pr, 2, quantile, c(0.025, 0.975))),
+    code=3, vertical=TRUE, width=0.2, lwd=2)
+#par(op)
 
 
 HGT <- seq(0,1,by=0.01)
@@ -174,12 +177,12 @@ xn2$lcl <- apply(pr, 2, quantile, 0.05)
 xn2$ucl <- apply(pr, 2, quantile, 0.95)
 
 lam <- t(matrix(xn2$Density, nrow=4))
-op <- par(las=1)
-matplot(HGT*25, lam, type="l", lwd=2, ylim=c(0, 1.2*max(lam)),
-    ylab="Density (males/ha)", xlab="Height (m)", main=spp,
+#op <- par(mar=c(8,5,2,2), las=1)
+matplot(HGT*25, lam, type="l", lwd=2, ylim=c(0, 0.09),
+    ylab="Predicted density (males/ha)", xlab="Canopy height (m)",
     col=1:4, lty=1)
-legend("topright",
-    lty=1, lwd=2, bty="n", col=1:4, legend=c("Conif", "Decid", "Mixed", "Wet"))
+legend("topleft",
+    lty=1, lwd=2, bty="n", col=1:4, legend=paste0(c("Conif", "Decid", "Mixed", "Wet"), "Dense"))
 par(op)
 
 
