@@ -218,11 +218,11 @@ auctab <- data.frame(A = sapply(rocA, simple_auc),
     EHB = sapply(rocEHB, simple_auc),
     WB = sapply(rocWB, simple_auc),
     WHB = sapply(rocWHB, simple_auc))
-
+rownames(auctab) <- c("Null", names(mods))
 
 
 par(las=1, mar=c(5,6,2,2))
-plot(aucA[1:7], 0:6, type="n",
+plot(auctab[1:7,"A"], 0:6, type="n",
     xlim=c(0.5, 1), ylim=c(0, 6), axes=FALSE,
     pch=19, col=1, xlab="AUC", ylab="Model Stages")
 for (i in 0:6)

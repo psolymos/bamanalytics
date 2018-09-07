@@ -74,13 +74,14 @@ pr <- exp(sapply(1:nrow(est), function(j)
     est[j,col_keep]))
 
 DAT <- droplevels(SS01[match(xn$SS, rownames(SS01)),
-    c("PCODE", "SS", "X_CLCC", "Y_CLCC", "X_GEONAD83", "Y_GEONAD83",
+    c("PCODE", "SS", "X_GEONAD83", "X_CLCC", "Y_CLCC", "X_GEONAD83", "Y_GEONAD83",
     "JURSALPHA", "BOREALLOC", "BCR", "CECLEVEL3", "COUNTRY")])
 rownames(DAT) <- rownames(xn)
 DAT$Y <- Y
 DAT$off <- off1
 DAT$YR <- xn$YR
 DAT$D <- rowMeans(pr)
+DAT$EW <- ifelse(DAT$X_GEONAD83 < (-97), "W", "E")
 DAT$BCRPROV <- interaction(DAT$BCR, DAT$JURSALPHA, drop=TRUE, sep="_")
 BBS_PCODE <- levels(DAT$PCODE)[substr(levels(DAT$PCODE), 1, 3) == "BBS"]
 DAT$isBBS <- DAT$PCODE %in% BBS_PCODE
@@ -176,6 +177,18 @@ dat_hem <- dat_fun(1,
     subset=DAT$BOREALLOC %in% c("H_ALPINE", "HEMIBOREAL"), part=PART)
 dat_all[[PART]] <- list(Full=dat_full, Canada=dat_can, Boreal=dat_bor, Hemiboreal=dat_hem)
 }
+
+for (PART in c("all","bbs","bam","off")) {
+cat(PART, "\tEast\n");flush.console();gc()
+tres_all[[PART]][["East"]] <- pbsapply(1:240, yr_fun, subset=DAT$EW == "E", part=PART)
+cat(PART, "\tWest\n");flush.console();gc()
+tres_all[[PART]][["West"]] <-  pbsapply(1:240, yr_fun, subset=DAT$EW == "W", part=PART)
+}
+for (PART in c("all","bbs","bam","off")) {
+dat_all[[PART]][["East"]] <- dat_fun(1, subset=DAT$EW == "E", part=PART)
+dat_all[[PART]][["West"]] <- dat_fun(1, subset=DAT$EW == "W", part=PART)
+}
+
 save(tres_all, dat_all, file="e:/peter/bam/Apr2016/out/cawa/trend-est-broad.Rdata")
 
 load("e:/peter/bam/Apr2016/out/cawa/trend-est-broad.Rdata")
