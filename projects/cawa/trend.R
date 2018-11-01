@@ -237,7 +237,91 @@ sapply(tres_nspei, fstat)
 save(tres_nspei,
     file=paste0("e:/peter/bam/Apr2016/out/cawa/trend-est-full-NSandPEIseparate.Rdata"))
 
+## BBS runs -- same subset as official method (A Smith)
 
+rt <- read.csv("e:/peter/bam/cawa-ms/bbs-trend/Canada Warbler prebugsdata.csv")
+
+## map rt$strat.name to PCODE
+rt$PCODE2 <- rt$strat.name
+#levels(rt$PCODE) <- c("Alberta-BCR6", "MAINE-BCR14", "Manitoba-BCR12", "Manitoba-BCR6",
+#    "Manitoba-BCR8", "MICHIGAN-BCR12", "MINNESOTA-BCR12", "New Brunswick-BCR14",
+#    "NEW YORK-BCR13", "Nova Scotia Prince Edward Island-BCR14", "Ontario-BCR12",
+#    "Ontario-BCR13", "Ontario-BCR8", "Quebec-BCR12", "Quebec-BCR13",
+#    "Quebec-BCR14", "Quebec-BCR8", "Saskatchewan-BCR6", "VERMONT-BCR14",
+#    "WISCONSIN-BCR12")
+levels(rt$PCODE2) <- c("BBSAB", "BBSME", "BBSMB", "BBSMB",
+    "BBSMB", "BBSMI", "BBSMN", "BBSNB",
+    "BBSNY", "BBSNSPEI", "BBSON",
+    "BBSON", "BBSON", "BBSQC", "BBSQC",
+    "BBSQC", "BBSQC", "BBSSK", "BBSVT",
+    "BBSWI")
+tmp <- sapply(strsplit(as.character(rt$route), "-"), function(z) z[2])
+rt$BBSroute <- paste0(rt$PCODE2, ":", tmp)
+## BBSPEI and BBSNS needs to be treated the same
+DAT$PCODE2 <- DAT$PCODE
+levels(DAT$PCODE2)[levels(DAT$PCODE2) %in% c("BBSPEI","BBSNS")] <- "BBSNSPEI"
+
+DAT$BBSroute <- as.character("none")
+tmp <- sapply(strsplit(as.character(DAT$SS), ":"), function(z) z[2])
+DAT$BBSroute[DAT$isBBS] <- paste0(DAT$PCODE2[DAT$isBBS], ":", tmp[DAT$isBBS])
+
+DAT$useBBS <- DAT$BBSroute %in% rt$BBSroute
+table(BBS=DAT$isBBS, Subset=DAT$useBBS)
+table(BBS=DAT$Y, Subset=DAT$useBBS)
+
+compare_sets(DAT$BBSroute, rt$BBSroute)
+
+tres_usebbs <- list()
+tres_usebbs[["All"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS, part="bbs")
+tres_usebbs[["Can"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS & DAT$COUNTRY == "CAN", part="bbs")
+tres_usebbs[["US"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS & DAT$COUNTRY != "CAN", part="bbs")
+tres_usebbs[["BCR6"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS & DAT$BCR == 6, part="bbs")
+tres_usebbs[["BCR14"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS & DAT$BCR == 14, part="bbs")
+tres_usebbs[["BCR12"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS & DAT$BCR == 12, part="bbs")
+tres_usebbs[["BCR8"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS & DAT$BCR == 8, part="bbs")
+tres_usebbs[["BCR13"]] <- pbsapply(1:240, yr_fun, subset=DAT$useBBS & DAT$BCR == 13, part="bbs")
+
+fstat <- function(x, level=0.95, digits=3) {
+    round(c(Mean=mean(x, na.rm=TRUE),
+    Median=median(x, na.rm=TRUE),
+    quantile(x, c((1-level)/2, 1 - (1-level)/2), na.rm=TRUE)), digits)
+}
+t(sapply(tres_usebbs, fstat))
+
+tres_usebbs2 <- list()
+tres_usebbs2[["All"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS, part="bbs")
+tres_usebbs2[["Can"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS & DAT$COUNTRY == "CAN", part="bbs")
+tres_usebbs2[["US"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS & DAT$COUNTRY != "CAN", part="bbs")
+tres_usebbs2[["BCR6"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS & DAT$BCR == 6, part="bbs")
+tres_usebbs2[["BCR14"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS & DAT$BCR == 14, part="bbs")
+tres_usebbs2[["BCR12"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS & DAT$BCR == 12, part="bbs")
+tres_usebbs2[["BCR8"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS & DAT$BCR == 8, part="bbs")
+tres_usebbs2[["BCR13"]] <- pbsapply(1:240, yr_fun, subset=DAT$isBBS & DAT$BCR == 13, part="bbs")
+
+t(sapply(tres_usebbs, fstat))
+t(sapply(tres_usebbs2, fstat))
+
+save(tres_usebbs, tres_usebbs2,
+    file=paste0("e:/peter/bam/Apr2016/out/cawa/trend-est-BBSsubset.Rdata"))
+
+         Mean  Median    2.5%  97.5%
+All     0.147   0.208  -1.987  2.242
+US      4.046   4.054  -3.201 11.597
+Can    -2.728  -2.723  -4.917 -0.640
+BCR6  -14.201 -14.262 -19.191 -9.164
+BCR14   6.935   7.073   2.314 11.273
+BCR12   2.599   2.593   0.121  5.495
+BCR8   -7.468  -7.737 -12.365 -1.213
+BCR13  -2.814  -2.981 -11.845  7.339
+
+ 0.150030325	-2.383032197	2.60523833
+ 1.285928305	-2.002833323	5.311612216
+-0.255788058	-3.103125137	2.394002052
+-0.682768956	-5.342919169	4.321161989
+-1.540443373	-4.720538597	1.238955143
+ 1.467685744	-1.32241603	    4.753110659
+-0.443063439	-4.652723716	3.116792189
+ 0.189393728	-4.562392786	4.523406124
 
 
 PART <- "off" # "all","bbs","bam","off"
