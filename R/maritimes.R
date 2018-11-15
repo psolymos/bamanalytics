@@ -10,7 +10,7 @@
 #### Processing geospatial data for sampling locations
 
 ## Define root folder where data are stored
-ROOT <- "c:/bam/May2015"
+ROOT <- "d:/bam/May2015"
 library(mefa4)
 ## Load data files
 ## use new files
@@ -245,10 +245,10 @@ save(dcawa, drubl, dosfl, BB,
 
 #### Read in the data set
 
-ROOT <- "c:/bam/May2015"
+ROOT <- "d:/bam/May2015"
 library(mefa4)
-#load(file.path(ROOT, "out", "maritimes_3spp.Rdata"))
-load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
+load(file.path(ROOT, "out", "maritimes_3spp.Rdata"))
+#load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/maritimes_mods.R")
 
@@ -473,38 +473,40 @@ res_osfl_C <- wg_fun_mar(i="OSFL", mods=modsC, B=B,
 
 #### Loading the data and results
 
-load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
+library(mefa4)
+load(file.path("d:/bam/May2015", "out", "maritimes_3spp.Rdata"))
+#load("~/Dropbox/bam/maritimes2015/maritimes_3spp.Rdata")
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/maritimes_mods.R")
 source("~/repos/bamanalytics/R/makingsense_functions.R")
 
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesA_CAWA_Allrun.Rdata"))
 cawa <- list(A=res)
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesB_CAWA_Allrun.Rdata"))
 cawa$B <- res
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesC_CAWA_Allrun.Rdata"))
 cawa$C <- res
 
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesA_RUBL_Allrun.Rdata"))
 rubl <- list(A=res)
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesB_RUBL_Allrun.Rdata"))
 rubl$B <- res
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesC_RUBL_Allrun.Rdata"))
 rubl$C <- res
 
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesA_OSFL_Allrun.Rdata"))
 osfl <- list(A=res)
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesB_OSFL_Allrun.Rdata"))
 osfl$B <- res
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesC_OSFL_Allrun.Rdata"))
 osfl$C <- res
 
@@ -697,4 +699,71 @@ sessionInfo()
 ## This little utility is used to turn this plain text file into
 ## a human readable documentation
 #mefa4::r2rmd("~/repos/bamanalytics/R/maritimes.R")
+
+## GoF box plots and AUC
+
+simple_roc <- function(labels, scores){
+  labels <- labels[order(scores, decreasing=TRUE)]
+  data.frame(TPR=cumsum(labels)/sum(labels), FPR=cumsum(!labels)/sum(!labels), labels)
+}
+simple_auc <- function(ROC) {
+    ROC$inv_spec <- 1-ROC$FPR
+    dx <- diff(ROC$inv_spec)
+    sum(dx * ROC$TPR[-1]) / sum(dx)
+}
+fun <- function(y1sp, pr) {
+    simple_auc(simple_roc(ifelse(y1sp > 0, 1, 0), pr))
+}
+
+prcawaAm <- exp(XnA %*% t(cfcawaA) + dcawa$off)
+prcawaBm <- exp(XnB %*% t(cfcawaB) + dcawa$off)
+prcawaCm <- exp(XnC %*% t(cfcawaC) + dcawa$off)
+
+prosflAm <- exp(XnA %*% t(cfosflA) + dosfl$off)
+prosflBm <- exp(XnB %*% t(cfosflB) + dosfl$off)
+prosflCm <- exp(XnC %*% t(cfosflC) + dosfl$off)
+
+prcawaA <- rowMeans(prcawaAm)
+prcawaB <- rowMeans(prcawaBm)
+prcawaC <- rowMeans(prcawaCm)
+
+prosflA <- rowMeans(prosflAm)
+prosflB <- rowMeans(prosflBm)
+prosflC <- rowMeans(prosflCm)
+
+AUC <- c(CAWA_A=fun(dcawa$spp, prcawaA),
+    CAWA_B=fun(dcawa$spp, prcawaB),
+    CAWA_C=fun(dcawa$spp, prcawaC),
+    OSFL_A=fun(dosfl$spp, prosflA),
+    OSFL_B=fun(dosfl$spp, prosflB),
+    OSFL_C=fun(dosfl$spp, prosflC))
+
+opar <- par(mfrow=c(2,3))
+qq <- quantile(c(prcawaA, prcawaB, prcawaC), 0.99)
+boxplot(prcawaA ~ dcawa$spp, range=0, ylim=c(0,qq), col="tan",
+    xlab="Observed counts (CAWA)", ylab="Expected value A",
+    sub=paste("AUC =", round(AUC[1], 4)))
+boxplot(prcawaB ~ dcawa$spp, range=0, ylim=c(0,qq), col="tan",
+    xlab="Observed counts (CAWA)", ylab="Expected value B",
+    sub=paste("AUC =", round(AUC[2], 4)))
+boxplot(prcawaC ~ dcawa$spp, range=0, ylim=c(0,qq), col="tan",
+    xlab="Observed counts (CAWA)", ylab="Expected value C",
+    sub=paste("AUC =", round(AUC[3], 4)))
+
+qq <- quantile(c(prosflA, prosflB, prosflC), 0.99)
+boxplot(prosflA ~ dcawa$spp, range=0, ylim=c(0,qq), col="tan",
+    xlab="Observed counts (OSFL)", ylab="Expected value A",
+    sub=paste("AUC =", round(AUC[4], 4)))
+boxplot(prosflB ~ dcawa$spp, range=0, ylim=c(0,qq), col="tan",
+    xlab="Observed counts (OSFL)", ylab="Expected value B",
+    sub=paste("AUC =", round(AUC[5], 4)))
+boxplot(prosflC ~ dcawa$spp, range=0, ylim=c(0,qq), col="tan",
+    xlab="Observed counts (OSFL)", ylab="Expected value C",
+    sub=paste("AUC =", round(AUC[6], 4)))
+
+par(op)
+
+
+
+
 
