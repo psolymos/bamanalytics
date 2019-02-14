@@ -39,6 +39,8 @@ xybu <- make_char2fact(xybu)
 #'
 #' ## Filtering by PCODE
 #'
+#PCODE_keep <- intersect(xybu$ProjectID, d0$ProjectID)
+#PCODE_keep <- PCODE_keep[PCODE_keep != "ABMI"]
 PCODE_keep <- c(
     "ECYKB",
     "ENWA",
@@ -47,7 +49,9 @@ PCODE_keep <- c(
     "SH",
     "LV",
     "WR",
-    "ARTI")
+    "ARTI",
+    "CZN",
+    "BBS")
 xybu <- droplevels(xybu[xybu$ProjectID %in% PCODE_keep, ])
 d0 <- droplevels(d0[d0$ProjectID %in% PCODE_keep, ])
 table(xybu$ProjectID)
@@ -210,7 +214,8 @@ which(!is.finite(Ra[2,]))
 #' ## Save
 #'
 y <- y[rownames(dd), colnames(off)]
-save(y, off, dd, file=file.path(ROOT, "nwt", "nwt-offsets-2019-01-15.RData"))
+#save(y, off, dd, file=file.path(ROOT, "nwt", "BU-nonABMI-offsets-2019-02-04.RData"))
+save(y, off, dd, file=file.path(ROOT, "nwt", "nwt-offsets-2019-02-01.RData"))
 
 
 ## WindTrax data
