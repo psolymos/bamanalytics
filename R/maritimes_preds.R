@@ -6,7 +6,7 @@
 ##---
 
 ## Define root folder where data are stored
-ROOT <- "c:/bam/May2015"
+ROOT <- "d:/bam/May2015"
 library(mefa4)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
@@ -210,10 +210,11 @@ save(xx50, xx100,
 
 ### Predictions
 
-ROOT <- "c:/bam/May2015"
+ROOT <- "d:/bam/May2015"
 library(mefa4)
 #load(file.path(ROOT, "out", "maritimes_3spp.Rdata"))
-load("~/Dropbox/bam/maritimes2015/maritimes_preds.Rdata")
+#load("~/Dropbox/bam/maritimes2015/maritimes_preds.Rdata")
+load("d:/bam/bam-projects/maritimes2015/maritimes_preds.Rdata")
 source("~/repos/bragging/R/glm_skeleton.R")
 source("~/repos/bamanalytics/R/maritimes_mods.R")
 source("~/repos/bamanalytics/R/makingsense_functions.R")
@@ -242,33 +243,33 @@ summary(xx100[,sort(Terms)])
 colSums(is.na(xx100[,sort(Terms)]))
 
 
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesA_CAWA_Allrun.Rdata"))
 cawa <- list(A=res)
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesB_CAWA_Allrun.Rdata"))
 cawa$B <- res
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesC_CAWA_Allrun.Rdata"))
 cawa$C <- res
 
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesA_RUBL_Allrun.Rdata"))
 rubl <- list(A=res)
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesB_RUBL_Allrun.Rdata"))
 rubl$B <- res
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesC_RUBL_Allrun.Rdata"))
 rubl$C <- res
 
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesA_OSFL_Allrun.Rdata"))
 osfl <- list(A=res)
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesB_OSFL_Allrun.Rdata"))
 osfl$B <- res
-load(file.path("~/Dropbox/bam/maritimes2015",
+load(file.path("d:/bam/bam-projects/maritimes2015",
     "BirdCoefs_MaritimesC_OSFL_Allrun.Rdata"))
 osfl$C <- res
 
@@ -364,3 +365,77 @@ dev.off()
 }
 
 } ## loop for spp end
+
+
+cawaA <- read.csv("d:/bam/bam-projects/maritimes2015/res-cawa-coef-A.csv")
+cawaB <- read.csv("d:/bam/bam-projects/maritimes2015/res-cawa-coef-B.csv")
+cawaC <- read.csv("d:/bam/bam-projects/maritimes2015/res-cawa-coef-C.csv")
+osflA <- read.csv("d:/bam/bam-projects/maritimes2015/res-osfl-coef-A.csv")
+osflB <- read.csv("d:/bam/bam-projects/maritimes2015/res-osfl-coef-B.csv")
+osflC <- read.csv("d:/bam/bam-projects/maritimes2015/res-osfl-coef-C.csv")
+
+f <- function(x) colMeans(x[,colSums(abs(x)) > 0])
+
+
+## Table 4 edits
+getEst <-
+function(res, stage=NULL, na.out=TRUE, X) {
+    if (!missing(X))
+        Xn <- X
+    OK <- !sapply(res, inherits, "try-error")
+    if (any(!OK))
+        warning(paste("try-error found:", sum(!OK)))
+    ii <- sapply(res[OK], "[[", "iteration")
+    est <- Xn[1:length(ii),,drop=FALSE]
+    rownames(est) <- ii
+    est[] <- 0
+    if (is.null(stage))
+        stage <- length(res[[ii[1]]]$coef)
+    if (stage > 0) {
+        for (i in 1:length(ii)) {
+            tmp <- res[[ii[i]]]$coef[[stage]]
+            names(tmp) <- fixNames(names(tmp))
+            sdiff <- setdiff(names(tmp), colnames(est))
+            if (length(sdiff) > 0)
+                stop(paste(sdiff, collapse=" "))
+            est[i,match(names(tmp), colnames(est))] <- tmp
+        }
+    } else {
+        for (i in 1:length(ii)) {
+            est[i,1] <- res[[ii[i]]]$null
+        }
+    }
+    if (any(!OK) && na.out) {
+        nas <- matrix(NA, sum(!OK), ncol(est))
+        rownames(nas) <- which(!OK)
+        est <- rbind(est, nas)
+    }
+    est
+}
+
+s <- list()
+for (spp in c("CAWA","OSFL")) {
+    s[[spp]] <- list()
+    for (M in c("A", "B", "C")) {
+        res <- allres[[spp]][[M]]
+        mods <- list(A=modsA, B=modsB, C=modsC)[[M]]
+        Terms <- list(A=TermsA, B=TermsB, C=TermsC)[[M]]
+        if (spp == "OSFL") {
+            xx <- xx100
+        } else {
+            xx <- xx50
+        }
+        xn <- xx[,Terms]
+        Xn <- model.matrix(getTerms(mods, "formula"), xn)
+        colnames(Xn) <- fixNames(colnames(Xn))
+        est <- getEst(res, X=Xn)
+        s[[spp]][[M]] <- getSummary(res)
+    }
+}
+
+
+xn_50B <- xx50[,TermsB]
+xn_100C <- xx100[,TermsC]
+Xn_50B <- model.matrix(getTerms(modsB, "formula"), xn_50B)
+Xn_100C <- model.matrix(getTerms(modsC, "formula"), xn_100C)
+
