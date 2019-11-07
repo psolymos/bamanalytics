@@ -703,3 +703,67 @@ load("~/Dropbox/Public/CAWA-2019-11-07.RData")
 
 
 
+rt <- read.csv("~/Dropbox/Public/list of routes by years included in CAWA trends.csv")
+
+## map rt$strat.name to PCODE
+rt$PCODE2 <- rt$Stratum
+levs <- c(
+    "CA-AB-6"="BBSAB",
+    "CA-MB-6"="BBSMB",
+    "CA-MB-8"="BBSMB",
+    "CA-NB-14"="BBSNB",
+    "CA-NSPE-14"="BBSNSPEI",
+    "CA-ON-12"="BBSON",
+    "CA-ON-13"="BBSON",
+    "CA-ON-8"="BBSON",
+    "CA-QC-12"="BBSQC",
+    "CA-QC-13"="BBSQC",
+    "CA-QC-14"="BBSQC",
+    "CA-QC-8"="BBSQC",
+    "CA-SK-6"="BBSSK",
+    "US-CT-30"="BBSCT",
+    "US-MA-14"="BBSMA",
+    "US-MD-28"="BBSMD",
+    "US-ME-14"="BBSME",
+    "US-MI-12"="BBSMI",
+    "US-MN-12"="BBSMN",
+    "US-NC-28"="BBSNC",
+    "US-NH-14"="BBSNH",
+    "US-NY-13"="BBSNY",
+    "US-NY-14"="BBSNY",
+    "US-NY-28"="BBSNY",
+    "US-PA-28"="BBSPA",
+    "US-VT-14"="BBSVT",
+    "US-WI-12"="BBSWI",
+    "US-WV-28"="BBSWV")
+levels(rt$PCODE2) <- levs[match(levels(rt$PCODE2), names(levs))]
+tmp <- sapply(strsplit(as.character(rt$Route), "-"), function(z) z[2])
+rt$BBSroute <- paste0(rt$PCODE2, ":", tmp)
+## BBSPEI and BBSNS needs to be treated the same
+DAT$PCODE2 <- DAT$PCODE
+levels(DAT$PCODE2)[levels(DAT$PCODE2) %in% c("BBSPEI","BBSNS")] <- "BBSNSPEI"
+
+DAT$BBSroute <- as.character("none")
+tmp <- sapply(strsplit(as.character(DAT$SS), ":"), function(z) z[2])
+DAT$BBSroute[DAT$isBBS] <- paste0(DAT$PCODE2[DAT$isBBS], ":", tmp[DAT$isBBS])
+
+DAT$useBBS <- DAT$BBSroute %in% rt$BBSroute
+table(BBS=DAT$isBBS, Subset=DAT$useBBS)
+table(BBS=DAT$Y, Subset=DAT$useBBS)
+
+compare_sets(DAT$BBSroute, rt$BBSroute)
+setdiff(DAT$BBSroute, rt$BBSroute)
+setdiff(rt$BBSroute, DAT$BBSroute)
+
+rt$in_BAM <- rt$BBSroute %in% DAT$BBSroute
+table(rt$in_BAM)
+
+out <- data.frame(BBSroute=union(DAT$BBSroute, rt$BBSroute))
+rownames(out) <- out$BBSroute
+out <- data.frame(out, rt[match(rownames(out), rt$BBSroute),])
+out$X <- NULL
+out$Year <- NULL
+out <- droplevels(out[out$BBSroute != "none",])
+out$in_BAM <- out$BBSroute %in% DAT$BBSroute
+
+
