@@ -699,10 +699,10 @@ write.csv(d, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-det-2017-
 
 ## final push
 
+library(mefa4)
+library(intrval)
 load("~/Dropbox/Public/CAWA-2019-11-07.RData")
-
-
-
+DAT$YEAR <- DAT$YR + 2001
 rt <- read.csv("~/Dropbox/Public/list of routes by years included in CAWA trends.csv")
 
 ## map rt$strat.name to PCODE
@@ -746,17 +746,69 @@ levels(DAT$PCODE2)[levels(DAT$PCODE2) %in% c("BBSPEI","BBSNS")] <- "BBSNSPEI"
 DAT$BBSroute <- as.character("none")
 tmp <- sapply(strsplit(as.character(DAT$SS), ":"), function(z) z[2])
 DAT$BBSroute[DAT$isBBS] <- paste0(DAT$PCODE2[DAT$isBBS], ":", tmp[DAT$isBBS])
-
 DAT$useBBS <- DAT$BBSroute %in% rt$BBSroute
+
+DAT$res <- (DAT$Y - DAT$D) / DAT$D
+
+d1 <- DAT[DAT$isBBS,]
+d2 <- DAT[DAT$isBBS & DAT$YEAR %[]% c(2002,2011),]
+d3 <- DAT[DAT$useBBS,]
+d4 <- DAT[DAT$useBBS & DAT$YEAR %[]% c(2002,2011),]
+
+d2a <- aggregate(list(Y=d2$Y), list(ROUTE=d2$BBSroute, YR=d2$YEAR), sum)
+d4a <- aggregate(list(Y=d4$Y), list(ROUTE=d4$BBSroute, YR=d4$YEAR), sum)
+head(d4a)
+
+m1 <- glm(Y ~ YR, d1, family="poisson")
+m2 <- glm(Y ~ YR, d2, family="poisson")
+m3 <- glm(Y ~ YR, d3, family="poisson")
+m4 <- glm(Y ~ YR, d4, family="poisson")
+cf <- c(m1=coef(m1)[2], m2=coef(m2)[2], m3=coef(m3)[2], m4=coef(m4)[2])
+100*(exp(cf)-1)
+
+## point vs route level
+m2a <- glm(Y ~ YR, d2a, family="poisson")
+m4a <- glm(Y ~ YR, d4a, family="poisson")
+100*(exp(c(m2=coef(m2)[2], m2a=coef(m2a)[2]))-1)
+100*(exp(c(m4=coef(m4)[2], m4a=coef(m4a)[2]))-1)
+
+## year vs residual year
+m2r <- glm(Y ~ YR, d2, family="poisson", offset=log(D)+off)
+m4r <- glm(Y ~ YR, d4, family="poisson", offset=log(D)+off)
+m2v <- lm(res ~ YR, d2)
+m4v <- lm(res ~ YR, d4)
+100*(exp(c(m2=coef(m2)[2], m2r=coef(m2r)[2]))-1)
+100*(exp(c(m4=coef(m4)[2], m4r=coef(m4r)[2]))-1)
+coef(m2v)[2]
+coef(m4v)[2]
+
+op <- par(mfrow=c(2,3))
+plot(aggregate(d4$Y, list(d4$YEAR), mean), type="b")
+plot(aggregate(d2$Y, list(d2$YEAR), mean), type="b")
+
+plot(aggregate(d4$D, list(d4$YEAR), mean), type="b")
+plot(aggregate(d2$D, list(d2$YEAR), mean), type="b")
+
+plot(aggregate(d4$res, list(d4$YEAR), mean), type="b")
+plot(aggregate(d2$res, list(d2$YEAR), mean), type="b")
+par(op)
+
+
 table(BBS=DAT$isBBS, Subset=DAT$useBBS)
 table(BBS=DAT$Y, Subset=DAT$useBBS)
+
+with(DAT[DAT$isBBS & DAT$YEAR %[]% c(2002, 2012),],
+    table(BBS=JURSALPHA, Subset=useBBS))
+
+head(DAT[DAT$isBBS & DAT$YEAR %[]% c(2002, 2012) & !DAT$useBBS,])
+head(DAT[DAT$isBBS & DAT$YEAR %[]% c(2002, 2012) & DAT$useBBS,])
 
 compare_sets(DAT$BBSroute, rt$BBSroute)
 setdiff(DAT$BBSroute, rt$BBSroute)
 setdiff(rt$BBSroute, DAT$BBSroute)
 
 rt$in_BAM <- rt$BBSroute %in% DAT$BBSroute
-table(rt$in_BAM)
+table(rt$Stratum,rt$in_BAM)
 
 out <- data.frame(BBSroute=union(DAT$BBSroute, rt$BBSroute))
 rownames(out) <- out$BBSroute
