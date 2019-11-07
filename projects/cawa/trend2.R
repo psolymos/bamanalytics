@@ -100,8 +100,17 @@ hist(100 * (exp(est_yr[,"YR"]) - 1), col="grey",
 round(c(fstat(100 * (exp(est_yr[,"YR"]) - 1)),
     summary(100 * (exp(est_yr[,"YR"]) - 1))), 3)
 
+
+
+
 ## Residual trend estimates
 
+yr_simple <- function(dat) {
+    if (nrow(dat) < 1)
+        return(NA)
+    mod <- glm(Y ~ YR, data=dat, offset=log(dat$D) + dat$off, family=poisson)
+    100 * (exp(coef(mod)[2]) - 1)
+}
 yr_fun <- function(i, subset=NULL, part=c("all", "bbs", "bam", "off")) {
     part <- match.arg(part)
     if (is.null(subset))
@@ -334,6 +343,112 @@ res2 <- t(sapply(tres_isbbs, fstat))
 colnames(res2) <- paste0("AllBBS_", colnames(res2))
 res <- cbind(res1, res2)
 write.csv(res, file="d:/bam/BAM_data_v2019/cawa-ms/BBSnumbers-2019-01-14.csv")
+
+
+yr_fun(1, subset=DAT$useBBS & DAT$COUNTRY == "CAN", part="bbs")
+yr_simple(DAT[DAT$useBBS & DAT$COUNTRY == "CAN" & DAT$isBBS,])
+
+Tres <- list()
+sss1 <- c(6, 7, 8, 10, 11, 12, 13, 14)
+for (ss1 in sss1) {
+    keep <- DAT$useBBS & DAT$BCR == ss1
+    keep2 <- DAT$isBBS & DAT$BCR == ss1
+    if (sum(DAT$Y[keep])>0) {
+        cat(ss1, "\n")
+        Tres[[paste0("BCR", ss1)]] <- c(
+            use_resampled=yr_fun(1, subset=keep, part="bbs"),
+            use_all=yr_simple(DAT[keep & DAT$isBBS,]),
+            is_resampled=yr_fun(1, subset=keep2, part="bbs"),
+            is_all=yr_simple(DAT[keep2 & DAT$isBBS,]))
+    }
+}
+round(do.call(rbind, Tres)[,1:2], 2)
+
+## BBS route reconciliation 2019-09
+
+rt <- read.csv("d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/list of routes by years included in CAWA trends.csv")
+
+## map rt$strat.name to PCODE
+rt$PCODE2 <- rt$Stratum
+levs <- c(
+    "CA-AB-6"="BBSAB",
+    "CA-MB-6"="BBSMB",
+    "CA-MB-8"="BBSMB",
+    "CA-NB-14"="BBSNB",
+    "CA-NSPE-14"="BBSNSPEI",
+    "CA-ON-12"="BBSON",
+    "CA-ON-13"="BBSON",
+    "CA-ON-8"="BBSON",
+    "CA-QC-12"="BBSQC",
+    "CA-QC-13"="BBSQC",
+    "CA-QC-14"="BBSQC",
+    "CA-QC-8"="BBSQC",
+    "CA-SK-6"="BBSSK",
+    "US-CT-30"="BBSCT",
+    "US-MA-14"="BBSMA",
+    "US-MD-28"="BBSMD",
+    "US-ME-14"="BBSME",
+    "US-MI-12"="BBSMI",
+    "US-MN-12"="BBSMN",
+    "US-NC-28"="BBSNC",
+    "US-NH-14"="BBSNH",
+    "US-NY-13"="BBSNY",
+    "US-NY-14"="BBSNY",
+    "US-NY-28"="BBSNY",
+    "US-PA-28"="BBSPA",
+    "US-VT-14"="BBSVT",
+    "US-WI-12"="BBSWI",
+    "US-WV-28"="BBSWV")
+levels(rt$PCODE2) <- levs[match(levels(rt$PCODE2), names(levs))]
+tmp <- sapply(strsplit(as.character(rt$Route), "-"), function(z) z[2])
+rt$BBSroute <- paste0(rt$PCODE2, ":", tmp)
+## BBSPEI and BBSNS needs to be treated the same
+DAT$PCODE2 <- DAT$PCODE
+levels(DAT$PCODE2)[levels(DAT$PCODE2) %in% c("BBSPEI","BBSNS")] <- "BBSNSPEI"
+
+DAT$BBSroute <- as.character("none")
+tmp <- sapply(strsplit(as.character(DAT$SS), ":"), function(z) z[2])
+DAT$BBSroute[DAT$isBBS] <- paste0(DAT$PCODE2[DAT$isBBS], ":", tmp[DAT$isBBS])
+
+DAT$useBBS <- DAT$BBSroute %in% rt$BBSroute
+table(BBS=DAT$isBBS, Subset=DAT$useBBS)
+table(BBS=DAT$Y, Subset=DAT$useBBS)
+
+compare_sets(DAT$BBSroute, rt$BBSroute)
+setdiff(DAT$BBSroute, rt$BBSroute)
+setdiff(rt$BBSroute, DAT$BBSroute)
+
+rt$in_BAM <- rt$BBSroute %in% DAT$BBSroute
+table(rt$in_BAM)
+
+out <- data.frame(BBSroute=union(DAT$BBSroute, rt$BBSroute))
+rownames(out) <- out$BBSroute
+out <- data.frame(out, rt[match(rownames(out), rt$BBSroute),])
+out$X <- NULL
+out$Year <- NULL
+out <- droplevels(out[out$BBSroute != "none",])
+out$in_BAM <- out$BBSroute %in% DAT$BBSroute
+
+write.csv(out, row.names=FALSE, file="d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/routes in CAWA trends.csv")
+
+rt$BBSrouteYear <- interaction(rt$BBSroute, rt$Year, sep="_")
+DAT$BBSrouteYear <- interaction(DAT$BBSroute, DAT$YR+2001, sep="_") # year range 2001-2013
+
+out <- data.frame(BBSrouteYear=union(DAT$BBSrouteYear, rt$BBSrouteYear))
+rownames(out) <- out$BBSrouteYear
+out <- data.frame(out, rt[match(rownames(out), rt$BBSrouteYear),])
+out$X <- NULL
+out <- droplevels(out[!startsWith(as.character(out$BBSrouteYear), "none"),])
+out$in_BAM <- out$BBSrouteYear %in% DAT$BBSrouteYear
+out$yr <- as.numeric(substr(rownames(out), nchar(rownames(out))-3,nchar(rownames(out))))
+out$status <- factor("both", c("BAM", "BBS", "both"))
+out$status[is.na(out$BBSrouteYear.1) & out$in_BAM] <- "BAM"
+out$status[!is.na(out$BBSrouteYear.1) & !out$in_BAM] <- "BBS"
+write.csv(out, row.names=FALSE, file="d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/routes and years in CAWA trends.csv")
+
+table(BAM=out$in_BAM, BBS=!is.na(out$BBSrouteYear.1))
+table(out$yr, out$status)
+
 
 ## compare land cover representation
 
@@ -580,4 +695,11 @@ tab <- rbind(tab, tmp$all, tmp$bam, tmp$bbs, tmp$off)
 
 write.csv(tab, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-trend-2017-07-18.csv")
 write.csv(d, row.names=FALSE, file="e:/peter/bam/Apr2016/out/cawa/cawa-det-2017-07-18.csv")
+
+
+## final push
+
+load("~/Dropbox/Public/CAWA-2019-11-07.RData")
+
+
 
