@@ -773,8 +773,8 @@ m4a <- glm(Y ~ YR, d4a, family="poisson")
 100*(exp(c(m4=coef(m4)[2], m4a=coef(m4a)[2]))-1)
 
 ## year vs residual year
-m2r <- glm(Y ~ YR, d2, family="poisson", offset=log(D)+off)
-m4r <- glm(Y ~ YR, d4, family="poisson", offset=log(D)+off)
+m2r <- glm(Y ~ YR, d2, family="poisson", offset=log(d2$D)+d2$off)
+m4r <- glm(Y ~ YR, d4, family="poisson", offset=log(d4$D)+d4$off)
 m2v <- lm(res ~ YR, d2)
 m4v <- lm(res ~ YR, d4)
 100*(exp(c(m2=coef(m2)[2], m2r=coef(m2r)[2]))-1)
@@ -792,6 +792,32 @@ plot(aggregate(d2$D, list(d2$YEAR), mean), type="b")
 plot(aggregate(d4$res, list(d4$YEAR), mean), type="b")
 plot(aggregate(d2$res, list(d2$YEAR), mean), type="b")
 par(op)
+
+
+
+fsub <- function(d) {
+    da <- aggregate(list(Y=d$Y), list(ROUTE=d$BBSroute, YR=d$YEAR), sum)
+    M <- list(
+        route=glm(Y ~ YR, da, family="poisson"),
+        point=glm(Y ~ YR, d, family="poisson"),
+        resid=glm(Y ~ YR, d, family="poisson", offset=log(d$D)+d$off))
+    100 * (exp(sapply(M, coef)["YR",]) - 1)
+}
+
+d4$BCRPROV <- droplevels(d4$BCRPROV)
+L <- lapply(levels(d4$BCRPROV), function(z) which(d4$BCRPROV == z))
+names(L) <- levels(d4$BCRPROV)
+L <- c(
+    list(
+        All=seq_len(nrow(d4)),
+        Can=which(d4$COUNTRY == "CAN")),
+    L)
+TR <- t(sapply(L, function(z) fsub(d4[z,])))
+round(TR, 3)
+plot(data.frame(TR))
+
+
+
 
 
 table(BBS=DAT$isBBS, Subset=DAT$useBBS)
