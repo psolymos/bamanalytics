@@ -88,6 +88,15 @@ BBS_PCODE <- levels(DAT$PCODE)[substr(levels(DAT$PCODE), 1, 3) == "BBS"]
 DAT$isBBS <- DAT$PCODE %in% BBS_PCODE
 DAT$ROAD <- xn$ROAD[match(rownames(DAT), rownames(xn))]
 
+## fixing BBS 2012-2013 data
+fx <- read.csv("d:/bam/BAM_data_v2019/cawa-ms/CAWA-2012-2013.csv")
+rownames(fx) <- fx$PKEY
+str(fx)
+compare_sets(fx$PKEY, rownames(DAT))
+fi <- intersect(fx$PKEY, rownames(DAT))
+DAT[fi,"Y"] <- fx[fi,"ABUND"]
+
+
 ## Boreal year effect estimates
 
 fstat <- function(x, level=0.95, digits=3) {
@@ -703,7 +712,7 @@ library(mefa4)
 library(intrval)
 load("~/Dropbox/Public/CAWA-2019-11-07.RData")
 DAT$YEAR <- DAT$YR + 2001
-rt <- read.csv("~/Dropbox/Public/list of routes by years included in CAWA trends.csv")
+rt <- read.csv("d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/list of routes by years included in CAWA trends.csv")
 
 ## map rt$strat.name to PCODE
 rt$PCODE2 <- rt$Stratum
@@ -711,6 +720,7 @@ levs <- c(
     "CA-AB-6"="BBSAB",
     "CA-MB-6"="BBSMB",
     "CA-MB-8"="BBSMB",
+    "CA-MB-12"="BBSMB",
     "CA-NB-14"="BBSNB",
     "CA-NSPE-14"="BBSNSPEI",
     "CA-ON-12"="BBSON",
@@ -751,9 +761,9 @@ DAT$useBBS <- DAT$BBSroute %in% rt$BBSroute
 DAT$res <- (DAT$Y - DAT$D) / DAT$D
 
 d1 <- DAT[DAT$isBBS,]
-d2 <- DAT[DAT$isBBS & DAT$YEAR %[]% c(2002,2011),]
+d2 <- DAT[DAT$isBBS & DAT$YEAR %[]% c(2001,2011),]
 d3 <- DAT[DAT$useBBS,]
-d4 <- DAT[DAT$useBBS & DAT$YEAR %[]% c(2002,2011),]
+d4 <- DAT[DAT$useBBS & DAT$YEAR %[]% c(2001,2011),]
 
 d2a <- aggregate(list(Y=d2$Y), list(ROUTE=d2$BBSroute, YR=d2$YEAR), sum)
 d4a <- aggregate(list(Y=d4$Y), list(ROUTE=d4$BBSroute, YR=d4$YEAR), sum)
@@ -794,6 +804,8 @@ plot(aggregate(d2$res, list(d2$YEAR), mean), type="b")
 par(op)
 
 
+## after CAWA BBS fixes
+d4 <- DAT[DAT$useBBS & DAT$YEAR %[]% c(2002,2012),]
 
 fsub <- function(d) {
     da <- aggregate(list(Y=d$Y), list(ROUTE=d$BBSroute, YR=d$YEAR), sum)
@@ -805,19 +817,67 @@ fsub <- function(d) {
 }
 
 d4$BCRPROV <- droplevels(d4$BCRPROV)
-L <- lapply(levels(d4$BCRPROV), function(z) which(d4$BCRPROV == z))
-names(L) <- levels(d4$BCRPROV)
+d4$JURSALPHA <- droplevels(d4$JURSALPHA)
+levels(d4$BCRPROV)[levels(d4$BCRPROV) %in% c("14_NS", "14_PEI")] <- "14_NSPEI"
+levels(d4$JURSALPHA)[levels(d4$JURSALPHA) %in% c("NS", "PEI")] <- "NSPEI"
+
+L1 <- lapply(levels(d4$BCRPROV), function(z) which(d4$BCRPROV == z))
+names(L1) <- levels(d4$BCRPROV)
+L2 <- lapply(levels(d4$JURSALPHA), function(z) which(d4$JURSALPHA == z))
+names(L2) <- levels(d4$JURSALPHA)
+L3 <- lapply(unique(d4$BCR), function(z) which(d4$BCR == z))
+names(L3) <- unique(d4$BCR)
 L <- c(
     list(
         All=seq_len(nrow(d4)),
         Can=which(d4$COUNTRY == "CAN")),
-    L)
+    L1, L2, L3)
 TR <- t(sapply(L, function(z) fsub(d4[z,])))
 round(TR, 3)
-plot(data.frame(TR))
+
+#write.csv(TR, file="d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/CAWA-trend-Peter-2019-11-08.csv")
+#write.csv(TR, file="d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/CAWA-trend-Peter-2002-2012_2019-11-18.csv")
+
+#xx <- read.csv("d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/CAWA-trend-Peter-2001-2011_2019-11-08.csv")
+xx <- read.csv("d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/CAWA-trend-Peter-2002-2012_2019-11-18.csv")
+
+plot(xx[,c("route", "point", "resid", "Slope_Trend")])
 
 
+ss <- 1:2
+ss <- 3:24
+ss <- 25:38
+ss <- 39:43
+ss <- seq_len(nrow(xx))
+op <- par(mfrow=c(3,3))
+cn <- c( "route", "point", "resid", "Slope_Trend")
+for (i in 2:4) {
+    for (j in 1:3) {
+        if (i > j) {
+            xn <- cn[j]
+            yn <- cn[i]
+            xv <- xx[ss,xn]
+            yv <- xx[ss,yn]
+            plot(xv, yv, xlab=xn, ylab=yn)
+            abline(0,1)
+            abline(lm(yv ~ xv), col=2)
+            abline(h=0, v=0, col="grey")
+        } else plot.new()
+    }
+}
+par(op)
 
+
+op <- par(mfrow=c(1,3))
+plot(TR[,1:2]);abline(0,1)
+plot(TR[,2:3]);abline(0,1)
+plot(TR[,c(1,3)]);abline(0,1)
+par(op)
+
+plot(xx[,c("resid", "Slope_Trend")], type="n")
+abline(0,1)
+abline(h=0, v=0, col="grey")
+text(xx$resid, jitter(xx$Slope_Trend, amount=0.5), label=as.character(xx$RegionPS), cex=0.5)
 
 
 table(BBS=DAT$isBBS, Subset=DAT$useBBS)
@@ -844,4 +904,45 @@ out$Year <- NULL
 out <- droplevels(out[out$BBSroute != "none",])
 out$in_BAM <- out$BBSroute %in% DAT$BBSroute
 
+## trend based on GLMMs
 
+library(lme4)
+
+mm <- glmer(Y ~ 1 + YR + (1 + YR | BCRPROV), d4, family="poisson", offset=log(d4$D)+d4$off)
+mm
+bet <- fixef(mm)["YR"] + ranef(mm)$BCRPROV[,"YR"]
+names(bet) <- rownames(ranef(mm)$BCRPROV)
+est1 <- 100 * (exp(bet) - 1)
+est1
+
+mm <- glmer(Y ~ 1 + YR + (1 + YR | JURSALPHA), d4, family="poisson", offset=log(d4$D)+d4$off)
+mm
+bet <- fixef(mm)["YR"] + ranef(mm)$JURSALPHA[,"YR"]
+names(bet) <- rownames(ranef(mm)$JURSALPHA)
+est2 <- 100 * (exp(bet) - 1)
+est2
+
+mm <- glmer(Y ~ 1 + YR + (1 + YR | BCR), d4, family="poisson", offset=log(d4$D)+d4$off)
+mm
+bet <- fixef(mm)["YR"] + ranef(mm)$BCR[,"YR"]
+names(bet) <- rownames(ranef(mm)$BCR)
+est3 <- 100 * (exp(bet) - 1)
+est3
+
+xx <- read.csv("d:/bam/BAM_data_v2019/cawa-ms/latest-2019-09/CAWA-trend-Peter-2002-2012_2019-11-18.csv")
+rownames(xx) <- xx$RegionPS
+xx$rnd <- NA
+xx[names(est1), "rnd"] <- est1
+xx[names(est2), "rnd"] <- est2
+xx[names(est3), "rnd"] <- est3
+
+plot(xx[,c("resid", "rnd")], type="n")
+abline(0,1)
+abline(h=0, v=0, col="grey")
+text(xx$resid, jitter(xx$rnd, amount=0.5), label=as.character(xx$RegionPS), cex=0.5)
+
+plot(xx[,c("rnd", "Slope_Trend")], type="n")
+abline(0,1)
+abline(h=0, v=0, col="grey")
+text(xx$rnd, jitter(xx$Slope_Trend, amount=0.5), label=as.character(xx$RegionPS), cex=0.5)
+text(xx$resid, jitter(xx$Slope_Trend, amount=0.5), label=as.character(xx$RegionPS), cex=0.5, col=2)
