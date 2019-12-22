@@ -1,0 +1,226 @@
+---
+title: "NWT CONI results"
+output: pdf_document
+---
+
+This doc describes methods to estimate density from recognizer based detections.
+
+```{r}
+library(mefa4)
+library(lme4)
+library(pbapply)
+
+source("zi.fit.R")
+
+load("~/GoogleWork/collaborations/coni-nwt/CONI-AB-NWT-datawithpredictors.RData")
+dat$key <- gsub(" ", "+", paste0(dat$station, "+", dat$datetime))
+x <- read.csv("~/GoogleWork/collaborations/coni-nwt/CONI-AB-NWT-withOffsets.csv")
+all(dat$key == x$key)
+dat <- data.frame(dat[,c("detection", "Offset", "station", "datetime", "nalc")], 
+    x[,c("lat", "long", "A", "p", "q")])
+
+## reclass NALC
+levs <- c("1"="ConTmp",
+    "2"="ConTai",
+    "5"="Dec",
+    "6"="Mix",
+    "8"="Shr",
+    "10"="Grs",
+    "14"="Wet",
+    "16"="Bar",
+    "18"="Wat")
+dat$alc <- dat$nalc
+levels(dat$alc) <- levs[levels(dat$nalc)]
+
+levs2 <- c("1"="ConTmp",
+    "2"="ConTai",
+    "5"="DM",
+    "6"="DM",
+    "8"="OP",
+    "10"="OP",
+    "14"="OP",
+    "16"="OP",
+    "18"="OP")
+dat$lc <- dat$nalc
+levels(dat$lc) <- levs2[levels(dat$lc)]
+```
+
+## Number of individuals when present and available
+
+We use the 10% validated data from ECK.
+
+Randomly selected 10% of the recordings scanned
+Filtered out recordings that had booms detected in them
+Reviewed all recognizer detections for those recordings
+Assigned individual ID to each boom detection in those recordings
+There's definitely more than one individual in some of these recordings.
+Here's the distribution of the results:
+
+- 1 CONI: 29 sites
+- 2 CONI: 11 sites
+- 3 CONI: 2 sites
+- 4 CONI: 1 site
+The one thing to keep in mind is that these are almost entirely
+from the Alberta fire site. I suspect the densities will be lower at the
+other province/treatment combos.
+
+Fitting a conditional likelihood model to home range overlap data.
+This follows Solymos et al. 2012 (Environmetrics). 
+
+**Conditional maximum likelihood** --- Let $Y$ be a 
+random variable, and $y$ are observations.
+A zero inflated (ZI) distribution with 
+non-zero inflated density function $f(y; \theta)$ can be writte nas follows:
+
+$$ P(Y=0) = \phi + (1-\phi) f(0; \theta) $$
+$$ P(Y=y) = (1-\phi) f(y; \theta); y>0 $$
+
+where $\theta$ is a vector of model parameters, not including the ZI
+parameter $\phi$ that is the probability of observing 0 as part of the
+ZI process.
+
+$$ P(Y=y \mid Y>0) = \frac{P(Y=y)}{1 - P(Y=0)} $$
+
+$$ 1 - P(Y=0) = 1 - [\phi + (1-\phi) f(0; \theta)] $$
+$$ = 1 - \phi - (1-\phi) f(0; \theta) $$
+$$ = 1 - \phi - [f(0; \theta) - \phi f(0; \theta)] $$
+$$ = 1 - \phi - f(0; \theta) + \phi f(0; \theta)] $$
+$$ = (1 - \phi) [1 - f(0; \theta)] $$
+
+Thus
+
+$$ P(Y=y \mid Y>0) = \frac{(1-\phi) f(y; \theta)}{(1 - \phi) [1 - f(0; \theta)]} $$
+$$ = \frac{f(y; \theta)}{1 - f(0; \theta)} $$
+
+This conditional density function can be used in estimating conditional maximum 
+likelihood estimates of $\hat{\theta}^{(1)}$ based on the non-zero part of the data
+($y^{(1)}$).
+
+#### Poisson
+
+$$ f(y; \theta) = f(y; \lambda) = e^{-\lambda} \frac{\lambda^{y}}{y!} $$
+$$ P(Y=0) = \phi + (1 + \phi) e^{-\lambda} $$
+
+#### Negative Binomial
+
+$\gamma$ is Gamma variance in the Poisson-Gamma mixture parametrization
+($A \sim Bernoulli(1 - \phi)$; $Y \sim Poisson(A u \lambda)$; 
+$u \sim Gamma(mean=1, variance=\gamma)$):
+
+$$ f(y; \theta) = f(y; \lambda,\gamma) = \frac{\Gamma (y + \gamma^{-1})}{\Gamma (\gamma^{-1})} \frac{(\gamma \lambda)^{y}}{(1+\gamma \lambda)^{(y + \gamma{-1})}} $$
+$$ P(Y=0) = \phi + (1 + \phi) (1+\gamma \lambda)^{(\gamma{-1})} $$
+
+This is all (and more) implemented in the `zi.fit` function.
+We don't bother with offsets because this was (I think) based on looking
+at multiple visits and counting total number of inds that used that site
+over the entire time
+
+```{r}
+## number of inds at each site based on 10% of all sites by ECK
+Y1 <- rep(1:4, c(29, 11, 2, 1)) # mean 1.418605
+X1 <- data.matrix(rep(1, length(Y1)))
+Z1 <- X1
+
+cl0p <- zi.fit(Y1, X1, Z1, distr="pois", type="CL", hessian=TRUE)$CL
+cl0nb <- zi.fit(Y1, X1, Z1, distr="negbin", type="CL", hessian=TRUE)$CL
+
+## calculate AIC
+logLik.default <- function(object, ...) 
+    structure(object$loglik,
+        df = length(object$coef),
+        class = "logLik")
+AIC(cl0p, cl0nb) # Poisson is better supported
+
+## mean of the poisson (including 0 counts and offsets too)
+exp(cl0p$coef)
+## P(N=0) based on Poisson
+exp(-exp(cl0p$coef))
+## P of use
+1-exp(-exp(cl0p$coef))
+
+cnt <- 0:(max(Y1)+1)
+dp <- dpois(cnt, exp(cl0p$coef))
+names(dp) <- cnt
+names(dp)[length(dp)] <- paste0(cnt[length(dp)]-1, "+")
+dp1[length(dp)] <- 1-sum(dp[-length(dp)])
+
+round(cbind(
+    expected=dp,
+    observed=c(NA, (1-sum(dp[-c(1, length(dp))]))*table(Y1)/length(Y1), NA)), 3)
+```
+
+Now we use the sites that had at least one detections and look at 
+probability of use by at least 1 individual given presence and availability.
+This is defined by using a conditional (>0) Binomial distribution,
+we condition on the fact that these are all sites that were useb by et least 1 ind.
+
+```{r}
+nn <- sum_by(dat$detection, dat$station)
+#nn <- nn[nn[,"x"]>0,]
+dats <- nonDuplicated(dat, station, TRUE)
+table(dats$lc)
+Y2 <- nn[,"x"]
+N2 <- nn[,"by"]
+Z2 <- data.matrix(rep(1, length(Y2)))
+X20 <- data.matrix(rep(1, length(Y2)))
+X2lc <- model.matrix(~lc, dats)
+
+table(dats$lc, nn[,"x"]>0)
+
+clb0 <- zi.fit(Y2, X20, Z2, distr="binom", type="CL", hessian=TRUE, N=N2)$CL
+clblc <- zi.fit(Y2, X2lc, Z2, distr="binom", type="CL", hessian=TRUE, N=N2)$CL
+
+AIC(clb0, clblc) # NALC is better
+
+cf <- clblc$coef
+est <- plogis(c(cf[1], cf[1]+cf[-1]))
+names(est) <- levels(dat$lc)
+est
+table(dats$lc, nn[,"x"]>0)[,2]/sum(table(dats$lc, nn[,"x"]>0)[,2])
+
+hist(nn[,"x"]/nn[,"by"], xlim=c(0,1))
+abline(v=plogis(clb0$coef), col=2)
+```
+
+We use the cloglog link function. It is equivalent of fitting a censored Poisson
+model to binary data ($W=I(Y>0)$) because in the Poisson model $P(Y>0)=1-exp(-\lambda)$,
+and the cloglog inverse link function is $\pi(x)=P(W=1)=1-exp(-exp(\mu))$ where $\mu=X^T \beta$ is the linear predictor and $\mu=exp(\lambda)$. 
+Therefore $log(\lambda)=log(-log(1-\pi(x)))$, which are the link functions.
+
+
+```{r}
+m0 <- glmer(detection ~ (1 | station), data=dat,
+    offset=dat$Offset, family=binomial("cloglog"))
+m1 <- glmer(detection ~ lc + (1 | station), data=dat,
+    offset=dat$Offset, family=binomial("cloglog"))
+g0 <- glm(detection ~ 1, data=dat,
+    offset=dat$Offset, family=binomial("cloglog"))
+g1 <- glm(detection ~ lc, data=dat,
+    offset=dat$Offset, family=binomial("cloglog"))
+AIC(m0, m1, g0, g1)
+
+backtr <- binomial("cloglog")$linkinv
+cf <- fixef(m1)
+est <- backtr(c(cf[1], cf[1]+cf[-1]))
+names(est) <- levels(dat$lc)
+est
+
+cf <- coef(g1)
+est2 <- backtr(c(cf[1], cf[1]+cf[-1]))
+names(est2) <- levels(dat$lc)
+est2
+
+mu <- drop(model.matrix(g1) %*% fixef(m1))
+re <- ranef(m1)$station[[1]]
+names(re) <- rownames(ranef(m1)$station)
+re <- re[match(dat$station, names(re))]
+
+mean(dat$detection)
+mean(fitted(m1))
+mean(backtr(mu + re + dat$Offset))
+
+mean(backtr(mu + re))
+mean(exp(mu + re + dat$Offset))
+
+
+```
