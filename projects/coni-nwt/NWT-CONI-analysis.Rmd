@@ -5,12 +5,47 @@ output: pdf_document
 
 This doc describes methods to estimate density from recognizer based detections.
 
-```{r}
+## Logic
+
+Peter Solymos <solymos@ualberta.ca>
+	
+Tue, Jan 14, 1:22 PM (1 day ago)
+	
+to Elly, Samuel, Rhiannon, Erin
+Thinking a bit more (and making sure that the last step works in the program), here is the decision tree I cam up with.
+
+#### I. Outcomes at the site level:
+
+1a) a site is unsuitable: we observe 0
+1b) a site is suitable: we can observe 0 or >0
+
+2a) a site is unoccupied (0 home range overlaps with it): we observe a 0
+2b) if the site is occupied (at least one home range overlaps with the location): we observe 0 or >0
+
+Levels 1 and 2 is of interest, this describes the population and we have some ideas about the distribution of overlapping home ranges based on the 10% sample. Up to this point we are looking at a zero-inflated Poisson distribution where we have lambda (expected value of overlapping home ranges) and delta (proportion of suitable sites), and our population size estimate is delta*lambda. But there is a bit more complexity. Although we have an idea of lambda (10% sample), delta is confounded with other sources of 0s.
+
+#### II. Outcomes at the visit level:
+
+3a) CONI is not active: we observe a 0
+
+3b) CONI is active: we observe a 0 or >0 --> we estimated this conditional probability from survical models as a function of dat/time (can use it as offset)
+
+4a) a site is not used (occupied but nobody home): we observe 0
+
+4b) a site is used (it is occupied, but individuals are in and out): we observe 0 or >0
+
+(The 5th layer is detectability but we use our EDR estimate to standardize for effective area and ignore this component in the modeling otherwise.)
+
+The only thing that bothers me is depending on the spacing of the sites and home range sizes, we are estimating the population size or the superpopulation size (with double counting the same individuals if sites are too close). Estimates of home range sizes might help thin the data to avoid double counting or at least to conduct a sensitivity analysis.
+
+
+```{r preamble,include=FALSE}
 library(mefa4)
 library(lme4)
 library(pbapply)
 
 source("zi.fit.R")
+source("mvocc.R")
 
 load("~/GoogleWork/collaborations/coni-nwt/CONI-AB-NWT-datawithpredictors.RData")
 dat$key <- gsub(" ", "+", paste0(dat$station, "+", dat$datetime))
@@ -43,16 +78,17 @@ levs2 <- c("1"="ConTmp",
     "18"="OP")
 dat$lc <- dat$nalc
 levels(dat$lc) <- levs2[levels(dat$lc)]
+
 ```
 
-## Number of individuals when present and available
+## True (latent) occupancy and abundance
 
 We use the 10% validated data from ECK.
 
-Randomly selected 10% of the recordings scanned
-Filtered out recordings that had booms detected in them
-Reviewed all recognizer detections for those recordings
-Assigned individual ID to each boom detection in those recordings
+Randomly selected 10% of the recordings scanned.
+Filtered out recordings that had booms detected in them.
+Reviewed all recognizer detections for those recordings.
+Assigned individual ID to each boom detection in those recordings.
 There's definitely more than one individual in some of these recordings.
 Here's the distribution of the results:
 
@@ -70,29 +106,20 @@ This follows Solymos et al. 2012 (Environmetrics).
 **Conditional maximum likelihood** --- Let $Y$ be a 
 random variable, and $y$ are observations.
 A zero inflated (ZI) distribution with 
-non-zero inflated density function $f(y; \theta)$ can be writte nas follows:
-
-$$ P(Y=0) = \phi + (1-\phi) f(0; \theta) $$
-$$ P(Y=y) = (1-\phi) f(y; \theta); y>0 $$
-
+non-zero inflated density function $f(y; \theta)$ can be written as
+$P(Y=0) = \phi + (1-\phi) f(0; \theta)$; $P(Y=y) = (1-\phi) f(y; \theta)$; $y>0$,
 where $\theta$ is a vector of model parameters, not including the ZI
 parameter $\phi$ that is the probability of observing 0 as part of the
 ZI process.
 
-$$ P(Y=y \mid Y>0) = \frac{P(Y=y)}{1 - P(Y=0)} $$
-
-$$ 1 - P(Y=0) = 1 - [\phi + (1-\phi) f(0; \theta)] $$
-$$ = 1 - \phi - (1-\phi) f(0; \theta) $$
-$$ = 1 - \phi - [f(0; \theta) - \phi f(0; \theta)] $$
-$$ = 1 - \phi - f(0; \theta) + \phi f(0; \theta)] $$
-$$ = (1 - \phi) [1 - f(0; \theta)] $$
-
+Now the probability mass function for the $>0$ counts can be written as
+$P(Y=y \mid Y>0) = P(Y=y) / [1 - P(Y=0)]$.
+The denominator can also be written as 
+$1 - P(Y=0) = (1 - \phi) [1 - f(0; \theta)]$
 Thus
+$P(Y=y \mid Y>0) = \frac{(1-\phi) f(y; \theta)}{(1 - \phi) [1 - f(0; \theta)]} = \frac{f(y; \theta)}{1 - f(0; \theta)}$.
 
-$$ P(Y=y \mid Y>0) = \frac{(1-\phi) f(y; \theta)}{(1 - \phi) [1 - f(0; \theta)]} $$
-$$ = \frac{f(y; \theta)}{1 - f(0; \theta)} $$
-
-This conditional density function can be used in estimating conditional maximum 
+This conditional mass function can be used in estimating conditional maximum 
 likelihood estimates of $\hat{\theta}^{(1)}$ based on the non-zero part of the data
 ($y^{(1)}$).
 
@@ -111,7 +138,7 @@ $$ f(y; \theta) = f(y; \lambda,\gamma) = \frac{\Gamma (y + \gamma^{-1})}{\Gamma 
 $$ P(Y=0) = \phi + (1 + \phi) (1+\gamma \lambda)^{(\gamma{-1})} $$
 
 This is all (and more) implemented in the `zi.fit` function.
-We don't bother with offsets because this was (I think) based on looking
+We don't bother with offsets because this was based on looking
 at multiple visits and counting total number of inds that used that site
 over the entire time
 
@@ -129,98 +156,99 @@ logLik.default <- function(object, ...)
     structure(object$loglik,
         df = length(object$coef),
         class = "logLik")
-AIC(cl0p, cl0nb) # Poisson is better supported
+ic <- AIC(cl0p, cl0nb)
+ic$BIC <- AIC(cl0p, cl0nb, k=log(length(Y1)))$AIC
+ic$AICc <- ic$AIC + (2*ic$df^2+2*ic$df) / (length(Y1)-ic$df-1)
+ic  # Poisson is better supported
 
 ## mean of the poisson (including 0 counts and offsets too)
-exp(cl0p$coef)
-## P(N=0) based on Poisson
-exp(-exp(cl0p$coef))
-## P of use
-1-exp(-exp(cl0p$coef))
+(lambda <- exp(cl0p$coef))
+## P(N=0) based on Poisson, which is the suitable but unoccupied probability
+exp(-lambda)
+## suitable and unoccupied
+1-exp(-lambda)
 
 cnt <- 0:(max(Y1)+1)
 dp <- dpois(cnt, exp(cl0p$coef))
 names(dp) <- cnt
 names(dp)[length(dp)] <- paste0(cnt[length(dp)]-1, "+")
-dp1[length(dp)] <- 1-sum(dp[-length(dp)])
+dp[length(dp)] <- 1-sum(dp[-length(dp)])
 
-round(cbind(
-    expected=dp,
-    observed=c(NA, (1-sum(dp[-c(1, length(dp))]))*table(Y1)/length(Y1), NA)), 3)
+tab <- cbind(
+    observed=c(NA, (1-sum(dp[-c(1, length(dp))]))*table(Y1)/length(Y1), NA),
+    expected=dp)
+rownames(tab) <- names(dp)
+round(tab, 3)
+
+tmp <- tab[-1,]
+tmp[is.na(tmp)] <- 0
+cs <- rbind("0"=c(0,0), apply(tmp, 2, cumsum))
+cs[,1] <- cs[,1]/max(cs[,1])
+cs[,2] <- cs[,2]/max(cs[,2])
+plot(cs,type="l", col="grey", xlim=c(0,1), ylim=c(0,1))
+text(cs, labels = rownames(tab))
+abline(0,1,lty=2)
+
+tmp <- barplot(tab[,1], ylim=c(0, 0.5))
+lines(tmp, tab[,2], type="b")
 ```
-
-Now we use the sites that had at least one detections and look at 
-probability of use by at least 1 individual given presence and availability.
-This is defined by using a conditional (>0) Binomial distribution,
-we condition on the fact that these are all sites that were useb by et least 1 ind.
 
 ```{r}
-nn <- sum_by(dat$detection, dat$station)
-#nn <- nn[nn[,"x"]>0,]
-dats <- nonDuplicated(dat, station, TRUE)
-table(dats$lc)
-Y2 <- nn[,"x"]
-N2 <- nn[,"by"]
-Z2 <- data.matrix(rep(1, length(Y2)))
-X20 <- data.matrix(rep(1, length(Y2)))
-X2lc <- model.matrix(~lc, dats)
+y <- matrix(NA, nlevels(dat$station), 30)
+rownames(y) <- levels(dat$station)
+p <- y
+for (i in rownames(y)) {
+    tmp <- dat[dat$station == i,]
+    tmp <- tmp[order(as.character(tmp$datetime)),]
+    y[i, seq_len(nrow(tmp))] <- tmp$detection
+    p[i, seq_len(nrow(tmp))] <- tmp$p
+}
+dat2 <- nonDuplicated(dat, station, TRUE)
+dat2 <- dat2[rownames(y),]
+dat2$lc2 <- dat2$lc
+levels(dat2$lc2) <- c("Con", "Con", "DMO", "DMO")
+table(dat2$lc, dat2$lc2)
 
-table(dats$lc, nn[,"x"]>0)
+M <- nrow(y)
+J <- ncol(y)
+X <- matrix(1, M, 1)
+Z <- matrix(1, M*J, 1)
+X2 <- model.matrix(~lc2, dat2)
+Z2 <- NULL
+for (i in seq_len(ncol(y))) {
+    Z2 <- rbind(Z2, X2)
+}
 
-clb0 <- zi.fit(Y2, X20, Z2, distr="binom", type="CL", hessian=TRUE, N=N2)$CL
-clblc <- zi.fit(Y2, X2lc, Z2, distr="binom", type="CL", hessian=TRUE, N=N2)$CL
+# constant
+method <- "Nelder-Mead"
+o0 <- mvocc(y, X, Z, p, lambda, method=method)
+o1 <- mvocc(y, X2, Z, p, lambda, method=method)
+o2 <- mvocc(y, X, Z2, p, lambda, method=method)
+o3 <- mvocc(y, X2, Z2, p, lambda, method=method)
 
-AIC(clb0, clblc) # NALC is better
+aic <- AIC(o0,o1,o2,o3)
+aic$BIC <- BIC(o0,o1,o2,o3)$BIC
+aic$AICc <- aic$AIC + (2*aic$df^2+2*aic$df) / (nobs(o0)-aic$df-1)
+aic$dAICc <- aic$AICc - min(aic$AICc)
+aic
 
-cf <- clblc$coef
-est <- plogis(c(cf[1], cf[1]+cf[-1]))
-names(est) <- levels(dat$lc)
-est
-table(dats$lc, nn[,"x"]>0)[,2]/sum(table(dats$lc, nn[,"x"]>0)[,2])
+summary(o3)
 
-hist(nn[,"x"]/nn[,"by"], xlim=c(0,1))
-abline(v=plogis(clb0$coef), col=2)
-```
+plogis(o$par) # delta (prob of nonzero) and q (prob of use)
+delta <- plogis(o$par[1])
+q <- plogis(o$par[2])
 
-We use the cloglog link function. It is equivalent of fitting a censored Poisson
-model to binary data ($W=I(Y>0)$) because in the Poisson model $P(Y>0)=1-exp(-\lambda)$,
-and the cloglog inverse link function is $\pi(x)=P(W=1)=1-exp(-exp(\mu))$ where $\mu=X^T \beta$ is the linear predictor and $\mu=exp(\lambda)$. 
-Therefore $log(\lambda)=log(-log(1-\pi(x)))$, which are the link functions.
+# cond probs
+delta # suitable
+1-exp(-lambda) # occupied
+mean(p, na.rm=TRUE) # active
+q # used
 
-
-```{r}
-m0 <- glmer(detection ~ (1 | station), data=dat,
-    offset=dat$Offset, family=binomial("cloglog"))
-m1 <- glmer(detection ~ lc + (1 | station), data=dat,
-    offset=dat$Offset, family=binomial("cloglog"))
-g0 <- glm(detection ~ 1, data=dat,
-    offset=dat$Offset, family=binomial("cloglog"))
-g1 <- glm(detection ~ lc, data=dat,
-    offset=dat$Offset, family=binomial("cloglog"))
-AIC(m0, m1, g0, g1)
-
-backtr <- binomial("cloglog")$linkinv
-cf <- fixef(m1)
-est <- backtr(c(cf[1], cf[1]+cf[-1]))
-names(est) <- levels(dat$lc)
-est
-
-cf <- coef(g1)
-est2 <- backtr(c(cf[1], cf[1]+cf[-1]))
-names(est2) <- levels(dat$lc)
-est2
-
-mu <- drop(model.matrix(g1) %*% fixef(m1))
-re <- ranef(m1)$station[[1]]
-names(re) <- rownames(ranef(m1)$station)
-re <- re[match(dat$station, names(re))]
-
-mean(dat$detection)
-mean(fitted(m1))
-mean(backtr(mu + re + dat$Offset))
-
-mean(backtr(mu + re))
-mean(exp(mu + re + dat$Offset))
-
+# pop size at the sites
+delta*lambda * nlevels(dat$station)
+# density
+delta*lambda/dat$A[1] # inds/ha
 
 ```
+
+
