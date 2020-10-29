@@ -331,4 +331,68 @@ vcov.mvocc <- function(object, ...)
 summary.mvocc <- function(object, ...)
     printCoefmat(object$summary, signif.legend = TRUE, ...)
 
+if (FALSE) {
+
+B <- 200
+M <- 500
+J <- 30
+
+p <- 0.19 # prob availability
+#q <- 0.1 # prob use
+lambda <- 0.75
+delta <- 0.64 # ZI is 1-delta
+
+X <- matrix(1, M, 1)
+Z <- matrix(1, M*J, 1)
+
+res <- list()
+qq <- seq(0.1, 1, 0.1)
+for (i in seq_along(qq)) {
+    res[[i]] <- t(replicate(B, {
+        q <- qq[i]
+        N <- rpois(M, lambda) * rbinom(M, 1, delta)
+        W <- ifelse(N > 0, 1, 0)
+        Y <- matrix(0, M, J)
+        for (j in 1:J)
+            Y[,j] <- rbinom(M, W, p * q)
+        o <- mvocc(Y, X, Z, p, lambda)
+        plogis(o$coef)
+    }))
+}
+
+d <- do.call(rbind, lapply(seq_along(qq), function(i) {
+    rbind(
+        data.frame(
+            Metric="Bias",
+            Parameter="delta",
+            Value=res[[i]][,1]-delta,
+            Truth=qq[i]),
+        data.frame(
+            Metric="Bias",
+            Parameter="p_use",
+            Value=res[[i]][,2]-qq[i],
+            Truth=qq[i]),
+        data.frame(
+            Metric="Variance",
+            Parameter="delta",
+            Value=(res[[i]][,1]-mean(res[[i]][,1]))^2,
+            Truth=qq[i]),
+        data.frame(
+            Metric="Variance",
+            Parameter="p_use",
+            Value=(res[[i]][,2]-mean(res[[i]][,2]))^2,
+            Truth=qq[i]))
+}))
+
+library(ggplot2)
+
+p <- ggplot(d, aes(x=Truth, y=Value, group=Parameter,
+                   color=Parameter, fill=Parameter)) +
+    geom_smooth() +
+    facet_grid(cols=vars(Metric)) +
+    geom_hline(yintercept = 0, col=1, lty=2) +
+    theme_minimal()
+p
+ggsave("simul.png")
+}
 

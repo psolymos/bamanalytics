@@ -46,7 +46,7 @@ pt <- extract(pr, s, method="simple")
 rownames(pt) <- rownames(s@data)
 sum(is.na(pt))
 
-#' Check data for layers to drop: constant varoables (SD=0)
+#' Check data for layers to drop: constant variables (SD=0)
 SD <- apply(pt, 2, sd)
 ncol(pt) # 222
 sum(SD > 0) # down to 111

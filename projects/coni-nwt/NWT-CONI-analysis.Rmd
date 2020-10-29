@@ -7,13 +7,6 @@ This doc describes methods to estimate density from recognizer based detections.
 
 ## Logic
 
-Peter Solymos <solymos@ualberta.ca>
-	
-Tue, Jan 14, 1:22 PM (1 day ago)
-	
-to Elly, Samuel, Rhiannon, Erin
-Thinking a bit more (and making sure that the last step works in the program), here is the decision tree I cam up with.
-
 #### I. Outcomes at the site level:
 
 1a) a site is unsuitable: we observe 0
@@ -37,6 +30,25 @@ Levels 1 and 2 is of interest, this describes the population and we have some id
 (The 5th layer is detectability but we use our EDR estimate to standardize for effective area and ignore this component in the modeling otherwise.)
 
 The only thing that bothers me is depending on the spacing of the sites and home range sizes, we are estimating the population size or the superpopulation size (with double counting the same individuals if sites are too close). Estimates of home range sizes might help thin the data to avoid double counting or at least to conduct a sensitivity analysis.
+
+
+```{r mermaid}
+library(DiagrammeR)
+mermaid("
+graph LR
+A((Site is))-->B[Unsuitable: 0]
+A-->C[Suitable]
+C-->D[Unoccupied: 0]
+C-->E[Occupied]
+E-->F[Inactive: 0]
+E-->G[Active]
+G-->H[Unused: 0]
+G-->I[Used]
+I-->J[Undetected: 0]
+I-->K[Detected: >0]
+
+")
+```
 
 
 ```{r preamble,include=FALSE}
@@ -96,6 +108,7 @@ Here's the distribution of the results:
 - 2 CONI: 11 sites
 - 3 CONI: 2 sites
 - 4 CONI: 1 site
+
 The one thing to keep in mind is that these are almost entirely
 from the Alberta fire site. I suspect the densities will be lower at the
 other province/treatment combos.
@@ -214,10 +227,12 @@ J <- ncol(y)
 X <- matrix(1, M, 1)
 Z <- matrix(1, M*J, 1)
 X2 <- model.matrix(~lc2, dat2)
+X4 <- model.matrix(~lc, dat2)
 Z2 <- NULL
 for (i in seq_len(ncol(y))) {
     Z2 <- rbind(Z2, X2)
 }
+Aeff <- dat$A[1]
 
 # constant
 method <- "Nelder-Mead"
@@ -225,18 +240,19 @@ o0 <- mvocc(y, X, Z, p, lambda, method=method)
 o1 <- mvocc(y, X2, Z, p, lambda, method=method)
 o2 <- mvocc(y, X, Z2, p, lambda, method=method)
 o3 <- mvocc(y, X2, Z2, p, lambda, method=method)
+o4 <- mvocc(y, X4, Z, p, lambda, method=method)
 
-aic <- AIC(o0,o1,o2,o3)
-aic$BIC <- BIC(o0,o1,o2,o3)$BIC
+aic <- AIC(o0,o1,o2,o3,o4)
+aic$BIC <- BIC(o0,o1,o2,o3,o4)$BIC
 aic$AICc <- aic$AIC + (2*aic$df^2+2*aic$df) / (nobs(o0)-aic$df-1)
 aic$dAICc <- aic$AICc - min(aic$AICc)
 aic
 
 summary(o3)
 
-plogis(o$par) # delta (prob of nonzero) and q (prob of use)
-delta <- plogis(o$par[1])
-q <- plogis(o$par[2])
+plogis(o0$coef) # delta (prob of nonzero) and q (prob of use)
+delta <- plogis(o0$coef[1])
+q <- plogis(o0$coef[2])
 
 # cond probs
 delta # suitable
@@ -247,8 +263,10 @@ q # used
 # pop size at the sites
 delta*lambda * nlevels(dat$station)
 # density
-delta*lambda/dat$A[1] # inds/ha
+delta*lambda / Aeff # inds/ha
 
+structure(plogis(o4$coef[1] + c(0, o4$coef[2:4])), names=levels(dat2$lc))
+plogis(o4$coef[5])
 ```
 
 
