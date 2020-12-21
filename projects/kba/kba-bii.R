@@ -150,5 +150,21 @@ mean(exp(b[2] * df$H))
 #' and display that on a map. This should take into account of how
 #' effectively footprint is influencing density, which is how
 #' we define the opposite of intact.
+#'
+#' The following index gives the standardized difference in the 0-1 range.
+#' Need to truncate at the q'th quantile ($Q$) if we want to standardize
+#' by $Q$ to avoid higher than 0 values. If $Q$ is the maximum,
+#' there is no need for truncation, but if we want to make it robust to
+#' outliers by e.g. taking the 99th quantile we need to truncate the
+#' values:
+Q <- quantile(df$D, 0.99)
+df$delta <- (pmin(Q, df$D) - df$Dadj)
+df$BI2 <- 1 + (df$D - df$Dadj) / Q
+df$BI2[df$BI2 > 1] <- 1
+df$BI2[df$BI2 < 0] <- 0
+summary(df$BI2)
+ggplot(df, aes(x, y, z=BI2, fill = BI2)) +
+    geom_raster() +
+    Theme
 
 
