@@ -13,7 +13,7 @@
 ### Preliminaries
 
 ## Define root folder where data are stored
-ROOT <- "c:/bam/May2015"
+ROOT <- "d:/bam/May2015"
 ROOT2 <- "~/Dropbox/bam/duration_ms/revisionOct2015"
 
 B <- 1000
@@ -28,7 +28,7 @@ library(MASS)
 source("~/repos/bamanalytics/R/dataprocessing_functions.R")
 
 ## Load preprocesses data
-load(file.path(ROOT, "out", "new_offset_data_package_2015-10-08.Rdata"))
+load(file.path(ROOT, "out", "new_offset_data_package_2017-02-13-all-species.Rdata"))
 
 ### Removal sampling
 
@@ -87,8 +87,8 @@ PC <- names(nPC)
 
 ## define pcode, and excl (excl=T to exclude pcode, excl=F to use only pcode)
 ## ff_id is the subset of ff list to be used
-fitDurFun3 <- function(spp, fit=TRUE, type=c("rem","mix"), 
-pcode=NULL, excl=TRUE, rnd=FALSE) 
+fitDurFun3 <- function(spp, fit=TRUE, type=c("rem","mix"),
+pcode=NULL, excl=TRUE, rnd=FALSE)
 {
     ff <- list(
         "0"=~ 1,
@@ -503,7 +503,7 @@ logphi_fun <- function(X, c, v, level=0.95) {
 }
 waic_fun <- function(z) {
     dAIC <- z - min(z)
-    w <- exp(-dAIC/2) 
+    w <- exp(-dAIC/2)
     w/sum(w)
 }
 
@@ -645,7 +645,7 @@ if (all(OK)) {
 
     tab[[pc]] <- data.frame(spp=spp,
         pc=pc,
-        n99=n99, n1=n1, det99=det99, det1=det1, 
+        n99=n99, n1=n1, det99=det99, det1=det1,
         best99=best_99, best1=best_1, type99=type_99_best, type1=type_1_best,
         w1_m0=w0_1_m0, w1_mb=w0_1_mb, w1=w0_1, w99_m0=w0_99_m0, w99_mb=w0_99_mb, w99=w0_99,
         OK0=mean(OK0), OKbest0=mean(OKbest0))
@@ -715,23 +715,23 @@ if (!isRND)
     load(file.path(ROOT2, "xval-summary-4.Rdata"), envir=e)
 xvres <- c(xvres, e$xvres)
 
-c1 <- c("pr_1_m0.q3.mu", "pr_1_m0.q3.var", 
-    "pr_1_m0.q5.mu", "pr_1_m0.q5.var", 
-    "pr_1_m0.q10.mu", "pr_1_m0.q10.var", 
-    "pr_1_mb.q3.mu", "pr_1_mb.q3.var", 
-    "pr_1_mb.q5.mu", "pr_1_mb.q5.var", 
-    "pr_1_mb.q10.mu", "pr_1_mb.q10.var", 
-    "pr_1_best.q3.mu", "pr_1_best.q3.var", 
-    "pr_1_best.q5.mu", "pr_1_best.q5.var", 
-    "pr_1_best.q10.mu", "pr_1_best.q10.var") 
-c99 <- c("pr_99_m0.q3.mu", "pr_99_m0.q3.var", 
-    "pr_99_m0.q5.mu", "pr_99_m0.q5.var", 
-    "pr_99_m0.q10.mu", "pr_99_m0.q10.var", 
-    "pr_99_mb.q3.mu", "pr_99_mb.q3.var", 
-    "pr_99_mb.q5.mu", "pr_99_mb.q5.var", 
-    "pr_99_mb.q10.mu", "pr_99_mb.q10.var", 
-    "pr_99_best.q3.mu", "pr_99_best.q3.var", 
-    "pr_99_best.q5.mu", "pr_99_best.q5.var", 
+c1 <- c("pr_1_m0.q3.mu", "pr_1_m0.q3.var",
+    "pr_1_m0.q5.mu", "pr_1_m0.q5.var",
+    "pr_1_m0.q10.mu", "pr_1_m0.q10.var",
+    "pr_1_mb.q3.mu", "pr_1_mb.q3.var",
+    "pr_1_mb.q5.mu", "pr_1_mb.q5.var",
+    "pr_1_mb.q10.mu", "pr_1_mb.q10.var",
+    "pr_1_best.q3.mu", "pr_1_best.q3.var",
+    "pr_1_best.q5.mu", "pr_1_best.q5.var",
+    "pr_1_best.q10.mu", "pr_1_best.q10.var")
+c99 <- c("pr_99_m0.q3.mu", "pr_99_m0.q3.var",
+    "pr_99_m0.q5.mu", "pr_99_m0.q5.var",
+    "pr_99_m0.q10.mu", "pr_99_m0.q10.var",
+    "pr_99_mb.q3.mu", "pr_99_mb.q3.var",
+    "pr_99_mb.q5.mu", "pr_99_mb.q5.var",
+    "pr_99_mb.q10.mu", "pr_99_mb.q10.var",
+    "pr_99_best.q3.mu", "pr_99_best.q3.var",
+    "pr_99_best.q5.mu", "pr_99_best.q5.var",
     "pr_99_best.q10.mu", "pr_99_best.q10.var")
 mc1 <- matrix(c1, ncol=2, byrow=TRUE)
 mc99 <- matrix(c99, ncol=2, byrow=TRUE)
@@ -750,10 +750,10 @@ aa <- t(sapply(1:nrow(x), compare_distr2, j=1, x=x))
 j <- 8
 xv <- list()
 for (spp in names(xvres)) {
-    
+
     compare_distr2(xvres[[spp]], 1, 0.9)
-    
-    
+
+
 }
 
 spp <- "OVEN"
