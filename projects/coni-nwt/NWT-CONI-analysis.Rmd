@@ -91,6 +91,16 @@ levs2 <- c("1"="ConTmp",
 dat$lc <- dat$nalc
 levels(dat$lc) <- levs2[levels(dat$lc)]
 
+## study areas
+dat$latc <- cut(dat$lat, c(0, 56, 60, 90))
+dat$longc <- cut(dat$long, c(-180, -117, -114, 0))
+dat$prov <- as.factor(ifelse(dat$longc == "(-114,0]", "AB", "NT"))
+dat$treat <- factor("NAT", c("FR", "NAT"))
+dat$treat[dat$prov == "NT" & dat$longc == "(-117,-114]"] <- "FR"
+dat$treat[dat$prov == "AB" & dat$latc == "(56,60]"] <- "FR"
+dat$sa <- as.factor(paste0(dat$prov, "-", dat$treat))
+table(dat$sa)
+plot(lat ~ long, dat, col=as.integer(dat$sa), pch=19)
 ```
 
 ## True (latent) occupancy and abundance
@@ -178,7 +188,7 @@ ic  # Poisson is better supported
 (lambda <- exp(cl0p$coef))
 ## P(N=0) based on Poisson, which is the suitable but unoccupied probability
 exp(-lambda)
-## suitable and unoccupied
+## suitable and occupied
 1-exp(-lambda)
 
 cnt <- 0:(max(Y1)+1)
@@ -206,6 +216,42 @@ tmp <- barplot(tab[,1], ylim=c(0, 0.5))
 lines(tmp, tab[,2], type="b")
 ```
 
+
+Now we have individuals counted at each study areas:
+
+```{r}
+abu <- read.csv("~/GoogleWork/collaborations/coni-nwt/data/AbudanceEstimation.csv")
+abu$sa <- as.factor(abu$sa)
+table(abu$sa)
+
+Y1 <- abu$abundance
+X0 <- data.matrix(rep(1, length(Y1)))
+Z0 <- X0
+X1 <- model.matrix(~ sa, abu)
+
+cl0p <- zi.fit(Y1, X0, Z0, distr="pois", type="CL", hessian=TRUE)$CL
+cl1p <- zi.fit(Y1, X1, Z0, distr="pois", type="CL", hessian=TRUE)$CL
+cl0nb <- zi.fit(Y1, X0, Z0, distr="negbin", type="CL", hessian=TRUE)$CL
+cl1nb <- zi.fit(Y1, X1, Z0, distr="negbin", type="CL", hessian=TRUE)$CL
+
+ic <- AIC(cl0p, cl1p, cl0nb, cl1nb)
+ic$BIC <- AIC(cl0p, cl1p, cl0nb, cl1nb, k=log(length(Y1)))$AIC
+ic$AICc <- ic$AIC + (2*ic$df^2+2*ic$df) / (length(Y1)-ic$df-1)
+ic <- ic[order(ic$AICc),]
+ic
+
+
+## mean of the poisson (including 0 counts and offsets too)
+Xp <- X1[!duplicated(abu$sa),]
+rownames(Xp) <- abu$sa[!duplicated(abu$sa)]
+
+round(lambda <- exp(drop(Xp %*% cl1p$coef)), 4)
+## P(N=0) based on Poisson, which is the suitable but unoccupied probability
+round(exp(-lambda), 4)
+## suitable and occupied
+round(1-exp(-lambda), 4)
+```
+
 ```{r}
 y <- matrix(NA, nlevels(dat$station), 30)
 rownames(y) <- levels(dat$station)
@@ -229,30 +275,75 @@ Z <- matrix(1, M*J, 1)
 X2 <- model.matrix(~lc2, dat2)
 X4 <- model.matrix(~lc, dat2)
 Z2 <- NULL
+Z4 <- NULL
 for (i in seq_len(ncol(y))) {
     Z2 <- rbind(Z2, X2)
+    Z4 <- rbind(Z4, X4)
 }
 Aeff <- dat$A[1]
 
-# constant
-method <- "Nelder-Mead"
-o0 <- mvocc(y, X, Z, p, lambda, method=method)
-o1 <- mvocc(y, X2, Z, p, lambda, method=method)
-o2 <- mvocc(y, X, Z2, p, lambda, method=method)
-o3 <- mvocc(y, X2, Z2, p, lambda, method=method)
-o4 <- mvocc(y, X4, Z, p, lambda, method=method)
+## lambda by study area
+#lamvec <- lambda[1]
+lamvec <- lambda[match(dat2$sa, names(lambda))]
 
-aic <- AIC(o0,o1,o2,o3,o4)
-aic$BIC <- BIC(o0,o1,o2,o3,o4)$BIC
-aic$AICc <- aic$AIC + (2*aic$df^2+2*aic$df) / (nobs(o0)-aic$df-1)
+# constant
+#method <- "Nelder-Mead"
+method <- "DE"
+o00 <- mvocc(y, X, Z, p, lamvec, method=method)
+o20 <- mvocc(y, X2, Z, p, lamvec, method=method)
+o02 <- mvocc(y, X, Z2, p, lamvec, method=method)
+o22 <- mvocc(y, X2, Z2, p, lamvec, method=method)
+o40 <- mvocc(y, X4, Z, p, lamvec, method=method)
+o04 <- mvocc(y, X, Z4, p, lamvec, method=method)
+o44 <- mvocc(y, X4, Z4, p, lamvec, method=method)
+o42 <- mvocc(y, X4, Z2, p, lamvec, method=method)
+o24 <- mvocc(y, X2, Z4, p, lamvec, method=method)
+
+aic <- AIC(o00,o20,o02,o22,o40,o04,o44,o42,o24)
+aic$BIC <- BIC(o00,o20,o02,o22,o40,o04,o44,o42,o24)$BIC
+aic$AICc <- aic$AIC + (2*aic$df^2+2*aic$df) / (nobs(o00)-aic$df-1)
 aic$dAICc <- aic$AICc - min(aic$AICc)
+aic <- aic[order(aic$dAICc),]
 aic
 
-summary(o3)
+summary(o22)
+o22$coef
+delta <- plogis(drop(X2 %*% o22$coef[1:2]))
+q <- plogis(drop(X2 %*% o22$coef[3:4]))
+summary(delta)
+summary(q)
 
-plogis(o0$coef) # delta (prob of nonzero) and q (prob of use)
-delta <- plogis(o0$coef[1])
-q <- plogis(o0$coef[2])
+# cond probs
+summary(delta) # suitable
+delta[!duplicated(dat2$sa)]
+summary(1-exp(-lambda)) # occupied
+summary(p) # active
+summary(q) # used
+
+# pop size at the sites
+s <- mefa4::sum_by(delta*lamvec, dat2$sa)
+round(s[,"x"], 4)
+# density
+round(s[,"x"]/Aeff, 4)  # inds/ha
+
+mean(delta*lamvec / Aeff) # inds/ha
+
+V <- delta*lamvec / Aeff
+c(All=round(mean(V), 4),
+"AB-FR"=round(mean(V[dat2$sa=="AB-FR"]), 4),
+"AB-NAT"=round(mean(V[dat2$sa=="AB-NAT"]), 4),
+"NT-FR"=round(mean(V[dat2$sa=="NT-FR"]), 4),
+"NT-NAT"=round(mean(V[dat2$sa=="NT-NAT"]), 4))
+
+
+# how many ha to support 1 individual
+1/(dhat * lambda / Aeff)
+
+## --
+
+plogis(o00$coef) # delta (prob of nonzero) and q (prob of use)
+delta <- plogis(o00$coef[1])
+q <- plogis(o00$coef[2])
 
 # cond probs
 delta # suitable
@@ -265,8 +356,17 @@ delta*lambda * nlevels(dat$station)
 # density
 delta*lambda / Aeff # inds/ha
 
-structure(plogis(o4$coef[1] + c(0, o4$coef[2:4])), names=levels(dat2$lc))
-plogis(o4$coef[5])
+lambda / Aeff # inds/ha
+
+dhat <- structure(plogis(o42$coef[1] + c(0, o42$coef[2:4])), names=levels(dat2$lc))
+puhat <- structure(plogis(o42$coef[5] + c(0, o42$coef[6])), names=levels(dat2$lc2))
+
+mean(dhat[as.integer(dat2$lc)] * lambda)
+
+# how many ha to support 1 individual
+1/(dhat * lambda / Aeff)
+
+## note: lambda represents AB fire site: how to generalize to other sites?
 ```
 
 

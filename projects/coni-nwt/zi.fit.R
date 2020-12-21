@@ -2,6 +2,7 @@
 ## this uses 0 if not specified
 ## type can be several of c("ML", "CL", "PL")
 ## fit can be a zi.fit (list) or numeric vector of logd0
+## CL uses X, PL uses Z
 zi.fit <-
 function(Y, X, Z, offsetx, offsetz, weights,
 distr=c("pois","negbin","binom","lognorm","beta"), linkx, linkz="logit",
